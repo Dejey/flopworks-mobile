@@ -257,6 +257,7 @@ canvas#c{touch-action:none}
 #mAlt.on{background:#7a5a12;border-color:#ffd24a;color:#fff}
 #mCancel{border-color:#ff8a8a!important;color:#ffd0d0!important}
 #mTurn{position:fixed;left:50%;top:100px;transform:translateX(-50%);z-index:7;background:rgba(18,26,48,.94);border:1px solid #ffd24a;color:#ffe9a8;border-radius:14px;font:inherit;font-size:12.5px;padding:8px 14px;max-width:92vw;text-align:center}
+#info svg{display:inline-block!important;vertical-align:-3px;width:26px;height:15px}
 </style>
 </head>
 <body>
@@ -5766,7 +5767,7 @@ requestAnimationFrame(loop);
 window.__flop={get bodies(){return bodies;},get links(){return links;},get walls(){return walls;},get fx(){return fx;},tick(n=1){for(let i=0;i<n;i++)step();render(1);},spawn:(id,x,y,m)=>makeRagdoll(id,x,y,m),setMode,applyMode,pickTool,select,mouse,keys,TOOLS,POWERS,CHARS,MODES,explode,boom,lightning,freeze,ignite,revive,scaleBody,makeCrate,makeBall,makeBomb,makeShot,makeBalloon,special,
   press(c){pressed[c]=true;},bruiseLevel,setPaste,destroyPart,partHit,setGore,get stains(){return stains;},get parts(){return parts;},setRealFall,setTeam,sameTeam,splitTeams,TEAMS,setReactOn,witness,react,loadMap,MAPS,get map(){return curMap;},setZoom,get zoom(){return zoom;},get cam(){return[camX,camY];},camStep,setFlow,get flow(){return flow;},fluid:{add:fluidAdd,get n(){return LN;},get count(){return liqCount;},get X(){return LX;},get Y(){return LY;},get VX(){return LVX;},get VY(){return LVY;},get T(){return LTYPE;},get RHO(){return LRHO;},get cap(){return FMAX;},near:fluidCount,erase:fluidErase,freeze:fluidFreeze,block(t,x0,y0,nx,ny){for(let j=0;j<ny;j++)for(let i=0;i<nx;i++)fluidAdd(t,x0+(i+(j&1)*.5)*FD0,y0+j*FD0*.866,0,0);}},get pads(){return pads;},get fans(){return fans;},get portals(){return portals;},makeSaw,makeMine,makeMeteor,setSocial,get quake(){return quake;},get raining(){return raining;},updateVitals,vitalsTarget,effectsOf,setShowVit,addPatch,get flames(){return flames;},get fires(){return fires;},get scorch(){return scorch;},stats:()=>({mayhem,kos,frame,n:bodies.length}),rags:()=>bodies.filter(b=>b.kind==='ragdoll')};
 </script>
-<div id="mChips"><button id="mAlt" class="mhide" type="button">⇄ Alt: off</button><button id="mCancel" class="mhide" type="button">✕ Cancel</button><button id="mFitMap" class="mhide" type="button">↻ Fit the map to the screen (starts it again)</button></div>
+<div id="mChips"><button id="mAlt" class="mhide" type="button">⇄ Alt: off</button><button id="mGive" class="mhide" type="button">🤲 Give it to a dummy</button><button id="mCancel" class="mhide" type="button">✕ Cancel</button></div>
 <div id="mPad" class="mhide">
   <div id="mStick"><b class="u">JUMP</b><b class="d">CROUCH</b><i></i></div>
   <button id="mLeave" type="button">✕ Stop driving</button>
@@ -5800,13 +5801,15 @@ function anyOpen(){return DR.tools.classList.contains('open')||DR.powers.classLi
 function drawer(name,on){for(const k in DR){const o=k===name?(on===undefined?!DR[k].classList.contains('open'):on):false;DR[k].classList.toggle('open',o);}
   bTools.classList.toggle('on',DR.tools.classList.contains('open'));bPow.classList.toggle('on',DR.powers.classList.contains('open'));bChars.classList.toggle('on',DR.bottom.classList.contains('open'));}
 bTools.onclick=()=>{audioKick();drawer('tools');};bPow.onclick=()=>{audioKick();drawer('powers');};bChars.onclick=()=>{audioKick();drawer('bottom');};
-function syncCur(){const isP=!!POWERS[curId]&&cur===POWERS[curId];bTools.textContent=isP?'🧰':(cur.icon||'🧰');bPow.textContent=isP?(cur.icon||'✨'):'✨';   /* the drawer buttons show what is in your hand */
+function syncCur(){const isP=!!POWERS[curId]&&cur===POWERS[curId];bTools.innerHTML=isP?'🧰':(cur.icon||'🧰');bPow.innerHTML=isP?(cur.icon||'✨'):'✨';   /* the drawer buttons show what is in your hand. As a picture, not as text: a gun's icon is a small drawing (svg), and written out as text it filled the bar with its numbers */
   let alt=LIQT[curId]!==undefined;if(!alt)for(const k of ['down','step','paint','move'])if(typeof cur[k]==='function'&&/mouse\.alt/.test(String(cur[k]))){alt=true;break;}
-  $('mAlt').classList.toggle('mhide',!alt);if(!alt)setAlt(false);}
+  $('mAlt').classList.toggle('mhide',!alt);if(!alt)setAlt(false);$('mGive').classList.toggle('mhide',!GUNS[curId]);}   /* (a gun in your hand: the Give button does what Backspace does on a keyboard) */
 function setAlt(v){MOBV.alt=!!v;$('mAlt').classList.toggle('on',MOBV.alt);$('mAlt').textContent='⇄ Alt: '+(MOBV.alt?'on':'off');}
 $('mAlt').onclick=()=>{setAlt(!MOBV.alt);setInfo(MOBV.alt?'<b>Alt is on</b> — this tool now does its other job (erase, shrink, the other way).':'<b>Alt is off.</b>');};
 {const pt=window.pickTool;window.pickTool=function(id){const r=pt.apply(this,arguments),t=TOOLS[id]||POWERS[id];if(t&&!t.toggle){drawer(null);setAlt(false);}syncCur();return r;};}
 {const am=window.applyMode;window.applyMode=function(m){const r=am.apply(this,arguments);if(m==='possess')drawer(null);return r;};}
+$('mGive').onclick=()=>{audioKick();giveGun();};
+{const si=window.setInfo;window.setInfo=function(h){return si.call(this,String(h).replace(/Press Backspace on it again/g,'Tap 🤲 Give again').replace(/press <b>Backspace<\/b>/g,'tap <b>🤲 Give</b>').replace(/Backspace/g,'The 🤲 Give button'));};}   /* the top line talks about the button, not the key */
 $('mCancel').onclick=()=>{ropeA=null;wallA=null;aim=null;fanA=null;};
 
 /* ---- the camera: two fingers ---- */
@@ -5828,15 +5831,31 @@ bFull.onclick=()=>{audioKick();const d=document,el=d.documentElement;
   if(d.fullscreenElement||d.webkitFullscreenElement){(d.exitFullscreen||d.webkitExitFullscreen).call(d);return;}
   const rq=el.requestFullscreen||el.webkitRequestFullscreen;if(!rq){setInfo('This browser has no full screen button. Add the game to your home screen instead: it opens without the address bar.');return;}
   Promise.resolve(rq.call(el)).then(()=>{try{screen.orientation.lock('landscape').catch(()=>{});}catch(_){}}).catch(()=>{});};
-/* ---- the map is the shape of the screen. Turn the phone and it no longer is: if nothing has been done to the scene yet it is simply built again for the new shape; otherwise a chip offers to (it starts the map again, so it is the player's call) ---- */
-let builtLand=innerWidth>=innerHeight,dirty=false,lastMin=minZoom();
-function fitChip(){$('mFitMap').classList.toggle('mhide',(innerWidth>=innerHeight)===builtLand);}
-{const lm=window.loadMap;window.loadMap=function(){const r=lm.apply(this,arguments);builtLand=innerWidth>=innerHeight;dirty=false;lastMin=minZoom();fitChip();return r;};
+/* ---- the map is the shape of the screen, and stays so: turn the phone and it changes size at once (the user asked). A scene nobody has touched yet is simply built again for the new shape, which lays it out best; one that has been played in keeps everything in it and only the map round it changes (worldResize) ---- */
+let dirty=false,lastMin=minZoom(),fitT=0;
+{const lm=window.loadMap;window.loadMap=function(){const r=lm.apply(this,arguments);dirty=false;lastMin=minZoom();return r;};
  const sc=window.spawnChar;window.spawnChar=function(){dirty=true;return sc.apply(this,arguments);};}
-$('mFitMap').onclick=()=>{audioKick();loadMap(curMap);};
-addEventListener('resize',()=>{const land=innerWidth>=innerHeight;
-  if(land!==builtLand&&(!dirty||$('help').style.display!=='none')){loadMap(curMap);turnNote();return;}
-  const mz=minZoom();if(zoom<mz||Math.abs(zoom-lastMin)<.02)zoom=mz;lastMin=mz;clampCam();mouseWorld();fitChip();turnNote();});   /* (it was showing the whole map: it still does) */
+function wantWorld(){if(!MAPS[curMap]||MAPS[curMap].custom)return null;const vw=VR-VL,vh=VB+14-VT;   /* the size the map should be for this screen (a Custom map keeps the size its sliders give it) */
+  if(camMapZ){const z=Math.min(5,camMapZ),cw=Math.round(vw/z),ch=Math.round(vh/z-14);if(cw>=200&&ch>=140)return [cw,ch];}
+  return MOBV.world(vw,vh);}
+/* the map becomes w x h where it stands: the floor stays under everyone's feet and the scene stays in the middle. What is left outside is moved back in (bodies) or dropped (walls, liquid, stains), as 'Map the size of the camera' does */
+function worldResize(w,h){const ow=XR-XL,oh=FLOOR-CEIL;if(Math.abs(w-ow)<2&&Math.abs(h-oh)<2)return;const dx=Math.round((w-ow)/2),dy=h-oh,X1=XL+w,Y1=CEIL+h;
+  if(mouse.down){mouse.down=false;if(cur.up)cur.up();}
+  for(const b of bodies){let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const p of b.pts){p.x+=dx;p.px+=dx;p.lx+=dx;p.rx+=dx;p.y+=dy;p.py+=dy;p.ly+=dy;p.ry+=dy;x0=Math.min(x0,p.x-p.r);x1=Math.max(x1,p.x+p.r);y0=Math.min(y0,p.y-p.r);y1=Math.max(y1,p.y+p.r);}
+    const ox=x0<XL+1?XL+1-x0:x1>X1-1?X1-1-x1:0,oy=y1>Y1-1?Y1-1-y1:y0<CEIL+1?CEIL+1-y0:0;if(ox||oy)for(const p of b.pts){p.x+=ox;p.px+=ox;p.lx+=ox;p.rx+=ox;p.y+=oy;p.py+=oy;p.ly+=oy;p.ry+=oy;}
+    if(b.kind==='ragdoll'){b.planted=false;b.react=null;b.hitGuard=40;}}
+  for(const wl of walls){wl.x1+=dx;wl.x2+=dx;wl.minx+=dx;wl.maxx+=dx;wl.y1+=dy;wl.y2+=dy;wl.miny+=dy;wl.maxy+=dy;}
+  for(let i=0;i<LN;i++){LX[i]+=dx;LPX[i]+=dx;LY[i]+=dy;LPY[i]+=dy;if(LX[i]<XL||LX[i]>X1||LY[i]>Y1+1||LY[i]<CEIL)LDEAD[i]=1;}   /* (a drop lying on the floor sits exactly on the limit: the liquid's own step keeps it inside, so only what is really outside goes) */
+  for(const list of [pads,fans,portals,gizmos,fires,scorch,stains,burns]){for(const o of list){o.x+=dx;if(o.y!==undefined)o.y+=dy;if(o.rx!==undefined){o.rx+=dx;o.px+=dx;o.ry+=dy;o.py+=dy;}}
+    for(let i=list.length-1;i>=0;i--){const o=list[i];if(o.x<XL||o.x>X1||(o.y!==undefined&&(o.y<CEIL||o.y>Y1+6)))list.splice(i,1);else if(o.y!==undefined&&(list===pads||list===gizmos)&&o.y>Y1)o.y=Y1;}}
+  for(let i=walls.length-1;i>=0;i--){const wl=walls[i];if(wl.maxx<XL||wl.minx>X1||wl.maxy<CEIL||wl.miny>Y1)walls.splice(i,1);}
+  fx=[];parts=[];texts=[];flames=[];fireworks=[];geysers=[];bullets.length=0;ambulances.length=0;for(const b of bodies)if(b.medic)b.medic=null;
+  if(grab){grab.b.held=false;grab=null;}if(tele){tele.b.held=false;tele=null;}ropeA=null;wallA=null;aim=null;fanA=null;
+  worldSize=[w,h];fitWorld();bgKey='';zoom=minZoom();camX=(XL+XR)/2;camY=(CEIL+FLOOR+14)/2;clampCam();mouseWorld();}
+function fitNow(){const t=wantWorld();if(!t)return;const cw=XR-XL,ch=FLOOR-CEIL;if(Math.abs(Math.log((t[0]/(t[1]+14))/(cw/(ch+14))))<.1)return;   /* still near enough the shape of the screen */
+  if(!dirty||$('help').style.display!=='none')loadMap(curMap);else worldResize(t[0],t[1]);lastMin=minZoom();}
+addEventListener('resize',()=>{const mz=minZoom();if(zoom<mz||Math.abs(zoom-lastMin)<.02)zoom=mz;lastMin=mz;clampCam();mouseWorld();turnNote();   /* (it was showing the whole map: it still does) */
+  clearTimeout(fitT);fitT=setTimeout(fitNow,90);});   /* a turn sends several of these in a row: the map is fitted once they stop */
 
 /* ---- Possess: the stick and the buttons ---- */
 const stick=$('mStick'),knob=stick.querySelector('i');let stickId=null;
@@ -5879,7 +5898,7 @@ let turnHid=false;function turnNote(){$('mTurn').classList.toggle('mhide',turnHi
 $('mTurn').onclick=()=>{turnHid=true;turnNote();};$('bStart').addEventListener('click',()=>setTimeout(()=>{turnHid=true;turnNote();},9000));   /* the note goes away by itself after a few seconds of play */$('bStart').addEventListener('click',()=>setTimeout(turnNote,50));
 addEventListener('contextmenu',e=>{if(e.target===cv||(e.target.closest&&e.target.closest('#mPad,#mChips,#top')))e.preventDefault();});
 syncCur();turnNote();window.MOBREADY=true;   /* the game and the touch layer both got all the way here: no start-up error box */
-window.__flopMobile={drawer,anyOpen,setAlt,setPerf,stickSet,stickEnd,touches,get gest(){return gest;}};
+window.__flopMobile={fitNow,worldResize,wantWorld,get dirty(){return dirty;},drawer,anyOpen,setAlt,setPerf,stickSet,stickEnd,touches,get gest(){return gest;}};
 })();
 </script>
 </body>
