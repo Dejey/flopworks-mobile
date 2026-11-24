@@ -781,6 +781,14 @@ function wallSplat(x,y,col,size){
   for(let i=0,m=5+((size/2)|0);i<m;i++){const a=rnd(0,6.283),r=size*rnd(.8,2.3);S.drops.push([Math.cos(a)*r,Math.sin(a)*r*.75,rnd(.8,2.4)]);}
   for(let i=0,m=1+((size/9)|0);i<m;i++)S.drips.push([rnd(-size*.5,size*.5),rnd(size*.9,size*3.4),rnd(1.4,2.8),rnd(.06,.16)]);
   splats.push(S);}
+/* water on the back wall washes the blood off it. A splat with water over its middle fades fast (and its blood goes into that water); one with water only over its drips fades slowly.
+   The splats already painted into the wall's picture are rubbed out wherever a drop of water is. Looked at every few frames. */
+function splatWash(){if(!liqCount[WATER]||(!splats.length&&!splatBakeN))return;let gone=false;
+  for(const S of splats){if(S.a<=0){gone=true;continue;}let R=S.rad;if(!R){R=14;for(const q of S.blobs)R=Math.max(R,hyp(q[0],q[1])+q[2]);S.rad=R;}
+    const m=fluidCount(S.x,S.y,R+6,WATER);if(m>=2){S.a-=.07*Math.min(1,m/5);bloodInto(S.x,S.y,S.col,.12);}else if(fluidCount(S.x,S.y+R+20,18,WATER)>=3)S.a-=.02;if(S.a<=0)gone=true;}
+  if(gone)splats=splats.filter(S=>S.a>0);
+  if(splatBake&&splatBakeN&&frame%12===3&&splatBake.x0===XL&&splatBake.y0===CEIL&&splatBake.w0===XR-XL&&splatBake.h0===FLOOR-CEIL){const g=splatBake.getContext('2d'),k=splatBake.k;let any=false;
+    g.setTransform(k,0,0,k,-XL*k,-CEIL*k);g.globalCompositeOperation='destination-out';g.globalAlpha=.45;g.beginPath();for(let i=0;i<LN;i++){if(LTYPE[i]!==WATER||LDEAD[i])continue;g.moveTo(LX[i]+9,LY[i]);g.arc(LX[i],LY[i],9,0,6.3);any=true;}if(any)g.fill();g.globalCompositeOperation='source-over';g.globalAlpha=1;}}
 let splatLife=0;                                               // seconds a splat on the wall lasts; 0 = it stays until the scene is cleared (the Settings choice)
 function setSplatLife(v){splatLife=[0,10,30,60,180].includes(+v)?+v:0;const e=$('setSplat');if(e)e.value=String(splatLife);try{localStorage.setItem('flopworksM.splat',String(splatLife));}catch(e){}}
 /* Forever: the picture of the back wall that settled blood is painted into (splatBake; splatBakeN: how many splats are in it; splatBakeA: how much of it rain has left). It covers the whole arena and is made again when the arena changes size. */
@@ -3520,11 +3528,15 @@ function fatStep(b,k){const P=b.pts,S=b.sticks,m=(v,f)=>k>0?v*f:v/f;S[SP].w=m(S[
   for(const [p,f] of [[P[HIP],1.3],[P[NECK],1.15]]){p.m=m(p.m,f);p.im=1/p.m;}}
 function fatten(b){if(b.kind!=='ragdoll'||(b.fat||0)>=FATMAX)return false;b.fat=(b.fat||0)+1;fatStep(b,1);return true;}
 function unfat(b){while(b.fat>0){fatStep(b,-1);b.fat--;}}
+/* what the Food tool drops. e: its picture (the burger keeps its drawn one). c: the colours of its crumbs. foodPick: the kind the player has chosen, or -1 for a different one every time */
+const FOODS=[{n:'Burger',e:'🍔',c:['#c9833a','#7a4a22','#7dff9a','#ffd86a']},{n:'Chicken',e:'🍗',c:['#c98a3a','#e9c79a','#8a5a2a']},{n:'Cheese',e:'🧀',c:['#ffd24a','#ffe98a','#e8a82a']},{n:'Hot dog',e:'🌭',c:['#d8643a','#e9c79a','#ffd24a']},
+  {n:'Fries',e:'🍟',c:['#ffd24a','#e8b23a','#d8343a']},{n:'Donut',e:'🍩',c:['#ff8ac0','#c9833a','#fff3b0']},{n:'Taco',e:'🌮',c:['#e8b23a','#5fc46a','#d8343a']},{n:'Cake',e:'🍰',c:['#fff3e0','#ff8a9a','#ffd9a0']}];
+let foodPick=-1;function foodOf(G){return FOODS[G.food|0]||FOODS[0];}
 function foodThink(b,I){
   if(!gizmos.length||b.aid||b.cpr||b.aidBy||b.medic||b.broc||b.callT>0||b===possessed||!(b.mode==='stand'||isWalk(b)||b.mode==='dance'||(b.mode==='zombie'&&!b.ai.prey))||b.balance<.8||b.react||b.fearOf||b.grudge||b.held||b.swim||b.burn>0||b.sleep>0||b.jam>0||b.dizzy>0)return;
   const hip=b.pts[HIP];let best=null,bd=320;for(const G of gizmos){if((G.type!=='pizza'&&!(G.type==='burger'&&(b.fat||0)<FATMAX))||Math.abs(G.y-hip.y)>130)continue;const d=Math.abs(G.x-hip.x);if(d<bd){bd=d;best=G;}}if(!best)return;
   const dx=best.x-hip.x;b.facing=dx>=0?1:-1;if(Math.abs(dx)>10){I.mv=Math.sign(dx);I.speedMul=b.mode==='zombie'?.6:1.25;}if(b.soc.partner)endChat(b);   /* (a zombie shambles over: only when it has nobody near to chase) */
-  if(!(frame-b.foodSaid<700)){b.foodSaid=frame;if(b.reactCd<=0){bubble(b,customLine(b,'food')||pick(isZombie(b)?['Fooood…','Not brains… but food…','Huuungry…','Mmmrrgh… smells good…']:best.type==='burger'?['Burger!','Is that a BURGER?','Dibs!','Food!','Mine!']:['Pizza!','Is that PIZZA?','Dibs!','Food!','Mine!']),90);b.reactCd=100;}}}
+  if(!(frame-b.foodSaid<700)){b.foodSaid=frame;if(b.reactCd<=0){bubble(b,customLine(b,'food')||pick(isZombie(b)?['Fooood…','Not brains… but food…','Huuungry…','Mmmrrgh… smells good…']:best.type==='burger'?[foodOf(best).n+'!','Is that '+foodOf(best).n.toUpperCase()+'?','Dibs!','Food!','Mine!']:['Pizza!','Is that PIZZA?','Dibs!','Food!','Mine!']),90);b.reactCd=100;}}}
 /* the shape of the untouchable space: a capsule from the top of the head to between the feet. rend: use the drawn positions. */
 function infShape(b,rend){const P=b.pts,hd=P[HEAD],fl=P[FL],fr=P[FR],hp=P[HIP],X=p=>rend?p.rx:p.x,Y=p=>rend?p.ry:p.y;let bx,by;
   if(fl.att&&fr.att){bx=(X(fl)+X(fr))/2;by=(Y(fl)+Y(fr))/2;}else if(fl.att||fr.att){const q=fl.att?fl:fr;bx=X(q);by=Y(q);}else{bx=X(hp);by=Y(hp);}
@@ -3598,6 +3610,7 @@ function drawFireworks(g){if(!fwStars.length&&!fwGlow.length&&!fireworks.length)
   for(const f of fireworks){g.globalAlpha=.9;g.fillStyle='#fff6d8';g.beginPath();g.arc(f.x,f.y,3.2,0,6.3);g.fill();g.globalAlpha=.35;g.drawImage(SPR.glow,f.x-26,f.y-26,52,52);}
   g.globalAlpha=1;}
 function gizmoStep(){
+  if(LN&&frame%6===3)splatWash();
   infinityStep();
   if(meteorRain>0&&--meteorRain%28===0)makeMeteor(rnd(XL+90,XR-90),FLOOR-20);
   if(acidRain&&frame%3===0&&liqCount[ACID]<900)fluidAdd(ACID,rnd(XL+10,XR-10),CEIL+8,rnd(-.5,.5),9);
@@ -3632,8 +3645,8 @@ function gizmoStep(){
       else if(G.type==='pizza'){if(b.kind!=='ragdoll'||b.dead)continue;let touch=false;for(const fi of [FL,FR,HL,HR,HIP,HEAD]){const p=b.pts[fi];if(Math.abs(p.x-G.x)<18+p.r&&p.y+p.r>G.y-22&&p.y-p.r<G.y+4)touch=true;}if(!touch)continue;const h=b.pts[HEAD];
         b.hp=Math.min(b.maxHp,b.hp+b.maxHp*.2);b.pain=Math.max(0,b.pain-20);b.fanT=frame+160;say(h.x,h.y-34,'YUM!','#ffb347',16);for(let k=0;k<8;k++)part(G.x+rnd(-8,8),G.y-8,rnd(-1.5,1.5),-rnd(1,3),rnd(20,34),2.4,pick(['#ffb347','#d8343a','#ffe9a8']),{type:1,g:.12});sfx('bite',.6);if(b!==possessed){bubble(b,customLine(b,'eat')||pick(isZombie(b)?['Mmmrrgh. Pizza.','Not brains. Still good.','Nom… nom…']:['Mmm, pizza.','Best day ever.','Still warm!']),95);b.reactCd=110;}used=true;break;}
       else if(G.type==='burger'){if(b.kind!=='ragdoll'||b.dead||(b.fat||0)>=FATMAX)continue;let touch=false;for(const fi of [FL,FR,HL,HR,HIP,HEAD]){const p=b.pts[fi];if(Math.abs(p.x-G.x)<18+p.r&&p.y+p.r>G.y-22&&p.y-p.r<G.y+4)touch=true;}if(!touch)continue;const h=b.pts[HEAD];
-        fatten(b);b.hp=Math.min(b.maxHp,b.hp+b.maxHp*.1);b.fanT=frame+160;say(h.x,h.y-34,b.fat>=FATMAX?'STUFFED!':'YUM!','#ffb347',16);for(let k=0;k<8;k++)part(G.x+rnd(-8,8),G.y-8,rnd(-1.5,1.5),-rnd(1,3),rnd(20,34),2.4,pick(['#c9833a','#7a4a22','#7dff9a','#ffd86a']),{type:1,g:.12});sfx('bite',.7);
-        if(b!==possessed){bubble(b,customLine(b,'eat')||pick(isZombie(b)&&b.fat<FATMAX?['Mmmrrgh. Burger.','Not brains. Still good.','Nom… nom…']:b.fat>=FATMAX?['I cannot eat another bite.','So… full…','No more. Please.']:b.fat>=3?['*burp*','One more could not hurt.','My belt!']:['Mmm, burger.','Tasty!','Got any fries?']),100);b.reactCd=110;}used=true;break;}
+        fatten(b);b.hp=Math.min(b.maxHp,b.hp+b.maxHp*.1);b.fanT=frame+160;say(h.x,h.y-34,b.fat>=FATMAX?'STUFFED!':'YUM!','#ffb347',16);for(let k=0;k<8;k++)part(G.x+rnd(-8,8),G.y-8,rnd(-1.5,1.5),-rnd(1,3),rnd(20,34),2.4,pick(foodOf(G).c),{type:1,g:.12});sfx('bite',.7);
+        if(b!==possessed){bubble(b,customLine(b,'eat')||pick(isZombie(b)&&b.fat<FATMAX?['Mmmrrgh. '+foodOf(G).n+'.','Not brains. Still good.','Nom… nom…']:b.fat>=FATMAX?['I cannot eat another bite.','So… full…','No more. Please.']:b.fat>=3?['*burp*','One more could not hurt.','My belt!']:['Mmm, '+foodOf(G).n.toLowerCase()+'.','Tasty!',G.food===4?'Got any ketchup?':'Got any fries?']),100);b.reactCd=110;}used=true;break;}
       else if(G.type==='kit'){if(b.kind!=='ragdoll'||b.dead||b.hp>=b.maxHp*.98)continue;const h=b.pts[HIP];let touch=false;for(const p of b.pts)if(Math.abs(p.x-G.x)<16+p.r&&p.y+p.r>G.y-18&&p.y-p.r<G.y+4){touch=true;break;}if(!touch)continue;
         b.hp=Math.min(b.maxHp,b.hp+b.maxHp*.5);b.bleed=0;b.pain=Math.max(0,b.pain-40);for(const p of b.pts){p.bruise*=.4;p.gore*=.4;}sparks(G.x,G.y-12,14,'#9bff8a',5);say(h.x,h.y-44,'+50%','#9bff8a',16);sfx('heal',.7);used=true;break;}
       else if(G.type==='peel'){if(b.kind!=='ragdoll'||b.dead||G.cd>0||!b.sup||b.mode==='limp')continue;const h=b.pts[HIP],vx=h.x-h.px;let on=false;for(const fi of [FL,FR]){const p=b.pts[fi];if(Math.abs(p.x-G.x)<13&&Math.abs(p.y+p.r-G.y)<14)on=true;}if(!on||Math.abs(vx)<.5)continue;
@@ -3650,6 +3663,7 @@ function drawGizmos(g){
       g.fillStyle=hot?'#ffffff':'#bfe6ff';g.beginPath();g.arc(G.x,G.y-52,7,0,6.3);g.fill();g.fillStyle='rgba(150,210,255,'+(hot?.5:.14+.08*Math.sin(frame*.3))+')';g.beginPath();g.arc(G.x,G.y-52,hot?22:13,0,6.3);g.fill();}
     else if(G.type==='glue'){g.fillStyle='rgba(244,236,190,.9)';g.beginPath();g.ellipse(G.x,G.y-2,G.w/2,5,0,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.5)';for(let k=0;k<3;k++){g.beginPath();g.ellipse(x0+G.w*(.25+k*.25),G.y-3.5,7,1.6,0,0,6.3);g.fill();}}
     else if(G.type==='pizza'){g.fillStyle='#e8a23c';g.beginPath();g.moveTo(G.x-13,G.y-3);g.lineTo(G.x+13,G.y-3);g.lineTo(G.x,G.y-24);g.closePath();g.fill();g.fillStyle='#ffd86a';g.beginPath();g.moveTo(G.x-9,G.y-6);g.lineTo(G.x+9,G.y-6);g.lineTo(G.x,G.y-20.5);g.closePath();g.fill();g.fillStyle='#d8343a';for(const [px,py] of [[-3,-8.5],[3.5,-9.5],[0,-14.5]]){g.beginPath();g.arc(G.x+px,G.y+py,2.1,0,6.3);g.fill();}}
+    else if(G.type==='burger'&&G.food){g.font='24px system-ui,"Segoe UI Emoji","Apple Color Emoji",sans-serif';g.textAlign='center';g.textBaseline='alphabetic';g.fillStyle='#fff';g.fillText(foodOf(G).e,G.x,G.y-2);}   /* the other foods: their picture, sitting on the floor */
     else if(G.type==='burger'){g.fillStyle='#c9833a';g.beginPath();g.ellipse(G.x,G.y-3,13,4,0,0,6.3);g.fill();g.fillStyle='#6a3d1c';rr(g,G.x-13,G.y-10,26,5.5,2.5);g.fill();g.fillStyle='#ffd24a';g.fillRect(G.x-12,G.y-11.5,24,2);g.fillStyle='#5fc46a';g.beginPath();for(let k=0;k<5;k++)g.arc(G.x-10+k*5,G.y-12.5,2.8,0,6.3);g.fill();
       g.fillStyle='#d9954a';g.beginPath();g.arc(G.x,G.y-13,13,PI,2*PI);g.closePath();g.fill();g.fillStyle='#fff3cf';for(const [px,py] of [[-6,-19],[0,-22],[6,-19],[-2,-17]]){g.beginPath();g.ellipse(G.x+px,G.y+py,1.3,.8,.5,0,6.3);g.fill();}}
     else if(G.type==='kit'){g.fillStyle='#f4f6fb';rr(g,G.x-13,G.y-17,26,17,3);g.fill();g.fillStyle='#d8343a';g.fillRect(G.x-2.4,G.y-14.5,4.8,12);g.fillRect(G.x-6,G.y-10.9,12,4.8);g.strokeStyle='#8a94a8';g.lineWidth=1.5;g.beginPath();g.moveTo(G.x-5,G.y-17);g.lineTo(G.x-5,G.y-20.5);g.lineTo(G.x+5,G.y-20.5);g.lineTo(G.x+5,G.y-17);g.stroke();}
@@ -4097,8 +4111,9 @@ const TOOLS={
     down(){gizmos.push({type:'tesla',x:mouse.x,y:groundBelow(mouse.x,mouse.y-10,true),w:26,cd:60});if(gizmos.length>40)gizmos.shift();sfx('click');}},
   pizza:{name:'Pizza',icon:'🍕',desc:'Drop a pizza. Calm dummies nearby come over for it; the first to get there eats it and feels better.',
     down(){gizmos.push({type:'pizza',x:mouse.x,y:mouse.y,vy:0,w:26,cd:0});if(gizmos.length>40)gizmos.shift();sfx('click');}},
-  burger:{name:'Food',icon:'🍔',desc:'Click to drop a burger: it falls from the cursor. Drop it on a dummy and it is eaten on the spot; otherwise dummies nearby come over and eat it, and each one makes the eater fatter: a bigger belly, more weight, slower on their feet, and worse in a fight. Five burgers is the limit. Heal slims them down again, and so does fire: a burning dummy\'s fat burns off.',
-    down(){gizmos.push({type:'burger',x:mouse.x,y:mouse.y,vy:0,w:26,cd:0});if(gizmos.length>40)gizmos.shift();sfx('click');}},
+  burger:{name:'Food',icon:'🍔',desc:'Click to drop some food: a burger, chicken, cheese, a hot dog, fries, a donut, a taco or cake, a different one each time. Right-click switches which food you drop: one kind every time, or back to a different one each time. It falls from the cursor. Drop it on a dummy and it is eaten on the spot; otherwise dummies nearby come over and eat it, and each helping makes the eater fatter: a bigger belly, more weight, slower on their feet, and worse in a fight. Five helpings is the limit. Heal slims them down again, and so does fire: a burning dummy\'s fat burns off.',
+    down(){if(mouse.alt){foodPick=foodPick+1>=FOODS.length?-1:foodPick+1;setInfo('<b>🍔 Food</b> — now dropping: <b>'+(foodPick<0?'a different food each time':FOODS[foodPick].e+' '+FOODS[foodPick].n+' every time')+'</b>.');sfx('click');return;}
+      gizmos.push({type:'burger',food:foodPick<0?(Math.random()*FOODS.length)|0:foodPick,x:mouse.x,y:mouse.y,vy:0,w:26,cd:0});if(gizmos.length>40)gizmos.shift();sfx('click');}},
   confetti:{name:'Confetti',icon:'🎉',desc:'Click for a burst of confetti. Dummies nearby cheer.',
     down(){const x=mouse.x,y=mouse.y;for(const c of ['#ff5a7a','#ffd24a','#7dff9a','#5ad1ff','#c79bff'])confetti(x,y,9,c);sfx('pop',.9);
       for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||b.zombie||b.sleep>0||b.frozen>0||b.grudge||b===possessed)continue;const h=b.pts[HIP];if(hyp(h.x-x,h.y-y)>240)continue;b.fanT=frame+150;if(b.reactCd<=0&&Math.random()<.7){bubble(b,customLine(b,'party')||pick(['Woo!','Yay!','Surprise!','Party!','Hooray!']),90);b.reactCd=100;}}}},
@@ -5941,7 +5956,7 @@ $('mAlt').onclick=()=>{setAlt(!MOBV.alt);setInfo(MOBV.alt?'<b>Alt is on</b> — 
 {const pt=window.pickTool;window.pickTool=function(id){const r=pt.apply(this,arguments),t=TOOLS[id]||POWERS[id];if(t&&!t.toggle){drawer(null);setAlt(false);}syncCur();return r;};}
 {const am=window.applyMode;window.applyMode=function(m){const r=am.apply(this,arguments);if(m==='possess')drawer(null);return r;};}
 $('mGive').onclick=()=>{audioKick();giveGun();};$('mDet').onclick=()=>{audioKick();c4Detonate();};
-{const si=window.setInfo;window.setInfo=function(h){return si.call(this,String(h).replace(/Right-click to set off every charge/g,'Tap 💥 Detonate to set off every charge').replace(/Left-click/g,'Tap').replace(/left-click/g,'tap').replace(/(^|[^-\w])Click\b/g,'$1Tap').replace(/(^|[^-\w])click\b/g,'$1tap').replace(/Press Backspace on it again/g,'Tap 🤲 Give again').replace(/press <b>Backspace<\/b>/g,'tap <b>🤲 Give</b>').replace(/Backspace/g,'The 🤲 Give button'));};}   /* the top line talks about the button, not the key */
+{const si=window.setInfo;window.setInfo=function(h){return si.call(this,String(h).replace(/Right-click switches which food you drop/g,'Switch ⇄ Alt on and tap to change which food you drop').replace(/Right-click to set off every charge/g,'Tap 💥 Detonate to set off every charge').replace(/Left-click/g,'Tap').replace(/left-click/g,'tap').replace(/(^|[^-\w])Click\b/g,'$1Tap').replace(/(^|[^-\w])click\b/g,'$1tap').replace(/Press Backspace on it again/g,'Tap 🤲 Give again').replace(/press <b>Backspace<\/b>/g,'tap <b>🤲 Give</b>').replace(/Backspace/g,'The 🤲 Give button'));};}   /* the top line talks about the button, not the key */
 $('mCancel').onclick=()=>{ropeA=null;wallA=null;aim=null;fanA=null;};
 
 /* ---- the camera: two fingers ---- */
