@@ -20,6 +20,17 @@ window.MOBV={l:0,t:42,r:0,b:14,dpr:1.5,alt:false,perf:true,
   /* the map is built in the shape of the screen, so zoomed all the way out it fills it exactly, upright or sideways: at least 520 tall, and at least 1000 wide sideways or 640 wide upright */
   world:function(vw,vh){var z=Math.min(vh/534,vw/(vw>=vh?1000:640)),w=Math.round(vw/z),h=Math.round(vh/z)-14;return [Math.max(640,Math.min(1700,w)),Math.max(520,Math.min(1500,h))];}};
 try{if(localStorage.getItem('flopworksM.perf')==='0'){MOBV.perf=false;MOBV.dpr=2;}}catch(e){}
+/* The sideways lock. An iPhone's rotation lock only ever locks upright, and a web page cannot turn the screen itself. So with the lock switched on in the game (MOBV.lock), whenever the screen is upright the whole page is drawn turned a quarter (MOBV.rot): hold the phone sideways, top to the left, and the game is the right way up.
+   w(),h(): the size of the page as the game sees it. pt(e): where a touch is on that page. vec(dx,dy): a movement on the screen, as the page sees it. sync(): called at the start of every resize. */
+MOBV.lock=false;MOBV.rot=false;try{MOBV.lock=localStorage.getItem('flopworksM.sidelock')==='1';}catch(e){}
+MOBV.w=function(){return MOBV.rot?window.innerHeight:window.innerWidth;};
+MOBV.h=function(){return MOBV.rot?window.innerWidth:window.innerHeight;};
+MOBV.pt=function(e){return MOBV.rot?[e.clientY,window.innerWidth-e.clientX]:[e.clientX,e.clientY];};
+MOBV.vec=function(dx,dy){return MOBV.rot?[dy,-dx]:[dx,dy];};
+MOBV.sync=function(){var b=document.body,d=document.documentElement,want=MOBV.lock&&window.innerHeight>window.innerWidth;MOBV.rot=want;if(!b)return;
+  d.className=want?(d.className.indexOf('mrot')<0?(d.className+' mrot'):d.className):d.className.replace(/\s*mrot/g,'');
+  if(want){b.style.width=window.innerHeight+'px';b.style.height=window.innerWidth+'px';b.style.transform='translateX('+window.innerWidth+'px) rotate(90deg)';}else{b.style.width='';b.style.height='';b.style.transform='';}
+  d.style.setProperty('--mw',MOBV.w()+'px');d.style.setProperty('--mh',MOBV.h()+'px');};
 </script>
 <link rel="icon" type="image/png" href="data:image/png;base64,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">
 <title>Flopworks Mobile — Ragdoll Sandbox</title>
@@ -212,7 +223,7 @@ canvas#c{touch-action:none}
 .tb{padding:6px 10px;font-size:14px;min-width:38px;min-height:34px;flex:none}
 .mtb{font-size:17px;padding:4px 8px}
 .mtb.on{background:#3a5bd0;border-color:#6f8cff}
-.panel{top:42px;bottom:0;width:min(232px,78vw);z-index:8;touch-action:pan-y;padding:8px 8px 26px;transition:transform .18s ease;box-shadow:0 0 30px rgba(0,0,0,.55);background:rgba(9,13,24,.96)}
+.panel{top:42px;bottom:0;width:min(232px,calc(var(--mw,100vw)*.78));z-index:8;touch-action:pan-y;padding:8px 8px 26px;transition:transform .18s ease;box-shadow:0 0 30px rgba(0,0,0,.55);background:rgba(9,13,24,.96)}
 #tools{left:0;padding-left:max(8px,env(safe-area-inset-left));transform:translateX(-106%)}
 #powers{right:0;padding-right:max(8px,env(safe-area-inset-right));transform:translateX(106%)}
 #tools.open,#powers.open{transform:none}
@@ -232,10 +243,11 @@ canvas#c{touch-action:none}
 .mc{height:44px}
 .tc{width:36px;height:36px}
 #vit{top:48px;right:6px;transform:scale(.78);transform-origin:top right}
-#settings,#mapMenu{touch-action:pan-y;top:46px;max-height:calc(100vh - 54px)}
+#settings,#mapMenu{touch-action:pan-y;top:46px;max-width:calc(var(--mw,100vw) - 20px);max-height:calc(var(--mh,100vh) - 54px)}
+#mapMenu{left:8px!important}
 #maker{touch-action:pan-x pan-y}
-#maker .mk{padding:12px 14px;max-height:96vh}
-#help .card{max-height:94vh;overflow:auto;padding:16px 20px;touch-action:pan-y}
+#maker .mk{padding:12px 14px;width:min(770px,calc(var(--mw,100vw)*.96));max-height:calc(var(--mh,100vh)*.96)}
+#help .card{width:min(560px,calc(var(--mw,100vw)*.92));max-height:calc(var(--mh,100vh)*.94);overflow:auto;padding:16px 20px;touch-action:pan-y}
 #help h1{font-size:22px}
 #help li{margin:5px 0}
 /* ----- on the arena: the Possess pad, the Alt and Cancel chips, the turn-your-phone note ----- */
@@ -258,6 +270,11 @@ canvas#c{touch-action:none}
 #mCancel{border-color:#ff8a8a!important;color:#ffd0d0!important}
 #mTurn{position:fixed;left:50%;top:100px;transform:translateX(-50%);z-index:7;background:rgba(18,26,48,.94);border:1px solid #ffd24a;color:#ffe9a8;border-radius:14px;font:inherit;font-size:12.5px;padding:8px 14px;max-width:92vw;text-align:center}
 #info svg{display:inline-block!important;vertical-align:-3px;width:26px;height:15px}
+/* ----- the sideways lock: the page turned a quarter on an upright screen (its size and turn are set by MOBV.sync). Sizes above use --mw/--mh, the page's own width and height, because vw and vh still measure the upright screen ----- */
+html.mrot body{position:fixed;left:0;top:0;transform-origin:0 0;overflow:hidden}
+html.mrot .panel,html.mrot #bottom,html.mrot #top,html.mrot #settings,html.mrot #mapMenu,html.mrot #help .card,html.mrot #maker{touch-action:pan-x pan-y}
+#mTurn b{display:block;margin-top:5px;padding:6px 10px;border-radius:10px;background:#ffd24a;color:#201800;font-weight:800}
+#mTurn i{font-style:normal;opacity:.7;font-size:11px}
 </style>
 </head>
 <body>
@@ -383,7 +400,7 @@ const $=id=>document.getElementById(id);
 const cv=$('c'),ctx=cv.getContext('2d');
 let W=0,H=0,XL=MOBV.l,XR=0,CEIL=MOBV.t,FLOOR=0,DPR=1,VL=MOBV.l,VR=0,VT=MOBV.t,VB=0,worldSize=null;   /* V*: where the arena sits on screen. XL..FLOOR: the world, which a custom map makes any size */
 function fitWorld(){XL=VL;CEIL=VT;if(worldSize){XR=XL+worldSize[0];FLOOR=CEIL+worldSize[1];}else{XR=VR;FLOOR=VB;}}
-function resize(){DPR=Math.min(MOBV.dpr,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.width=W+'px';cv.style.height=H+'px';/* keep the canvas the size of the window at any browser zoom or screen scaling */VR=W-MOBV.r;VB=H-MOBV.b;fitWorld();}
+function resize(){MOBV.sync();DPR=Math.min(MOBV.dpr,window.devicePixelRatio||1);W=MOBV.w();H=MOBV.h();cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.width=W+'px';cv.style.height=H+'px';/* keep the canvas the size of the window at any browser zoom or screen scaling */VR=W-MOBV.r;VB=H-MOBV.b;fitWorld();}
 addEventListener('resize',resize);resize();
 const rnd=(a=1,b)=>b===undefined?Math.random()*a:a+Math.random()*(b-a);
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -5349,7 +5366,7 @@ function makerBuild(){mkBuilt=true;
   $('mkSave').onclick=makerSave;$('mkExport').onclick=customsExport;$('mkImport').onclick=()=>$('mkFile').click();$('mkFile').onchange=e=>{const f=e.target.files&&e.target.files[0];if(f){const r=new FileReader();r.onload=()=>customsImport(String(r.result));r.readAsText(f);}e.target.value='';};$('mkCancel').onclick=makerClose;$('mkDel').onclick=makerDelete;
   MKGROUPS.forEach((gn,gi)=>{const D=document.createElement('details');D.className='mkgrp';D.id='mkG_'+gi;const sm=document.createElement('summary');sm.innerHTML=gn+'<b></b>';D.appendChild(sm);const box=document.createElement('div');box.className='mklines';D.appendChild(box);$('mkLines').appendChild(D);   /* one section for each kind of moment, so the long list stays out of the way */
     for(const q of MKLINES){if(q[3]!==gi)continue;const l=document.createElement('span');l.textContent=q[1];const e=document.createElement('input');e.type='text';e.id='mkL_'+q[0];e.maxLength=200;e.placeholder=q[2];e.autocomplete='off';e.spellcheck=false;e.oninput=()=>{mk.lines[q[0]]=e.value;makerLineCount();};box.appendChild(l);box.appendChild(e);}});
-  for(const pc of [$('mkPaint'),$('mkPaintB'),$('mkPaintC')]){const at=e=>{const r=pc.getBoundingClientRect();return[(e.clientX-r.left)*PAINTPX/r.width,(e.clientY-r.top)*PAINTPX/r.height];};
+  for(const pc of [$('mkPaint'),$('mkPaintB'),$('mkPaintC')]){const at=e=>{const r=pc.getBoundingClientRect();return MOBV.rot?[(e.clientY-r.top)*PAINTPX/r.height,(r.right-e.clientX)*PAINTPX/r.width]:[(e.clientX-r.left)*PAINTPX/r.width,(e.clientY-r.top)*PAINTPX/r.height];};
   const stroke=(x0,y0,x1,y1)=>{const g=pc.getContext('2d');g.globalCompositeOperation=mk.erase?'destination-out':'source-over';g.strokeStyle=mk.color;g.lineWidth=mk.brush*(mk.erase?1.6:1);g.lineCap='round';g.lineJoin='round';g.beginPath();g.moveTo(x0,y0);g.lineTo(x1+.01,y1+.01);g.stroke();g.globalCompositeOperation='source-over';mk[pc.id==='mkPaintB'?'paintedB':pc.id==='mkPaintC'?'paintedC':'painted']=true;};
   pc.addEventListener('pointerdown',e=>{e.preventDefault();makerSnap();const p=at(e);if(mk.fill){paintFill(pc,p[0],p[1]);makerPreview();return;}try{pc.setPointerCapture(e.pointerId);}catch(_){}mk.last=p;stroke(p[0],p[1],p[0],p[1]);});
   pc.addEventListener('pointermove',e=>{if(!mk||!mk.last)return;const p=at(e);stroke(mk.last[0],mk.last[1],p[0],p[1]);mk.last=p;});
@@ -5741,7 +5758,7 @@ function loadMap(id){
   bgKey='';curMode='stand';syncModeUI();syncMapUI();try{localStorage.setItem('flopworksM.map',curMap);}catch(e){}
 }
 function resetScene(){loadMap(curMap);}
-function mpos(e){const r=cv.getBoundingClientRect();mouse.lx=mouse.x;mouse.ly=mouse.y;mouse.sx=e.clientX-r.left;mouse.sy=e.clientY-r.top;mouseWorld();mouse.inside=mouse.sx>VL&&mouse.sx<VR&&mouse.sy>VT&&inArena(mouse.x,mouse.y);}
+function mpos(e){const r=cv.getBoundingClientRect();mouse.lx=mouse.x;mouse.ly=mouse.y;{const q=MOBV.pt(e);mouse.sx=q[0];mouse.sy=q[1];}mouseWorld();mouse.inside=mouse.sx>VL&&mouse.sx<VR&&mouse.sy>VT&&inArena(mouse.x,mouse.y);}
 cv.addEventListener('pointerdown',e=>{audioKick();mpos(e);mouse.lx=mouse.x;mouse.ly=mouse.y;if(!mouse.inside)return;mouse.down=true;mouse.alt=e.button===2||e.shiftKey||MOBV.alt;try{cv.setPointerCapture(e.pointerId);}catch(_){}if(cur.down)cur.down();e.preventDefault();});
 cv.addEventListener('pointermove',e=>{mpos(e);if(cur.move)cur.move();});
 addEventListener('pointerup',e=>{if(!mouse.down)return;mouse.down=false;if(cur.up)cur.up();});
@@ -5780,7 +5797,7 @@ window.__flop={get bodies(){return bodies;},get links(){return links;},get walls
     <button type="button" data-k="KeyF" class="big">👊<small id="mHitL">Punch</small></button>
   </div>
 </div>
-<button id="mTurn" class="mhide" type="button">↻ Turn your phone sideways for a bigger view (tap to hide)</button>
+<div id="mTurn" class="mhide">↻ Turn your phone sideways for a bigger view.<b id="mTurnLock">🔒 Rotation locked? Tap to turn the game sideways</b><i id="mTurnHide">tap here to hide</i></div>
 <script>
 /* ===== Flopworks Mobile: the touch layer. Runs after the game; uses the game's own names (keys, pressed, zoom, camX, cur, ...) =====
    - drawers: Tools, Powers, and the character bar slide over the arena; picking a tool shuts its drawer; a tap on the arena shuts an open one
@@ -5814,15 +5831,15 @@ $('mCancel').onclick=()=>{ropeA=null;wallA=null;aim=null;fanA=null;};
 
 /* ---- the camera: two fingers ---- */
 const touches=new Map();let gest=null,swallow=false;
-function gPts(){const r=cv.getBoundingClientRect(),v=[...touches.values()],a=v[0],b=v[1];return{cx:(a[0]+b[0])/2-r.left,cy:(a[1]+b[1])/2-r.top,d:Math.hypot(a[0]-b[0],a[1]-b[1])||1};}
+function gPts(){const v=[...touches.values()],a=v[0],b=v[1];return{cx:(a[0]+b[0])/2,cy:(a[1]+b[1])/2,d:Math.hypot(a[0]-b[0],a[1]-b[1])||1};}
 function gStart(){const g=gPts(),vc=viewC();gest={d:g.d,z:zoom,wx:(g.cx-vc[0])/zoom+camX,wy:(g.cy-vc[1])/zoom+camY};}
 function gMove(){const g=gPts(),vc=viewC(),z=clamp(gest.z*g.d/gest.d,minZoom(),5);zoom=z;camX=gest.wx-(g.cx-vc[0])/z;camY=gest.wy-(g.cy-vc[1])/z;clampCam();mouseWorld();}
 addEventListener('pointerdown',e=>{if(e.target!==cv)return;
-  if(anyOpen()){drawer(null);swallow=true;if(e.pointerType==='touch')touches.set(e.pointerId,[e.clientX,e.clientY]);e.stopImmediatePropagation();e.preventDefault();return;}   /* a tap on the arena with a drawer open only shuts the drawer */
-  dirty=true;if(e.pointerType!=='touch')return;touches.set(e.pointerId,[e.clientX,e.clientY]);
+  if(anyOpen()){drawer(null);swallow=true;if(e.pointerType==='touch')touches.set(e.pointerId,MOBV.pt(e));e.stopImmediatePropagation();e.preventDefault();return;}   /* a tap on the arena with a drawer open only shuts the drawer */
+  dirty=true;if(e.pointerType!=='touch')return;touches.set(e.pointerId,MOBV.pt(e));
   if(touches.size===2){if(mouse.down){mouse.down=false;if(cur.up)cur.up();}gStart();swallow=true;e.stopImmediatePropagation();e.preventDefault();return;}
   if(touches.size>2||swallow){e.stopImmediatePropagation();e.preventDefault();}},true);
-addEventListener('pointermove',e=>{if(e.pointerType!=='touch'||!touches.has(e.pointerId))return;touches.set(e.pointerId,[e.clientX,e.clientY]);
+addEventListener('pointermove',e=>{if(e.pointerType!=='touch'||!touches.has(e.pointerId))return;touches.set(e.pointerId,MOBV.pt(e));
   if(gest&&touches.size>=2){gMove();e.stopImmediatePropagation();return;}if(swallow)e.stopImmediatePropagation();},true);
 function tEnd(e){if(e.pointerType==='touch')touches.delete(e.pointerId);if(touches.size<2)gest=null;if(touches.size===0)swallow=false;}
 addEventListener('pointerup',tEnd,true);addEventListener('pointercancel',tEnd,true);
@@ -5860,7 +5877,7 @@ addEventListener('resize',()=>{const mz=minZoom();if(zoom<mz||Math.abs(zoom-last
 /* ---- Possess: the stick and the buttons ---- */
 const stick=$('mStick'),knob=stick.querySelector('i');let stickId=null;
 function stickSet(dx,dy){const R=42,l=Math.hypot(dx,dy)||1,k=l>R?R/l:1;knob.style.transform='translate('+(dx*k)+'px,'+(dy*k)+'px)';keys.KeyA=dx<-13;keys.KeyD=dx>13;keys.KeyW=dy<-26;keys.KeyS=dy>26;}
-function stickAt(e){const r=stick.getBoundingClientRect();stickSet(e.clientX-(r.left+r.width/2),e.clientY-(r.top+r.height/2));}
+function stickAt(e){const r=stick.getBoundingClientRect(),v=MOBV.vec(e.clientX-(r.left+r.width/2),e.clientY-(r.top+r.height/2));stickSet(v[0],v[1]);}
 function stickEnd(){stickId=null;knob.style.transform='';keys.KeyA=keys.KeyD=keys.KeyW=keys.KeyS=false;}
 stick.addEventListener('pointerdown',e=>{audioKick();stickId=e.pointerId;try{stick.setPointerCapture(e.pointerId);}catch(_){}stickAt(e);e.preventDefault();});
 stick.addEventListener('pointermove',e=>{if(e.pointerId===stickId)stickAt(e);});
@@ -5894,11 +5911,19 @@ function setPerf(v){MOBV.perf=!!v;MOBV.dpr=v?1.5:2;try{localStorage.setItem('flo
     '<li><b>⇄ Alt</b> appears for tools with a second job (erase liquid, shrink, reverse a belt). <b>✕ Cancel</b> appears while a rope or wall is half made.</li>'+
     '<li><b>⛶</b> full screen · <b>⚙</b> settings, with <b>Phone performance mode</b> at the top · best played sideways.</li>';}
 {const ul=document.querySelector('#help .card ul'),bs=$('bStart');if(ul&&bs){ul.parentNode.insertBefore(bs,ul);bs.style.margin='8px 0 6px';}}   /* Start sits above the list: on a phone held sideways the list runs off the bottom of the card */
-let turnHid=false;function turnNote(){$('mTurn').classList.toggle('mhide',turnHid||innerWidth>=innerHeight||$('help').style.display!=='none');}
-$('mTurn').onclick=()=>{turnHid=true;turnNote();};$('bStart').addEventListener('click',()=>setTimeout(()=>{turnHid=true;turnNote();},9000));   /* the note goes away by itself after a few seconds of play */$('bStart').addEventListener('click',()=>setTimeout(turnNote,50));
+let turnHid=false;function turnNote(){$('mTurn').classList.toggle('mhide',turnHid||MOBV.rot||W>=H||$('help').style.display!=='none');}
+$('mTurnHide').onclick=()=>{turnHid=true;turnNote();};$('bStart').addEventListener('click',()=>setTimeout(turnNote,50));
+$('bStart').addEventListener('click',()=>setTimeout(()=>{turnHid=true;turnNote();},14000));   /* the note goes away by itself after a while */
+/* ---- the sideways lock (see MOBV.sync): on, the game stays sideways on an upright screen, for a phone whose own rotation lock is on ---- */
+function setSideLock(v){MOBV.lock=!!v;try{localStorage.setItem('flopworksM.sidelock',v?'1':'0');}catch(e){}$('setSide').checked=MOBV.lock;window.dispatchEvent(new Event('resize'));
+  if(v)setInfo(MOBV.rot?'<b>Sideways lock is on.</b> Hold the phone sideways with its top to the left. Switch it off in ⚙ Settings.':'<b>Sideways lock is on.</b> It turns the game whenever the screen is upright.');}
+$('mTurnLock').onclick=()=>{audioKick();setSideLock(true);};
+{const g=document.querySelector('#settings .sgroup'),l=document.createElement('label');l.className='srow';
+  l.innerHTML='<span class="si">🔒</span><span class="st"><b>Sideways lock</b><small>Keeps the game sideways even when the screen is upright. For a phone with its rotation lock on (an iPhone only locks upright): hold it sideways with its top to the left</small></span><input type="checkbox" id="setSide"><i class="sw"></i>';
+  g.insertBefore(l,g.firstChild);$('setSide').checked=MOBV.lock;$('setSide').onchange=e=>setSideLock(e.target.checked);}
 addEventListener('contextmenu',e=>{if(e.target===cv||(e.target.closest&&e.target.closest('#mPad,#mChips,#top')))e.preventDefault();});
 syncCur();turnNote();window.MOBREADY=true;   /* the game and the touch layer both got all the way here: no start-up error box */
-window.__flopMobile={fitNow,worldResize,wantWorld,get dirty(){return dirty;},drawer,anyOpen,setAlt,setPerf,stickSet,stickEnd,touches,get gest(){return gest;}};
+window.__flopMobile={setSideLock,fitNow,worldResize,wantWorld,get dirty(){return dirty;},drawer,anyOpen,setAlt,setPerf,stickSet,stickEnd,touches,get gest(){return gest;}};
 })();
 </script>
 </body>
