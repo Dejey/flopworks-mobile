@@ -4642,7 +4642,7 @@ Object.assign(POWERS,{
       for(const b of bodies){if(b.remove||b.kind==='anchor'||(b.kind==='ragdoll'&&b.shield>0))continue;const c=b.pts[b.kind==='ragdoll'?HIP:b.pts.length-1];if(hyp(c.x-x,c.y-y)>240)continue;for(const p of b.pts)if(!p.pin){p.py-=19;p.px=p.x-(p.x-p.px)*.4;}if(b.kind==='ragdoll'){b.balance=0;b.hitGuard=0;b.planted=false;}}}},
 });
 Object.assign(TOOLS,{
-  tnt:{name:'TNT crate',short:'TNT',icon:'🧨',desc:'Spawn a crate of explosives. Smash it, shoot it or let it burn and it blows up. A clean cut with the blade makes it safe.',down(){const b=makeCrate(mouse.x,mouse.y);b.tnt=true;b.hp=20;sfx('click');}},
+  tnt:{name:'TNT crate',short:'TNT',icon:'🛢️',desc:'Spawn a crate of explosives. Smash it, shoot it or let it burn and it blows up. A clean cut with the blade makes it safe.',down(){const b=makeCrate(mouse.x,mouse.y);b.tnt=true;b.hp=20;sfx('click');}},
   bowl:{name:'Bowling ball',short:'Bowling',icon:'🎳',desc:'Spawn a heavy bowling ball. It barely bounces, rolls a long way and flattens whatever it hits. Throw it with the hand.',down(){makeBowl(mouse.x,mouse.y,15,9);sfx('click');}},
   wreck:{name:'Wrecking ball',short:'Wrecker',icon:'🏗️',desc:'Click to hang a wrecking ball on a chain from that spot. Pull it back with the hand and let it swing.',
     down(){const a=makeAnchor(mouse.x,mouse.y).pts[0],len=clamp(groundBelow(mouse.x,mouse.y)-mouse.y-34,50,170),b=makeBowl(mouse.x,mouse.y+len,21,22);links.push({p:a,q:b.pts[0],len,len0:len,stiff:1,kind:'rope',w:5,cut:false,tear:0});sfx('click');}},
