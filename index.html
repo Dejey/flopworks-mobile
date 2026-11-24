@@ -3092,19 +3092,20 @@ function fluidSolid(p){
     const dx=p.x-LX[j],dy=p.y-LY[j],d2=dx*dx+dy*dy;if(d2>=R*R)continue;const d=Math.sqrt(d2)||1e-3;p.x+=dx/d*(R-d);p.y+=dy/d*(R-d);p.hit=1;p.nx=dx/d;p.ny=dy/d;if(p.ny<-.5)p.gr=true;}}
 }
 // bodies shove liquid out of the way (the splash); liquid pushes back through buoyancy and drag in fluidBodies
-function fluidCapsule(x1,y1,x2,y2,R){
+function fluidCapsule(x1,y1,x2,y2,R,kv){   /* kv: the share of the shove that becomes the drop's speed (1 = all of it, as a fast body's does) */
+  if(kv===undefined)kv=1;
   const m=12;let cx0=(((Math.min(x1,x2)-R-m-XL)/FCELL)|0)+1,cx1=(((Math.max(x1,x2)+R+m-XL)/FCELL)|0)+1,cy0=(((Math.min(y1,y2)-R-m-CEIL)/FCELL)|0)+1,cy1=(((Math.max(y1,y2)+R+m-CEIL)/FCELL)|0)+1;
   if(cx0<0)cx0=0;if(cy0<0)cy0=0;if(cx1>=gW)cx1=gW-1;if(cy1>=gH)cy1=gH-1;
   const ex=x2-x1,ey=y2-y1,l2=ex*ex+ey*ey,R2=R*R;
   for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const c=cx+cy*gW;for(let k=cellStart[c],e=cellStart[c+1];k<e;k++){const i=cellItems[k];if(LTYPE[i]>=ROCK)continue;
     const x=LX[i],y=LY[i];let t=l2>0?((x-x1)*ex+(y-y1)*ey)/l2:0;t=t<0?0:t>1?1:t;const dx=x-(x1+ex*t),dy=y-(y1+ey*t),d2=dx*dx+dy*dy;if(d2>=R2)continue;
-    const d=Math.sqrt(d2)||1e-3;let push=R-d;if(push>5)push=5;LX[i]=x+dx/d*push;LY[i]=y+dy/d*push;}}
+    const d=Math.sqrt(d2)||1e-3;let push=R-d;if(push>5)push=5;const ax=dx/d*push,ay=dy/d*push;LX[i]=x+ax;LY[i]=y+ay;if(kv<1){LPX[i]+=ax*(1-kv);LPY[i]+=ay*(1-kv);}}}   /* moved out of the body; where it 'was' moves too, by the share that is not to become speed */
 }
 function fluidVsBodies(){
   for(const b of bodies){if(!b.collide||b.kind==='anchor'||b.remove)continue;
     if(b.maxx<liqBox[0]-12||b.minx>liqBox[2]+12||b.maxy<liqBox[1]-12||b.miny>liqBox[3]+12)continue;
-    for(const s of b.sticks){if(s.cut||s.kind!=='bone')continue;fluidCapsule(s.p.x,s.p.y,s.q.x,s.q.y,s.w*.5+FRAD-1.5);}
-    for(const p of b.pts)if(p.r>=10||!b.sticks.length)fluidCapsule(p.x,p.y,p.x,p.y,p.r+FRAD-1.5);}
+    for(const s of b.sticks){if(s.cut||s.kind!=='bone')continue;const sp=Math.max(hyp(s.p.x-s.p.px,s.p.y-s.p.py),hyp(s.q.x-s.q.px,s.q.y-s.q.py));fluidCapsule(s.p.x,s.p.y,s.q.x,s.q.y,s.w*.5+FRAD-1.5,sp<3?.15:sp>8?1:.15+(sp-3)*.17);}   /* a part drifting or bobbing barely stirs the liquid; one hitting it fast splashes as hard as ever */
+    for(const p of b.pts)if(p.r>=10||!b.sticks.length){const sp=hyp(p.x-p.px,p.y-p.py);fluidCapsule(p.x,p.y,p.x,p.y,p.r+FRAD-1.5,sp<3?.15:sp>8?1:.15+(sp-3)*.17);}}
 }
 // powers and gadgets act on the liquid too
 function fluidForces(){
