@@ -3191,7 +3191,7 @@ function fluidBodies(){
       if(RG&&!b.dead&&cw>=3){if(b.frozen<=0)b.cold=Math.min(62,b.cold+.28);
         if(b.cid==='spike'&&b.hp<b.maxHp){b.hp=Math.min(b.maxHp,b.hp+.06);if(frame%30===0){const q=pick(b.pts);part(q.x,q.y-q.r,0,-.8,30,3,'#9bff8a',{type:1,g:-.02});}}
         if(b.cid==='bolt'&&frame%24===0){b.shock=Math.max(b.shock,10);damage(b,4);const q=pick(b.pts);sparks(q.x,q.y,6,'#bfe6ff',4);sfx('zap',.3);}}
-      if(b.kind==='bomb')b.fuse++;                                              // a wet fuse will not burn
+      if(b.kind==='bomb'&&b.xk!=='nade'&&b.xk!=='c4'&&b.xk!=='mini')b.fuse++;   /* a grenade, a C4 charge and a cluster bomblet have no burning fuse: they go off underwater too */   // a wet fuse will not burn
     }
     if(cl){
       b.wet=0;if(b.cid!=='ember'&&!(b.C&&b.C.fireProof))/* (b.C: only dummies have a character. A crate or ball in lava has none, and asking it stopped the whole game: it froze and the arena went blank) */for(const p of b.pts)if(p.in==='lava'){p.heat=1.5;p.burnt=Math.min(1,p.burnt+.03);p.melt=(p.melt||0)+1;if(b.kind==='crate')p.fuel=Math.max(0,p.fuel-.006);}
@@ -4453,8 +4453,8 @@ function clothAnchor(b){const P=b.pts,f=b.facing<0?-1:1,s=b.sc*b.C.scale;switch(
     default:return[P[NECK].rx-f*3*s,P[NECK].ry-1*s];}}
 function drawCloth(g,b){const C=b.C;if(C.clothOf!==C.paintC){C.clothOf=C.paintC;try{C.clothBox=clothBox(C.paintC);}catch(e){C.clothBox=null;}}const B=C.clothBox;if(!B)return;const a=clothAnchor(b);if(!a)return;
   const s=b.sc*C.scale*.5,len=B[3]*s,w=B[2]*s,k=clamp(Math.round(len/8),2,9),l=len/k,f=b.facing<0?-1:1;let K=b.cl;
-  if(!K||K.nd.length!==k+1){const nd=[];for(let i=0;i<=k;i++)nd.push({x:a[0],y:a[1]+l*i,px:a[0],py:a[1]+l*i});K=b.cl={nd,f:frame};}
-  if(K.f!==frame){const steps=Math.min(3,Math.max(1,frame-K.f)),nd=K.nd,jx=a[0]-nd[0].x,jy=a[1]-nd[0].y;K.f=frame;if(jx*jx+jy*jy>8100)for(const q of nd){q.x+=jx;q.y+=jy;q.px+=jx;q.py+=jy;}   /* moved in one go (a portal, a blink): the cloth goes with it */
+  if(!K||K.nd.length!==k+1){const nd=[];for(let i=0;i<=k;i++)nd.push({x:a[0],y:a[1]+l*i,px:a[0],py:a[1]+l*i});K=b.cl={nd,f:frame+pauseT};}
+  const cT=frame+pauseT;if(K.f!==cT){const steps=Math.min(3,Math.max(1,cT-K.f)),nd=K.nd,jx=a[0]-nd[0].x,jy=a[1]-nd[0].y;K.f=cT;if(jx*jx+jy*jy>8100)for(const q of nd){q.x+=jx;q.y+=jy;q.px+=jx;q.py+=jy;}   /* moved in one go (a portal, a blink): the cloth goes with it */
     for(let st=0;st<steps;st++){nd[0].x=a[0];nd[0].y=a[1];for(let i=1;i<=k;i++){const q=nd[i],vx=(q.x-q.px)*.9,vy=(q.y-q.py)*.9;q.px=q.x;q.py=q.y;q.x+=vx;q.y+=vy+gravity*.6;}
       for(let it=0;it<6;it++)for(let i=1;i<=k;i++){const p=nd[i-1],q=nd[i],dx=q.x-p.x,dy=q.y-p.y,d=Math.sqrt(dx*dx+dy*dy)||1e-6,e=(d-l)/d;if(i===1){q.x-=dx*e;q.y-=dy*e;}else{p.x+=dx*e*.5;p.y+=dy*e*.5;q.x-=dx*e*.5;q.y-=dy*e*.5;}}   /* each link back to its length, shared between its two ends (the pinned end does not move) */
       for(let i=1;i<=k;i++){const q=nd[i];if(q.y>FLOOR-1){q.y=FLOOR-1;q.px=q.x-(q.x-q.px)*.5;}}}}
@@ -4755,8 +4755,9 @@ function step(){
 
 // What still runs while paused: dragging (Grab and Telekinesis move things and pose ragdolls in place), cooldowns,
 // and the tidy-up after erasing or cutting. Click tools (rope, weld, pin, blade, walls, props, spawn...) never needed time to pass.
+let pauseT=0;   /* frames spent paused. The hanging chains (spine, nerves, cloth) count frame+pauseT, so they still move while the game is paused */
 function pausedStep(){
-  if(powerCd>0)powerCd--;
+  pauseT++;if(powerCd>0)powerCd--;
   if(cur===TOOLS.brute&&grab&&grab===cur.p&&!cur.done&&hyp(mouse.x-cur.sx,mouse.y-cur.sy)>BRUTEPULL){cur.done=true;if(bruteRip(grab,mouse.x-cur.sx,mouse.y-cur.sy)&&!onBody(grab))grab.b.held=false;}   /* Brute Force works with time stopped too: its pull was only looked at in the running game, so paused it just dragged the dummy about */
   const drag=grab?grab.b:tele?tele.b:null;
   if(drag&&drag.remove){if(grab){grab.b.held=false;grab=null;}if(tele){tele.b.held=false;tele=null;}}
@@ -5032,8 +5033,8 @@ const WSN=4;   // links in a hanging nerve
 /* Real bones. spineChain: a length of spine hanging from a wound, a chain like the nerves (wsc on the point). drawVerts: vertebrae along a line of points.
    kind says what bone a wound shows: 'spineUp' vertebrae standing out of it, 'spineHang' a hanging length of spine, 'ball' a limb bone ending in its ball
    joint, 'hole' the empty socket a bone was pulled out of; none: a splintered end, or (end-on) the bone in the middle of the socket. kw: how wide a vertebra is. */
-function spineChain(e,x,y,ux,uy,n,l){let c=e.wsc;if(!c||c.nd.length!==n+1){const nd=[];for(let i=0;i<=n;i++)nd.push({x:x+ux*l*i,y:y+uy*l*i,px:x+ux*l*i,py:y+uy*l*i});c=e.wsc={nd,l};e.wcf=frame;}
-  if(e.wcf!==frame){const steps=Math.min(3,Math.max(1,frame-e.wcf)),gv=gravity*.9,nd=c.nd,jx=x-nd[0].x,jy=y-nd[0].y;e.wcf=frame;if(jx*jx+jy*jy>6400)for(const q of nd){q.x+=jx;q.y+=jy;q.px+=jx;q.py+=jy;}
+function spineChain(e,x,y,ux,uy,n,l){let c=e.wsc;if(!c||c.nd.length!==n+1){const nd=[];for(let i=0;i<=n;i++)nd.push({x:x+ux*l*i,y:y+uy*l*i,px:x+ux*l*i,py:y+uy*l*i});c=e.wsc={nd,l};e.wcf=frame+pauseT;}
+  const T=frame+pauseT;if(e.wcf!==T){const steps=Math.min(3,Math.max(1,T-e.wcf)),gv=gravity*.9,nd=c.nd,jx=x-nd[0].x,jy=y-nd[0].y;e.wcf=T;if(jx*jx+jy*jy>6400)for(const q of nd){q.x+=jx;q.y+=jy;q.px+=jx;q.py+=jy;}
     for(let s=0;s<steps;s++){nd[0].x=x;nd[0].y=y;for(let i=1;i<=n;i++){const q=nd[i],vx=(q.x-q.px)*.95,vy=(q.y-q.py)*.95;q.px=q.x;q.py=q.y;q.x+=vx;q.y+=vy+gv;}
       for(let it=0;it<3;it++)for(let i=1;i<=n;i++){const a=nd[i-1],q=nd[i],dx=q.x-a.x,dy=q.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||1e-6,k=l/d;q.x=a.x+dx*k;q.y=a.y+dy*k;if(q.y>FLOOR-1.5){q.y=FLOOR-1.5;q.px=q.x-(q.x-q.px)*.5;}}}}
   return c.nd;}
@@ -5057,8 +5058,8 @@ function woundAt(g,b,e,dx,dy,w,rb,sock,ox,oy,kind,kw,ribs){
   const cols=rb?['#ff5a4a','#ffd24a','#4aa3ff','#3ad17a']:['#f3e3a0',FC,'#ff9aa8','#6d5bd0'];g.lineWidth=Math.max(.8,w*.075);
   if(!nStr)return;
   /* the strands are real: each a chain of WSN links pinned to the wound (wst on the point), stepped once a frame. It starts out along the stump and falls from there */
-  let st=e.wst;if(!st||st.length!==nStr){st=e.wst=[];for(let k=0;k<nStr;k++){const len=w*(.8+1.3*fr(sd*(k+2)*1.37)),off=(k-(nStr-1)/2)*w*.17,nd=[];for(let i=0;i<=WSN;i++){const t=i/WSN*len,nx=x-uy*off+ux*t,ny=y+ux*off+uy*t;nd.push({x:nx,y:ny,px:nx,py:ny});}st.push({nd,l:len/WSN,off});}e.wf=frame;}
-  if(e.wf!==frame){const steps=Math.min(3,Math.max(1,frame-e.wf)),gv=gravity*.8;e.wf=frame;
+  let st=e.wst;if(!st||st.length!==nStr){st=e.wst=[];for(let k=0;k<nStr;k++){const len=w*(.8+1.3*fr(sd*(k+2)*1.37)),off=(k-(nStr-1)/2)*w*.17,nd=[];for(let i=0;i<=WSN;i++){const t=i/WSN*len,nx=x-uy*off+ux*t,ny=y+ux*off+uy*t;nd.push({x:nx,y:ny,px:nx,py:ny});}st.push({nd,l:len/WSN,off});}e.wf=frame+pauseT;}
+  const wT=frame+pauseT;if(e.wf!==wT){const steps=Math.min(3,Math.max(1,wT-e.wf)),gv=gravity*.8;e.wf=wT;
     for(const S of st){const nd=S.nd,rx=x-uy*S.off,ry=y+ux*S.off,jx=rx-nd[0].x,jy=ry-nd[0].y;
       if(jx*jx+jy*jy>6400)for(const q of nd){q.x+=jx;q.y+=jy;q.px+=jx;q.py+=jy;}                       /* the dummy was moved in one go (a portal, a swap): the strands go with it */
       for(let s=0;s<steps;s++){nd[0].x=rx;nd[0].y=ry;
