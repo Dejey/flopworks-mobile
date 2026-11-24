@@ -1353,9 +1353,28 @@ function postBody(b){
   else if(b.kind==='mine'){const p=b.pts[0];if(b.arm>0)b.arm--;else if(p.bump){removeBody(b);boom(p.x,p.y);}}
   else if(b.kind==='meteor'){const p=b.pts[0];for(let i=0;i<2;i++)addFlame(p.x+rnd(-8,8),p.y+rnd(-8,8),rnd(-.5,.5),rnd(-.5,.5),rnd(14,22),rnd(14,24));if(Math.random()<.3)soot(p.x,p.y);
     if(p.hit||p.bump){removeBody(b);boom(p.x,p.y);for(let i=0;i<4;i++)addPatch(p.x+rnd(-90,90),groundBelow(p.x,p.y-20,true),rnd(160,300));}}
-  else if(b.kind==='bomb'){if(--b.fuse<=0){const p=b.pts[0];removeBody(b);boom(p.x,p.y,b.owner);}else if(frame%3===0){const p=b.pts[0];part(p.x+4,p.y-p.r-6,rnd(-1,1),rnd(-2,0),12,2,'#ffd24a',{type:1});}}
+  else if(b.kind==='bomb'){if(--b.fuse<=0){const p=b.pts[0];removeBody(b);bombGo(b,p.x,p.y);}else if(frame%3===0&&b.xk!=='c4'&&b.xk!=='nade'){const p=b.pts[0];part(p.x+4,p.y-p.r-6,rnd(-1,1),rnd(-2,0),12,2,'#ffd24a',{type:1});}}
   else if(b.kind==='balloon'){const l=b.link;if(l&&(l.cut||l.q.b.remove)){b.link=null;b.owner=null;}else if(l&&gravity){const T=l.q.b,lift=T.kind==='ragdoll'?.22*gravity*T.grav:.17*gravity/Math.max(.5,T.ms);   /* a balloon pulls against gravity whichever way that points: with gravity reversed it drags what it is tied to down toward the floor (it used to do nothing then) */T.balloonN=(T.balloonN||0)+1;for(const q of T.pts)if(!q.pin)q.py+=lift;}}
 }
+/* a bomb of one of the Explosives kinds goes off (b.xk). nade and c4: an ordinary blast. dyn: that, and a second, wider one. cluster: a smaller blast that throws out seven bomblets (mini), each a small blast of its own a moment later. */
+function bombGo(b,x,y){const k=b.xk,by=b.owner;
+  if(k==='dyn'){boom(x,y,by);explode(x,y,340,24,30,{quiet:true,tear:true});ring(x,y,330,'#ffb347',28,7);shake=Math.max(shake,16);flash=Math.max(flash,.8);
+    for(let i=0;i<30;i++){const a=rnd(0,6.3),v=rnd(3,11);addFlame(x+Math.cos(a)*16,y+Math.sin(a)*16,Math.cos(a)*v,Math.sin(a)*v-1,rnd(26,52),rnd(18,38));}return;}
+  if(k==='mini'){explode(x,y,125,17,26,{fire:true,tear:true});sfx('boom',.5);flash=Math.max(flash,.2);for(let i=0;i<12;i++){const a=rnd(0,6.3),v=rnd(.5,5);addFlame(x+Math.cos(a)*6,y+Math.sin(a)*6,Math.cos(a)*v,Math.sin(a)*v-1,rnd(16,30),rnd(10,20));}return;}
+  if(k==='cluster'){explode(x,y,150,20,30,{fire:true,tear:true});sfx('boom',.8);sfx('pop',1);flash=Math.max(flash,.35);ring(x,y,120,'#ffd24a',16,4);witness(x,y,'seeBoom',null,null,'','duck',430);
+    for(let i=0;i<7;i++){const a=-1.5708+(i-3)*.42+rnd(-.15,.15),v=rnd(6,10.5),m=makeBomb(x+Math.cos(a)*10,y+Math.sin(a)*10-4),p=m.pts[0];m.xk='mini';m.fuse=(34+i*9+rnd(0,14))|0;m.owner=by||null;p.r=7;p.px=p.x-Math.cos(a)*v;p.py=p.y-Math.sin(a)*v;}return;}
+  boom(x,y,by);}
+function drawBombKind(g,b,p){const x=p.rx,y=p.ry,r=p.r,bl=b.fuse<60?(b.fuse>>2)&1:(b.fuse>>4)&1,num=()=>{g.fillStyle='#fff';g.font='bold 10px system-ui';g.textAlign='center';g.fillText(Math.ceil(b.fuse/60),x,y+4);};
+  switch(b.xk){
+    case 'nade':g.fillStyle=bl?'#7a3a1c':'#4f7432';g.beginPath();g.ellipse(x,y+1,r*.84,r,0,0,6.3);g.fill();g.strokeStyle='rgba(0,0,0,.3)';g.lineWidth=1;g.beginPath();g.moveTo(x-r*.8,y-1);g.lineTo(x+r*.8,y-1);g.moveTo(x-r*.7,y+4);g.lineTo(x+r*.7,y+4);g.moveTo(x,y-r+2);g.lineTo(x,y+r);g.stroke();
+      g.fillStyle='#9aa1ad';g.fillRect(x-3,y-r-3,6,5);g.strokeStyle='#d5dae3';g.lineWidth=1.6;g.beginPath();g.arc(x+6,y-r-1,3.2,0,6.3);g.stroke();return true;
+    case 'dyn':for(const k of [-1,0,1]){g.fillStyle=bl?'#ff6a4a':'#c8322c';rr(g,x-4+k*8.4,y-r,8,r*2,2.5);g.fill();g.fillStyle='rgba(255,255,255,.18)';g.fillRect(x-3+k*8.4,y-r+2,2,r*2-4);}
+      g.fillStyle='#1b1d24';g.fillRect(x-13,y-3,26,6);g.strokeStyle='#a98a55';g.lineWidth=2.2;g.beginPath();g.moveTo(x,y-r);g.quadraticCurveTo(x+6,y-r-8,x+3,y-r-11);g.stroke();num();return true;
+    case 'cluster':g.fillStyle=bl?'#5a2a1a':'#39424f';g.beginPath();g.arc(x,y,r,0,6.3);g.fill();g.fillStyle='#ffd24a';for(let k=0;k<6;k++){const a=k*1.0472+.5;g.beginPath();g.arc(x+Math.cos(a)*r*.62,y+Math.sin(a)*r*.62,2.2,0,6.3);g.fill();}num();return true;
+    case 'mini':g.fillStyle=bl?'#ff8a3c':'#2a2f3a';g.beginPath();g.arc(x,y,r,0,6.3);g.fill();g.fillStyle='#ffd24a';g.beginPath();g.arc(x,y,2,0,6.3);g.fill();return true;
+    case 'c4':g.fillStyle='#d9c79a';rr(g,x-11,y-7,22,14,2.5);g.fill();g.strokeStyle='#8a7a52';g.lineWidth=1;g.stroke();g.fillStyle='#2a2d36';g.fillRect(x-5,y-4,10,8);g.strokeStyle='#d8343a';g.lineWidth=1.3;g.beginPath();g.moveTo(x-11,y-2);g.lineTo(x-5,y-2);g.stroke();g.strokeStyle='#3a7bd8';g.beginPath();g.moveTo(x+5,y+2);g.lineTo(x+11,y+2);g.stroke();
+      g.fillStyle=b.fuse<600||(frame>>4)&1?'#ff3a3a':'#5a1a1a';g.beginPath();g.arc(x,y,2,0,6.3);g.fill();return true;}
+  return false;}
 function boom(x,y,by){explode(x,y,210,30,55,by&&!by.remove?{fire:true,tear:true,skip:by,by}:{fire:true,tear:true});sfx('boom');witness(x,y,'seeBoom',null,null,'','duck',430);flash=Math.max(flash,.5);
   for(let i=0;i<46;i++){const a=rnd(0,6.3),v=rnd(.5,7.5);addFlame(x+Math.cos(a)*10,y+Math.sin(a)*10,Math.cos(a)*v,Math.sin(a)*v-1,rnd(22,46),rnd(16,34));}
   for(let i=0;i<10;i++)soot(x+rnd(-40,40),y+rnd(-30,10),1.8);for(let i=0;i<18;i++)ember(x+rnd(-20,20),y+rnd(-20,20));
@@ -2240,7 +2259,7 @@ const MODES={
   flee:{name:'Flee',icon:'😱',desc:'Panics and runs from the cursor, fighters, zombies and bombs.',think(b,I){
     const hip=b.pts[HIP];let tx=null,td=300;
     if(mouse.inside){const d=hyp(mouse.x-hip.x,mouse.y-hip.y);if(d<td){td=d;tx=mouse.x;}}
-    for(const o of bodies){if(o===b||o.remove)continue;const scary=o.kind==='bomb'||o.burn>0||(o.kind==='ragdoll'&&!o.dead&&!undeadPals(b,o)&&(o.mode==='fight'||o.mode==='zombie'||o.mode==='possess'));if(!scary)continue;
+    for(const o of bodies){if(o===b||o.remove)continue;const scary=(o.kind==='bomb'&&o.xk!=='c4')||o.burn>0||(o.kind==='ragdoll'&&!o.dead&&!undeadPals(b,o)&&(o.mode==='fight'||o.mode==='zombie'||o.mode==='possess'));if(!scary)continue;
       const q=o.kind==='ragdoll'?o.pts[HIP]:o.pts[0],d=hyp(q.x-hip.x,q.y-hip.y);if(d<td){td=d;tx=q.x;}}
     {const bi=((hip.x-XL)/40)|0;for(let k=-3;k<=3;k++){const q=bi+k;if(q<0||q>=160||hazBins[q]<3||Math.abs(hazY[q]-hip.y)>170)continue;const cx=XL+(q+.5)*40,d=Math.abs(hip.x-cx);if(d<Math.min(td,140)){td=d;tx=cx;}}}
     if(tx===null){b.ai.pdir=0;return;}
@@ -3443,7 +3462,7 @@ function sawChew(S){
     if(!hit)continue;bit=true;const p=o.pts[o.pts.length-1];
     if(o.kind==='crate'||o.kind==='ball'){const col=o.kind==='crate'?'#b07c42':pick(['#ff5a6e','#3fa7ff','#ffd24a','#f4f4f6']);o.sawn=(o.sawn||0)+1;confetti((p.x+c.x)/2,(p.y+c.y)/2,2,col);
       if(o.sawn>(o.kind==='crate'?16:7)){removeBody(o);confetti(p.x,p.y,18,col);smoke(p.x,p.y,3);if(o.kind==='ball')sfx('pop');}}
-    else if(o.kind==='bomb'||o.kind==='mine'||o.kind==='meteor'){removeBody(o);boom(p.x,p.y);}
+    else if(o.kind==='bomb'||o.kind==='mine'||o.kind==='meteor'){removeBody(o);if(o.kind==='bomb')bombGo(o,p.x,p.y);else boom(p.x,p.y);}
     else if(o.kind==='balloon')popBalloon(o);
     else{sparks(p.x,p.y,10,'#ffd27a',6);removeBody(o);}}
   // walls: the saw cuts out the stretch it overlaps and leaves the two ends
@@ -3987,6 +4006,16 @@ const TOOLS={
     up(){if(!aim)return;let dx=mouse.x-aim.x,dy=mouse.y-aim.y,d=hyp(dx,dy);if(d<8){dx=1;dy=0;d=1;const p=findPoint(aim.x,aim.y,1e4,b=>b.kind==='ragdoll');if(p){dx=p.x-aim.x;dy=p.y-aim.y;d=hyp(dx,dy)||1;}dx=dx/d*26;dy=dy/d*26;}else{const sp=clamp(d*.16,8,42);dx=dx/d*sp;dy=dy/d*sp;}
       makeShot(aim.x,aim.y,dx,dy);sfx('boom',.5);smoke(aim.x,aim.y,5);shake=Math.max(shake,3);aim=null;}},
   bomb:{name:'Bomb',icon:'💣',desc:'Drop a bomb. Three-second fuse. Fire sets it off early.',down(){makeBomb(mouse.x,mouse.y);sfx('click');witness(mouse.x,mouse.y,'seeBomb',null,null,'','run',320);}},
+  grenade:{name:'Grenade',icon:'<svg viewBox="0 0 24 24" width="22" height="22" style="display:block"><rect x="9" y="2" width="6" height="5" rx="1" fill="#9aa1ad"/><ellipse cx="12" cy="15" rx="6.5" ry="7.5" fill="#5f8a3c"/><path d="M6 13h12M7 17h10M12 8v14" stroke="#3c5a26" stroke-width="1" fill="none"/><circle cx="18.5" cy="5" r="2.6" stroke="#d5dae3" stroke-width="1.5" fill="none"/></svg>',desc:'Drag to aim and let go to throw a grenade: it goes off about a second later. A quick click just drops it.',
+    down(){aim={x:mouse.x,y:mouse.y};},
+    up(){if(!aim)return;const dx=mouse.x-aim.x,dy=mouse.y-aim.y,d=hyp(dx,dy),b=makeBomb(aim.x,aim.y),p=b.pts[0];b.xk='nade';b.fuse=75;p.r=9;if(d>=8){const sp=clamp(d*.11,4,24);p.px=p.x-dx/d*sp;p.py=p.y-dy/d*sp;}sfx('pop',.9);witness(aim.x,aim.y,'seeBomb',null,null,'','run',320);aim=null;}},
+  dynamite:{name:'Dynamite',icon:'🧨',desc:'Drop a bundle of dynamite. Four-second fuse, and a blast far bigger than a bomb makes. Fire sets it off early.',down(){const b=makeBomb(mouse.x,mouse.y);b.xk='dyn';b.fuse=240;b.ms=2;b.pts[0].r=14;sfx('click');witness(mouse.x,mouse.y,'seeBomb',null,null,'','run',380);}},
+  cluster:{name:'Cluster bomb',short:'Cluster',icon:'<svg viewBox="0 0 24 24" width="22" height="22" style="display:block"><circle cx="12" cy="13" r="9" fill="#4a5564"/><circle cx="8" cy="10" r="2.2" fill="#ffd24a"/><circle cx="16" cy="10" r="2.2" fill="#ffd24a"/><circle cx="12" cy="17" r="2.2" fill="#ffd24a"/><path d="M12 4V1" stroke="#a98a55" stroke-width="2"/></svg>',desc:'Drop a cluster bomb. Two and a half seconds later it bursts and scatters seven bomblets, which go off one after another.',down(){const b=makeBomb(mouse.x,mouse.y);b.xk='cluster';b.fuse=150;b.pts[0].r=13;sfx('click');witness(mouse.x,mouse.y,'seeBomb',null,null,'','run',320);}},
+  c4:{name:'C4',icon:'<svg viewBox="0 0 24 24" width="22" height="22" style="display:block"><rect x="2" y="6" width="20" height="13" rx="2" fill="#d9c79a" stroke="#8a7a52"/><rect x="8" y="9" width="8" height="7" fill="#2a2d36"/><circle cx="12" cy="12.5" r="1.8" fill="#ff3a3a"/><path d="M2 11h6" stroke="#d8343a" stroke-width="1.4"/><path d="M16 14h6" stroke="#3a7bd8" stroke-width="1.4"/></svg>',desc:'Click a dummy, a crate or anything else and a charge sticks to it; click empty space and it drops where it is. It waits there until you pick the Detonator and click. Fire, a bullet or another blast sets it off too.',
+    down(){const t=findPoint(mouse.x,mouse.y,26,()=>true);let x=mouse.x,y=mouse.y;if(t){let dx=x-t.x,dy=y-t.y,d=hyp(dx,dy);if(d<1){dx=0;dy=-1;d=1;}const L=t.r+8;x=t.x+dx/d*L;y=t.y+dy/d*L;}   /* stuck on: it sits against the part, joined to it by a short rod */
+      const b=makeBomb(x,y),q=b.pts[0];b.xk='c4';b.fuse=1e9;b.ms=.4;q.r=8;if(t){const len=hyp(t.x-q.x,t.y-q.y);links.push({p:t,q,len,len0:len,stiff:1,kind:'rod',w:1,cut:false,tear:0});}sfx('click');}},
+  detonator:{name:'Detonator',short:'Detonate',icon:'<svg viewBox="0 0 24 24" width="22" height="22" style="display:block"><rect x="6" y="9" width="12" height="13" rx="2" fill="#3b4556"/><circle cx="12" cy="15.5" r="3.4" fill="#ff3a3a"/><path d="M15 9V2" stroke="#c9ced8" stroke-width="1.6"/><circle cx="15" cy="2.5" r="1.6" fill="#ffd24a"/></svg>',desc:'Click anywhere to set off every C4 charge, one a moment after the other.',
+    down(){let k=0;for(const b of bodies)if(b.kind==='bomb'&&b.xk==='c4'&&!b.remove&&b.fuse>600){b.fuse=3+k*6;k++;}if(k){sfx('click');setInfo('<b>Detonator</b> — '+k+(k===1?' charge':' charges')+' set off.');}else setInfo('<b>Detonator</b> — there are no C4 charges to set off. Stick some on with <b>C4</b> first.');}},
   rocket:{name:'Rocket',icon:'🚀',desc:'Strap a rocket to a body part. It thrusts along the limb for five seconds.',
     down(){const p=findPoint(mouse.x,mouse.y,36);if(!p)return;let ref=null,inv=false;const b=p.b;
       if(b.kind==='ragdoll'){const i=b.pts.indexOf(p);if(i===HIP){ref=b.pts[NECK];inv=true;}else if(i===NECK)ref=b.pts[HIP];else for(const s of b.sticks){if(s.kind==='bone'&&s.q===p){ref=s.p;break;}if(s.kind==='bone'&&s.p===p&&i===HEAD){ref=s.q;break;}}}
@@ -4434,7 +4463,7 @@ function meleeAttack(b,t){const o=meleeOpts(b);if(o&&GUNS[b.gun.id].pierce&&!b.i
 function bulletHit(bl,b,p){
   const ux=bl.vx/bl.sp,uy=bl.vy/bl.sp,x=bl.x,y=bl.y;
   if(b.kind==='balloon'){popBalloon(b);return;}
-  if(b.kind==='bomb'||b.kind==='mine'||b.kind==='meteor'){removeBody(b);boom(p.x,p.y);bl.dead=true;return;}
+  if(b.kind==='bomb'||b.kind==='mine'||b.kind==='meteor'){removeBody(b);if(b.kind==='bomb')bombGo(b,p.x,p.y);else boom(p.x,p.y);bl.dead=true;return;}
   if(b.kind!=='ragdoll'){if(!p.pin){p.px-=ux*bl.push*2.2*p.im;p.py-=uy*bl.push*2.2*p.im;}sparks(x,y,3,b.kind==='crate'?'#d9a866':'#ffe9a8',3);if(b.kind==='crate'){confetti(x,y,2,'#b07c42');if(b.tnt)crateHit(b,9);}bl.dead=true;return;}
   if(b.shield>0){sparks(x,y,5,'#bfe6ff',4);ring(x,y,16,'#bfe6ff',8,2);bl.dead=true;return;}
   if(infOn(b)){infRipple(b,x,y);bl.dead=true;return;}
@@ -4623,7 +4652,7 @@ function bowlHit(o,v){const p=o.pts[0],now=hyp(p.x-p.px,p.y-p.py),was=hyp(p.vx0,
   const c=v.pts[HIP];sfx('thud',1);if(sp>9){say(c.x,c.y-50,'STRIKE!','#ffe066',16);shake=Math.max(shake,3);}}
 function makeBowl(x,y,r,m){const b=makeBall(x,y),p=b.pts[0];b.bowl=true;b.ms=m*.7;b.bounce=.16;b.fric=.012;p.r=r;p.m=m;p.im=1/m;return b;}   // a ball with real weight: a bowling ball, or the ball of a wrecking ball
 const SECTIONS={
-  toolGrid:[['Hands',['grab','brute','pin','rope','weld','blade','eraser','magnet']],['Destroy',['cannon','bomb','mine','rocket','saw','hammer','firework','spikes','tesla','tnt','wreck']],['Guns',['pistol','uzi','smg','rifle','shotgun','sniper','minigun','flamer','launcher']],['Build',['spawn','crate','ball','balloon','wall','bouncer','fan','portal','sand','concrete','belt','kit','peel','pizza','burger','confetti','bowl']],['Liquids',['water','lava','acid','honey','gluel']]],
+  toolGrid:[['Hands',['grab','brute','pin','rope','weld','blade','eraser','magnet']],['Destroy',['cannon','rocket','saw','hammer','spikes','tesla','wreck']],['Explosives',['bomb','grenade','dynamite','cluster','c4','detonator','mine','tnt','firework']],['Guns',['pistol','uzi','smg','rifle','shotgun','sniper','minigun','flamer','launcher']],['Build',['spawn','crate','ball','balloon','wall','bouncer','fan','portal','sand','concrete','belt','kit','peel','pizza','burger','confetti','bowl']],['Liquids',['water','lava','acid','honey','gluel']]],
   powerGrid:[['Forces',['blast','hole','tele','lift','twister','quake','gust','swap','launch','pillar','warp','stun','disarm','anvil','slam']],['Elements',['bolt','fire','ice','rain','meteor','skylaser','geyser','wave','erupt','shower','acidrain','evap','blizzard','storm','honeyrain']],['Bodies',['size','heal','sleep','rage','clone','party','shield','rubber','dizzy','feather','floaty','heavy','haste','bomb','cupid','feud','zombie','scare','peace']],['Potions',['potRegen','potImmortal','potStrong','potSwift','potInvis','potFire','potGiant','potPoison','potSkel','potTiny','potFury','potJump','potDoze','potCure']],['Time',['slow','fast']]]};
 let cur=TOOLS.grab,curId='grab';
 function pickTool(id){const t=TOOLS[id]||POWERS[id];if(!t)return;
@@ -5136,7 +5165,7 @@ function drawProp(g,b){
     case 'ball':g.save();g.translate(p.rx,p.ry);g.rotate(b.rot);
       if(b.bowl){g.fillStyle='#3d4460';g.beginPath();g.arc(0,0,p.r,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.16)';g.beginPath();g.arc(-p.r*.3,-p.r*.35,p.r*.3,0,6.3);g.fill();g.fillStyle='#07080c';for(const q of [[.1,-.45],[.42,-.2],[.12,-.08]]){g.beginPath();g.arc(q[0]*p.r,q[1]*p.r,p.r*.12,0,6.3);g.fill();}g.restore();break;}   /* a bowling ball: dark, with three finger holes */ g.fillStyle='#f4f4f6';g.beginPath();g.arc(0,0,p.r,0,6.3);g.fill();
       for(let i=0;i<3;i++){g.fillStyle=['#ff5a6e','#3fa7ff','#ffd24a'][i];g.beginPath();g.moveTo(0,0);g.arc(0,0,p.r,i*2.094,i*2.094+1.047);g.closePath();g.fill();}g.fillStyle='#fff';g.beginPath();g.arc(0,0,p.r*.22,0,6.3);g.fill();g.restore();break;
-    case 'bomb':{const bl=b.fuse<60?(b.fuse>>2)&1:(b.fuse>>4)&1;g.fillStyle=bl?'#5a1a1a':'#1b1d24';g.beginPath();g.arc(p.rx,p.ry,p.r,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.25)';g.beginPath();g.arc(p.rx-4,p.ry-4,3,0,6.3);g.fill();
+    case 'bomb':{if(b.xk&&drawBombKind(g,b,p))break;const bl=b.fuse<60?(b.fuse>>2)&1:(b.fuse>>4)&1;g.fillStyle=bl?'#5a1a1a':'#1b1d24';g.beginPath();g.arc(p.rx,p.ry,p.r,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.25)';g.beginPath();g.arc(p.rx-4,p.ry-4,3,0,6.3);g.fill();
       g.strokeStyle='#a98a55';g.lineWidth=2.5;g.beginPath();g.moveTo(p.rx+2,p.ry-p.r);g.quadraticCurveTo(p.rx+7,p.ry-p.r-7,p.rx+4,p.ry-p.r-9);g.stroke();g.fillStyle='#fff';g.font='bold 10px system-ui';g.textAlign='center';g.fillText(Math.ceil(b.fuse/60),p.rx,p.ry+4);break;}
     case 'shot':if(b.anvil){const r=p.r;g.save();g.translate(p.rx,p.ry);g.fillStyle='#3a3f4c';g.beginPath();g.moveTo(-r*1.25,-r*.9);g.lineTo(r*1.5,-r*.9);g.lineTo(r*.75,-r*.3);g.lineTo(r*.45,-r*.3);g.lineTo(r*.45,r*.35);g.lineTo(r*.95,r*.95);g.lineTo(-r*.95,r*.95);g.lineTo(-r*.45,r*.35);g.lineTo(-r*.45,-r*.3);g.lineTo(-r*1.25,-r*.3);g.closePath();g.fill();g.fillStyle='rgba(255,255,255,.14)';g.fillRect(-r*1.2,-r*.9,r*2.6,r*.16);g.restore();break;}   // an anvil
       g.fillStyle='#2a2d36';g.beginPath();g.arc(p.rx,p.ry,p.r,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.3)';g.beginPath();g.arc(p.rx-3,p.ry-3,2.5,0,6.3);g.fill();break;
