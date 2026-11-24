@@ -2951,6 +2951,7 @@ const WATER=0,LAVA=1,ACID=2,HONEY=3,PASTE=4,ROCK=5,ICE=6,SAND=7,LNAME=['water','
 let LX=new Float32Array(FMAX),LY=new Float32Array(FMAX),LPX=new Float32Array(FMAX),LPY=new Float32Array(FMAX),LVX=new Float32Array(FMAX),LVY=new Float32Array(FMAX),
   LRHO=new Float32Array(FMAX),LDX=new Float32Array(FMAX),LDY=new Float32Array(FMAX),LTM=new Float32Array(FMAX),
   LTYPE=new Uint8Array(FMAX),LCD=new Uint8Array(FMAX),LDEAD=new Uint8Array(FMAX),LCELL=new Int32Array(FMAX);
+let LBL=new Float32Array(FMAX),LBC=new Uint32Array(FMAX),bloodAt=-1e9;   /* blood in each drop of liquid: how much (0 to 1) and its colour (r, g<<8, b<<16). bloodAt: the last frame any drop had some */
 let LGR=new Uint8Array(FMAX),liqGrabN=0,lgx=0,lgy=0,lgvx=0,lgvy=0;   /* drops the Grab tool is holding, and where the hand was last frame */
 let LATO=[],LATK=new Uint8Array(FMAX),LATT=new Float32Array(FMAX),LATD=new Float32Array(FMAX),LATL=new Float32Array(FMAX),stuckAll=0;   /* honey stuck to a dummy: what it is stuck to (a limb or a head), where on it, and how long it will hold */
 let NBS=new Int32Array(FMAX+1),NB=new Int32Array(FMAX*FNBMAX),NGX=new Float32Array(FMAX*FNBMAX),NGY=new Float32Array(FMAX*FNBMAX),NG=new Uint8Array(FMAX*FNBMAX);
@@ -2963,11 +2964,28 @@ const FRHO0=(()=>{let s=0;for(let i=-4;i<=4;i++)for(let j=-4;j<=4;j++){const x=(
 function fluidGrow(){
   const n=FMAX*2,g=(a,len)=>{const b=new a.constructor(len);b.set(a);return b;};
   LX=g(LX,n);LY=g(LY,n);LPX=g(LPX,n);LPY=g(LPY,n);LVX=g(LVX,n);LVY=g(LVY,n);LRHO=g(LRHO,n);LDX=g(LDX,n);LDY=g(LDY,n);LTM=g(LTM,n);
-  LTYPE=g(LTYPE,n);LGR=g(LGR,n);LATK=g(LATK,n);LATT=g(LATT,n);LATD=g(LATD,n);LATL=g(LATL,n);LCD=g(LCD,n);LDEAD=g(LDEAD,n);LCELL=g(LCELL,n);cellItems=g(cellItems,n);
+  LTYPE=g(LTYPE,n);LBL=g(LBL,n);LBC=g(LBC,n);LGR=g(LGR,n);LATK=g(LATK,n);LATT=g(LATT,n);LATD=g(LATD,n);LATL=g(LATL,n);LCD=g(LCD,n);LDEAD=g(LDEAD,n);LCELL=g(LCELL,n);cellItems=g(cellItems,n);
   NBS=g(NBS,n+1);NB=g(NB,n*FNBMAX);NGX=g(NGX,n*FNBMAX);NGY=g(NGY,n*FNBMAX);NG=g(NG,n*FNBMAX);FMAX=n;
 }
-function fluidAdd(type,x,y,vx,vy){if(LN>=FMAX)fluidGrow();const i=LN++;LX[i]=LPX[i]=x;LY[i]=LPY[i]=y;LVX[i]=vx||0;LVY[i]=vy||0;LTYPE[i]=type;LTM[i]=0;LCD[i]=0;LDEAD[i]=0;LRHO[i]=FRHO0;LATO[i]=null;LGR[i]=0;return i;}
-function fluidCompact(){let n=0;for(let i=0;i<LN;i++){if(LDEAD[i])continue;if(n!==i){LX[n]=LX[i];LY[n]=LY[i];LPX[n]=LPX[i];LPY[n]=LPY[i];LVX[n]=LVX[i];LVY[n]=LVY[i];LTYPE[n]=LTYPE[i];LTM[n]=LTM[i];LCD[n]=LCD[i];LRHO[n]=LRHO[i];LGR[n]=LGR[i];LATO[n]=LATO[i];LATK[n]=LATK[i];LATT[n]=LATT[i];LATD[n]=LATD[i];LATL[n]=LATL[i];}LDEAD[n]=0;n++;}LN=n;}
+function fluidAdd(type,x,y,vx,vy){if(LN>=FMAX)fluidGrow();const i=LN++;LX[i]=LPX[i]=x;LY[i]=LPY[i]=y;LVX[i]=vx||0;LVY[i]=vy||0;LTYPE[i]=type;LTM[i]=0;LCD[i]=0;LDEAD[i]=0;LRHO[i]=FRHO0;LATO[i]=null;LGR[i]=0;LBL[i]=0;return i;}
+function fluidCompact(){let n=0;for(let i=0;i<LN;i++){if(LDEAD[i])continue;if(n!==i){LX[n]=LX[i];LY[n]=LY[i];LPX[n]=LPX[i];LPY[n]=LPY[i];LVX[n]=LVX[i];LVY[n]=LVY[i];LTYPE[n]=LTYPE[i];LTM[n]=LTM[i];LCD[n]=LCD[i];LRHO[n]=LRHO[i];LGR[n]=LGR[i];LBL[n]=LBL[i];LBC[n]=LBC[i];LATO[n]=LATO[i];LATK[n]=LATK[i];LATT[n]=LATT[i];LATD[n]=LATD[i];LATL[n]=LATL[i];}LDEAD[n]=0;n++;}LN=n;}
+/* ---- blood in liquid ----
+   bloodRGB: a drop's colour as one number. bloodTint: amt more blood of colour c into liquid drop j (its colour moves toward c by the share that is new).
+   bloodInto: a drop of blood at (x,y) dissolves into the water, acid or honey drops within reach; false if there are none (then it falls on as before).
+   bloodMix, once a frame: blood evens out between neighbouring drops a little at a time, and fades very slowly. */
+const BLOODRGB=new Map(),BLHIT=new Int32Array(16);
+function bloodRGB(col){let c=BLOODRGB.get(col);if(c===undefined){let v=null;try{v=h2c(col);}catch(e){}c=v&&v[0]===v[0]&&v[2]===v[2]?(v[0]&255)|((v[1]&255)<<8)|((v[2]&255)<<16):(179|(18<<8)|(31<<16));BLOODRGB.set(col,c);}return c;}
+function bloodTint(j,amt,c){const o=LBL[j];if(o<.0002)LBC[j]=c;else if(LBC[j]!==c){const k=amt/(o+amt),oc=LBC[j],r=(oc&255)+((c&255)-(oc&255))*k,g=(oc>>8&255)+((c>>8&255)-(oc>>8&255))*k,b=(oc>>16&255)+((c>>16&255)-(oc>>16&255))*k;LBC[j]=((r+.5)|0)|(((g+.5)|0)<<8)|(((b+.5)|0)<<16);}LBL[j]=o+amt>1?1:o+amt;}
+function bloodInto(x,y,col,amt){if(!LN)return false;const R=13,R2=R*R;let m=0;
+  let cx0=(((x-R-XL)/FCELL)|0)+1,cx1=(((x+R-XL)/FCELL)|0)+1,cy0=(((y-R-CEIL)/FCELL)|0)+1,cy1=(((y+R-CEIL)/FCELL)|0)+1;if(cx0<0)cx0=0;if(cy0<0)cy0=0;if(cx1>=gW)cx1=gW-1;if(cy1>=gH)cy1=gH-1;
+  for(let cy=cy0;cy<=cy1&&m<16;cy++)for(let cx=cx0;cx<=cx1&&m<16;cx++){const c=cx+cy*gW;for(let k=cellStart[c],e=cellStart[c+1];k<e&&m<16;k++){const j=cellItems[k];if(j>=LN||LDEAD[j])continue;const t=LTYPE[j];if(t>=PASTE||t===LAVA)continue;const dx=LX[j]-x,dy=LY[j]-y;if(dx*dx+dy*dy<R2)BLHIT[m++]=j;}}
+  if(!m)return false;const c=bloodRGB(col),a=amt/m;for(let i=0;i<m;i++)bloodTint(BLHIT[i],a,c);bloodAt=frame;return true;}
+function bloodMix(){let any=false;
+  for(let i=0;i<LN;i++){const ti=LTYPE[i];if(ti>=PASTE||ti===LAVA){if(ti===LAVA)LBL[i]=0;continue;}let bi=LBL[i];
+    for(let k=NBS[i],e=NBS[i+1];k<e;k++){const j=NB[k];if(j<=i||j>=LN)continue;const tj=LTYPE[j];if(tj>=PASTE||tj===LAVA)continue;const bj=LBL[j],d=(bj-bi)*.04;
+      if(d>.00002){bloodTint(i,d,LBC[j]);LBL[j]=bj-d;bi=LBL[i];}else if(d<-.00002){bloodTint(j,-d,LBC[i]);bi+=d;LBL[i]=bi;}}
+    if(bi>.0002){if(bi>.004)any=true;LBL[i]=bi*.99985;}else if(bi>0)LBL[i]=0;}
+  if(any)bloodAt=frame;}
 function fluidClear(){solidTop.fill(1e9);LN=0;LSTATIC=0;liqCount=[0,0,0,0,0,0,0,0];NBS[0]=0;cellStart.fill(0);lavaSrc.length=0;hazBins.fill(0);liqBins.fill(0);}
 function fcell(x,y){let cx=(((x-XL)/FCELL)|0)+1,cy=(((y-CEIL)/FCELL)|0)+1;cx=cx<0?0:cx>=gW?gW-1:cx;cy=cy<0?0:cy>=gH?gH-1:cy;return cx+cy*gW;}
 function fluidHash(){
@@ -3266,7 +3284,7 @@ function honeyStick(){
 }
 function fluidStep(){
   if(LN){let d=false;for(let i=0;i<LN;i++)if(LDEAD[i]){d=true;break;}if(d)fluidCompact();}
-  if(LN){fluidForces();fluidStepCore();fluidVelocities();sandStep();fluidReact();honeyStick();}
+  if(LN){fluidForces();fluidStepCore();fluidVelocities();sandStep();fluidReact();honeyStick();if(bloodAt>frame-600)bloodMix();}
   else if(LSTATIC||lavaSrc.length){solidTop.fill(1e9);LSTATIC=0;lavaSrc.length=0;hazBins.fill(0);liqCount=[0,0,0,0,0,0,0,0];}
   fluidBodies();
 }
@@ -3296,12 +3314,13 @@ const FWAVE=[[.043,.021,.031,.019,-.047,-.023],[.085,.05,.004,.037,-.1,-.003],[.
 const FF=[],FS=[],FTEX=[],FGTEX=[],fbx0=new Int32Array(8),fbx1=new Int32Array(8),fby0=new Int32Array(8),fby1=new Int32Array(8),fPX=new Float32Array(8),fPY=new Float32Array(8),fPC=new Int32Array(8);
 const FSEE=[.34,.5,.34,.42,0,0,0,0],FPCX=[1,.5,-.5,-1,-.5,.5],FPCY=[0,.866,.866,0,-.866,-.866];   /* FSEE: how much a body shows through the liquid lying over it */
 let fFB=null,fFBd=0,fBS=new Float32Array(2048),fEN=null,fEX=null,fEY=null,fEL=new Int32Array(4096),fTop=null;
+let fBA=null,fBR=null,fBG=null,fBB=null,fBd=0;   /* blood in the liquid, as fields on the same grid: how much, and its colour times how much. fBd: something was put in them this frame */
 let fGL=null;   /* how much of the honey field in each cell is glue: it is drawn white there */
 let fSW=0,fSH=0,fClr=0,fImg=null,fI32=null,fDep=null,fGA=null,fGB=null,fPR=null,fPG=null,fPB=null,fRim=new Float32Array(8192),fSA=null,fCA=null,fSB=null,fCB=null;
 function fluidGrid(gw,gh){                                   // a bigger grid when the view needs one
   if(gw<=fSW&&gh<=fSH)return;fSW=Math.max(fSW,gw+48);fSH=Math.max(fSH,gh+48);const n=fSW*fSH;
   for(let t=0;t<8;t++){FF[t]=FS[t]=null;if(FTEX[t]){FTEX[t].width=fSW;FTEX[t].height=fSH;}if(FGTEX[t]){FGTEX[t].width=fSW;FGTEX[t].height=fSH;}}
-  fImg=new ImageData(fSW,fSH);fI32=new Uint32Array(fImg.data.buffer);fGA=new Float32Array(n);fGB=new Float32Array(n);fFB=new Float32Array(n);fFBd=0;fPR=fPG=fPB=null;fGL=null;fClr=0;
+  fImg=new ImageData(fSW,fSH);fI32=new Uint32Array(fImg.data.buffer);fGA=new Float32Array(n);fGB=new Float32Array(n);fFB=new Float32Array(n);fFBd=0;fPR=fPG=fPB=null;fGL=null;fBA=fBR=fBG=fBB=null;fBd=0;fClr=0;
   fEN=new Int32Array(n*2).fill(-1);fEX=new Float32Array(n*2);fEY=new Float32Array(n*2);fTop=new Float32Array(fSW*8);
   fDep=new Float32Array(fSW);fSA=new Float32Array(fSW);fCA=new Float32Array(fSW);fSB=new Float32Array(fSW);fCB=new Float32Array(fSW);
 }
@@ -3320,6 +3339,8 @@ function fluidSplat(){                                        // every drop into
       for(let y=y0;y<=y1;y++){const dy=(y-fy)*cs,dy2=dy*dy,row=y*SW;for(let x=x0;x<=x1;x++){const dx=(x-fx)*cs,q=1-(dx*dx+dy2)/FLR2;if(q<=0)continue;const w=q*q,k=row+x;F[k]+=w;fPR[k]+=w*cr;fPG[k]+=w*cg;fPB[k]+=w*cb;}}}
     else{const sp=t<PASTE?Math.sqrt(LVX[i]*LVX[i]+LVY[i]*LVY[i]):0;
       for(let y=y0;y<=y1;y++){const dy=(y-fy)*cs,dy2=dy*dy,row=y*SW;for(let x=x0;x<=x1;x++){const dx=(x-fx)*cs,q=1-(dx*dx+dy2)/FLR2;if(q<=0)continue;const w=q*q,k=row+x;F[k]+=w;S[k]+=w*sp;}}
+      if(LBL[i]>.004&&t<PASTE&&t!==LAVA){if(!fBA){fBA=new Float32Array(n);fBR=new Float32Array(n);fBG=new Float32Array(n);fBB=new Float32Array(n);}const bl=LBL[i],c=LBC[i],cr=c&255,cg=c>>8&255,cb=c>>16&255;fBd=1;   /* the blood this drop carries, into the blood fields */
+        for(let y=y0;y<=y1;y++){const dy=(y-fy)*cs,dy2=dy*dy,row=y*SW;for(let x=x0;x<=x1;x++){const dx=(x-fx)*cs,q=1-(dx*dx+dy2)/FLR2;if(q<=0)continue;const w=q*q*bl,k=row+x;fBA[k]+=w;fBR[k]+=w*cr;fBG[k]+=w*cg;fBB[k]+=w*cb;}}}
       if(t===HONEY&&LTM[i]===1){if(!fGL)fGL=new Float32Array(n);for(let y=y0;y<=y1;y++){const dy=(y-fy)*cs,dy2=dy*dy,row=y*SW;for(let x=x0;x<=x1;x++){const dx=(x-fx)*cs,q=1-(dx*dx+dy2)/FLR2;if(q>0)fGL[row+x]+=q*q;}}}}   /* a drop of glue also goes into the glue share of the honey field */
   }
 }
@@ -3368,6 +3389,7 @@ function fluidShade(t,x0,x1,y0,y1){                            // the colour tex
       else if(t===ICE){const s=fSA[i]*cy1+fCA[i]*sy1;if(s>.8){const q=(s-.8)*2.2;r+=(255-r)*q;gg+=(255-gg)*q;b+=(255-b)*q;}const m=(fSB[i]*cy2+fCB[i]*sy2)*8;r+=m;gg+=m;}
       else{let h=Math.imul(gxi+i,374761393)+cj|0;h=Math.imul(h^(h>>>13),1274126177);const m=((h>>>24)&255)*.085-11;r+=m;gg+=m;b+=m*.8;}
       if(t===HONEY&&fGL){const gq=v>.02?fGL[k]/v:0;if(gq>.01){const u=gq>1?1:gq,dk=d>70?1:d/70;r+=(246-26*dk-r)*u;gg+=(244-28*dk-gg)*u;b+=(236-34*dk-b)*u;a+=(250-a)*u;}}   /* glue: white, greyer with depth */
+      if(fBd&&t<PASTE&&t!==LAVA){const ba=fBA[k];if(ba>.004){const u0=ba/(v>.02?v:.02),u=Math.min(1,Math.sqrt(u0)*1.3),q=1/ba,dk=d>90?.55:1-d*.005,m=u*.88;r+=(fBR[k]*q*dk-r)*m;gg+=(fBG[k]*q*dk-gg)*m;b+=(fBB[k]*q*dk-b)*m;a+=(238-a)*u*.7;}}   /* blood in it: the liquid takes the blood's colour by the share of blood there (a little shows a lot), darker with depth, and clouds */
       const bf=fFB[k];if(bf>0)a*=1-(bf>=v?1:bf/v)*see;                                              // a body under the liquid shows through it
       r=r>255?255:r<0?0:r;gg=gg>255?255:gg<0?0:gg;b=b>255?255:b<0?0:b;
       fI32[k]=(a<<24)|(b<<16)|(gg<<8)|r;}}
@@ -3436,6 +3458,7 @@ function drawFluid(g){
   const cs=Math.round(clamp(3/z,2.25,9)*4)/4,inv=1/cs,gxi=Math.floor(wx0*inv)-1,gyi=Math.floor(wy0*inv)-1,gx0=gxi*cs,gy0=gyi*cs,gw=Math.ceil((wx1-gx0)*inv)+2,gh=Math.ceil((wy1-gy0)*inv)+2;
   fluidGrid(gw,gh);const SW=fSW;fCS=cs;fINV=inv;fGX=gx0;fGY=gy0;fGXI=gxi;fGYI=gyi;fGW=gw;fGH=gh;fFlip=gravity<0;
   for(let t=0;t<8;t++){if(FF[t]&&fbx1[t]>=fbx0[t]&&fClr){FF[t].fill(0,0,fClr);FS[t].fill(0,0,fClr);if(t===PASTE&&fPR){fPR.fill(0,0,fClr);fPG.fill(0,0,fClr);fPB.fill(0,0,fClr);}if(t===HONEY&&fGL)fGL.fill(0,0,fClr);}fbx0[t]=fby0[t]=1e9;fbx1[t]=fby1[t]=-1;}
+  if(fBd&&fBA&&fClr){fBA.fill(0,0,fClr);fBR.fill(0,0,fClr);fBG.fill(0,0,fClr);fBB.fill(0,0,fClr);}fBd=0;
   if(fFBd&&fClr){fFB.fill(0,0,fClr);fFBd=0;}fClr=gh*SW;fTop.fill(1e9);
   fluidSplat();fluidBodySplat(wx0,wx1,wy0,wy1);
   for(let t=0;t<8;t++){if(fbx1[t]<fbx0[t])continue;const F=FF[t],a=fbx0[t],b=fbx1[t];                       // the rim of the grid is kept empty, so every outline closes
@@ -4707,7 +4730,7 @@ function step(){
     bodies=bodies.filter(b=>!b.remove);
     if(ropeA&&ropeA.b.remove)ropeA=null;if(selected&&selected.remove)select(null);
   }
-  for(const p of parts){p.life--;p.vx*=p.drag;p.vy=p.vy*p.drag+p.g;p.x+=p.vx;p.y+=p.vy;if(p.type===7){if(p.y>FLOOR-3){p.life=0;addStain(p.x,p.col);}}else if(p.type===6){if(p.y>FLOOR-4)p.life=0;}else if(p.y>FLOOR-2&&p.type!==2&&p.type!==3){p.y=FLOOR-2;p.vy*=-.4;p.vx*=.7;}}
+  for(const p of parts){p.life--;p.vx*=p.drag;p.vy=p.vy*p.drag+p.g;p.x+=p.vx;p.y+=p.vy;if(p.type===7){if(LN&&(p.life&1)===0&&bloodInto(p.x,p.y,p.col,.3*p.r))p.life=0;else if(p.y>FLOOR-3){p.life=0;addStain(p.x,p.col);}}else if(p.type===6){if(p.y>FLOOR-4)p.life=0;}else if(p.y>FLOOR-2&&p.type!==2&&p.type!==3){p.y=FLOOR-2;p.vy*=-.4;p.vx*=.7;}}
   parts=parts.filter(p=>p.life>0);
   for(const t of texts){t.life--;t.y-=.7;}texts=texts.filter(t=>t.life>0);
   if(shake>0)shake*=.86;if(flash>0)flash*=.85;
