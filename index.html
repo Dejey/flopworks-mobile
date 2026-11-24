@@ -441,7 +441,7 @@ function mapToCamera(quiet){
   for(const list of [pads,fans,portals,gizmos,fires,scorch,stains]){for(const o of list){o.x+=dx;if(o.y!==undefined)o.y+=dy;if(o.rx!==undefined){o.rx+=dx;o.px+=dx;o.ry+=dy;o.py+=dy;}}
     for(let i=list.length-1;i>=0;i--){const o=list[i];if(o.x<XL||o.x>X1||(o.y!==undefined&&(o.y<CEIL||o.y>Y1+6)))list.splice(i,1);else if(o.y!==undefined&&(list===pads||list===gizmos)&&o.y>Y1)o.y=Y1;}}
   for(let i=walls.length-1;i>=0;i--){const wl=walls[i];if(wl.maxx<XL||wl.minx>X1||wl.maxy<CEIL||wl.miny>Y1)walls.splice(i,1);}
-  fx=[];parts=[];texts=[];flames=[];fireworks=[];geysers=[];ambulances.length=0;for(const b of bodies)if(b.medic)b.medic=null;
+  fx=[];parts=[];texts=[];flames=[];fireworks=[];fwStars=[];fwGlow=[];geysers=[];ambulances.length=0;for(const b of bodies)if(b.medic)b.medic=null;
   if(grab){grab.b.held=false;grab=null;}if(tele){tele.b.held=false;tele=null;}ropeA=null;wallA=null;aim=null;fanA=null;
   worldSize=[w,h];fitWorld();zoom=minZoom();/* the same zoom as before, near enough: the new map exactly fills the view */camX=(XL+XR)/2;camY=(CEIL+FLOOR+14)/2;clampCam();mouseWorld();
   if(!quiet){setInfo('The map is now the size of the camera: <b>'+w+' × '+h+'</b>. Every map you pick will be cut to this size until you switch the setting off.');sfx('click');}return true;}
@@ -3490,6 +3490,58 @@ function infinityStep(){shList.length=0;
         if(d<Rb){const push=Rb-d;p.x+=nx*push;p.y+=ny*push;p.px+=nx*push;p.py+=ny*push;}}}                   // and never past the inner edge
     for(let i=0;i<LN;i++){const x=LX[i],y=LY[i];if(x<x0||x>x1||y<y0||y>y1||LTYPE[i]>=ROCK)continue;const q=near(x,y),d=q[0];if(d>=R)continue;const nx=q[1],ny=q[2],vr=-((LVX[i]-ux)*nx+(LVY[i]-uy)*ny),lim=Math.max(0,d-R0)*INFCREEP;if(vr>lim){LVX[i]+=nx*(vr-lim);LVY[i]+=ny*(vr-lim);}if(d<Rb){LX[i]+=nx*(Rb-d);LY[i]+=ny*(Rb-d);}}}
 }
+/* ---- fireworks ----
+   fireworks: the rockets on their way up {x,y,vx,vy,t,kind,col:[colour,its pale twin],ph,hit}. fwStars: the burning stars of a burst {x,y,vx,vy,life,max,r,col,g,drag,
+   tr: how many past places its trail remembers (hx,hy), tw: it twinkles as it dies, crk: it pops into sparkles, sub: colours of the small burst it ends in}. fwGlow: the light of a burst.
+   fwK: on a phone in performance mode a burst has fewer stars. */
+const FWCOLS=[['#ff5a7a','#ffd0da'],['#ffd24a','#fff3b0'],['#7dff9a','#d6ffe0'],['#5ad1ff','#d0f1ff'],['#c79bff','#eadcff'],['#ff9a3c','#ffe0b0'],['#ff4fd8','#ffd0f4'],['#ffffff','#fff6d8']],
+  FWKINDS=['peony','peony','chrys','chrys','ring','willow','crackle','double','palm','heart','star'];
+let fwStars=[],fwGlow=[],fwCrk=0;
+function fwK(){return typeof MOBV!=='undefined'&&MOBV.perf?.6:1;}
+function fwLaunch(x,y,kind){const h=Math.max(60,(y-CEIL-70)*rnd(.7,.95)),vy=-clamp(Math.sqrt(2*.12*h),5,13.5);   /* it climbs most of the way to the ceiling from wherever it was lit */
+  fireworks.push({x,y,vx:rnd(-.7,.7),vy,t:150,kind:kind&&FWKINDS.includes(kind)?kind:pick(FWKINDS),col:pick(FWCOLS),ph:rnd(0,6.3)});if(fireworks.length>14)fireworks.shift();sfx('whoosh',1.1);}
+function fwStar(x,y,vx,vy,o){if(fwStars.length>900*fwK())fwStars.shift();const s=Object.assign({x,y,vx,vy,life:60,max:60,r:2.4,col:'#fff',g:.05,drag:.955,tr:5,hx:[],hy:[],tw:0,crk:0,sub:null,seed:(Math.random()*8)|0},o);s.max=s.life;fwStars.push(s);}
+function fwBurst(x,y,kind,C,S=1,sub=false){const K=fwK(),N=q=>Math.max(6,Math.round(q*K)),c1=C[0],c2=C[1],T=6.2832;
+  switch(kind){
+    case 'ring':{const q=N(38),k=rnd(.35,1),rot=rnd(0,3.14),cr=Math.cos(rot),sr=Math.sin(rot);                                   /* a ring seen at a tilt, with a small core */
+      for(let i=0;i<q;i++){const a=i/q*T,ux=Math.cos(a),uy=Math.sin(a)*k,v=7.6*S;fwStar(x,y,(ux*cr-uy*sr)*v,(ux*sr+uy*cr)*v,{life:rnd(52,64),col:c1,tr:6,g:.035});}
+      for(let i=0;i<N(14);i++){const a=rnd(0,T),v=rnd(1,3.2)*S;fwStar(x,y,Math.cos(a)*v,Math.sin(a)*v,{life:rnd(30,46),col:c2,tr:3,r:2});}break;}
+    case 'willow':{const q=N(54);for(let i=0;i<q;i++){const a=rnd(0,T),v=Math.sqrt(rnd(.08,1))*6.6*S;fwStar(x,y,Math.cos(a)*v,Math.sin(a)*v-1,{life:rnd(105,150),col:'#ffc94a',tr:14,g:.085,drag:.972,r:2,tw:1});}break;}   /* gold, slow, hanging */
+    case 'crackle':{const q=N(46);for(let i=0;i<q;i++){const a=rnd(0,T),v=Math.sqrt(rnd(.1,1))*7.4*S;fwStar(x,y,Math.cos(a)*v,Math.sin(a)*v,{life:rnd(26,44),col:i%2?'#fff3c4':c1,tr:4,crk:1,r:2.2});}break;}
+    case 'double':{const q=N(13);for(let i=0;i<q;i++){const a=i/q*T+rnd(-.15,.15),v=rnd(5.2,7.2)*S;fwStar(x,y,Math.cos(a)*v,Math.sin(a)*v,{life:rnd(24,32),col:'#ffffff',tr:8,r:3,sub:pick(FWCOLS)});}break;}   /* each white star bursts again */
+    case 'palm':{const q=N(10);for(let i=0;i<q;i++){const a=-1.5708+(i/(q-1)-.5)*3.6+rnd(-.12,.12),v=rnd(6.5,8.6)*S;fwStar(x,y,Math.cos(a)*v,Math.sin(a)*v-1.5,{life:rnd(80,105),col:'#ffb62e',tr:18,g:.11,drag:.975,r:3.3});}
+      for(let i=0;i<N(18);i++){const a=rnd(0,T),v=rnd(1,3)*S;fwStar(x,y,Math.cos(a)*v,Math.sin(a)*v,{life:rnd(24,40),col:c1,tr:2,r:2});}break;}
+    case 'heart':{const q=N(48);for(let i=0;i<q;i++){const t=i/q*T,hx=16*Math.pow(Math.sin(t),3),hy=-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t)),v=.44*S;fwStar(x,y,hx*v,hy*v,{life:rnd(58,70),col:i%4?'#ff5a8a':'#ffd0da',tr:5,g:.025,drag:.95});}break;}   /* every star slows alike, so the shape holds as it grows */
+    case 'star':{const q=N(50),P=[];for(let k=0;k<10;k++){const a=-1.5708+k*.62832,r=k%2?.42:1;P.push([Math.cos(a)*r,Math.sin(a)*r]);}
+      for(let i=0;i<q;i++){const u=i/q*10,k=u|0,f=u-k,A=P[k],B=P[(k+1)%10],v=7.6*S;fwStar(x,y,(A[0]+(B[0]-A[0])*f)*v,(A[1]+(B[1]-A[1])*f)*v,{life:rnd(58,70),col:c1,tr:5,g:.025,drag:.95});}break;}
+    case 'chrys':{const q=N(88);for(let i=0;i<q;i++){const a=rnd(0,T),v=Math.sqrt(rnd(.05,1))*8.4*S;fwStar(x,y,Math.cos(a)*v,Math.sin(a)*v,{life:rnd(60,84),col:i%3?c1:c2,tr:10,tw:1,g:.045});}break;}   /* a big ball of long glittering trails */
+    default:{const q=N(sub?16:70);for(let i=0;i<q;i++){const a=rnd(0,T),v=Math.sqrt(rnd(.05,1))*(sub?3.6:7.8)*S;fwStar(x,y,Math.cos(a)*v,Math.sin(a)*v,{life:sub?rnd(26,40):rnd(48,72),col:i%4?c1:c2,tr:sub?3:5,r:sub?2:2.5});}}}
+  fwGlow.push({x,y,R:(sub?70:210)*S,life:sub?10:20,max:sub?10:20});if(fwGlow.length>24)fwGlow.shift();}
+/* the ones standing about and watching say so */
+function fwCheer(x,y){if(!reactOn)return;for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||b.zombie||b===possessed||b.reactCd>0||b.fearOf||b.grudge||b.sleep>0||b.frozen>0||!(b.mode==='stand'||isWalk(b)||b.mode==='dance'))continue;
+    const h=b.pts[HEAD],d=hyp(h.x-x,h.y-y);if(d<130||d>640||Math.random()>.3)continue;bubble(b,pick(['Ooooh!','Aaaah!','Pretty!','Do another!','Wow!','So many colours!','Again! Again!']),80);b.reactCd=110;}}
+function fwStep(){
+  for(let i=fireworks.length-1;i>=0;i--){const f=fireworks[i];f.ph+=.5;f.vx+=Math.sin(f.ph)*.05;f.x+=f.vx;f.y+=f.vy;f.vy+=.12;f.t--;
+    part(f.x+rnd(-2,2),f.y+6,rnd(-.6,.6)-f.vx*.3,rnd(1,2.8),rnd(10,18),rnd(1.6,2.6),Math.random()<.5?'#ffd9a0':'#ff9a3c',{type:1,g:.05});
+    for(const b of bodies){if(b.kind==='anchor'||b.maxx<f.x-24||b.minx>f.x+24||b.maxy<f.y-24||b.miny>f.y+24)continue;if(f.hit&&f.hit.includes(b))continue;let touch=false;for(const p of b.pts)if(!p.pin&&hyp(p.x-f.x,p.y-f.y)<p.r+16){touch=true;break;}if(!touch)continue;(f.hit||(f.hit=[])).push(b);const k=11/Math.sqrt(Math.max(.5,b.ms));for(const p of b.pts)if(!p.pin&&(b.kind!=='ragdoll'||p.att)){p.py+=k;p.px-=f.vx*2;}if(b.kind==='ragdoll'){tumbleStart(b);b.airT=14;}}   // takes along what it runs into
+    if(f.t<=0||f.vy>-1.2||f.y<CEIL+46||f.x<XL+8||f.x>XR-8){fireworks.splice(i,1);fwBurst(f.x,f.y,f.kind,f.col);                                           /* at the top of its climb (or against the ceiling): the burst */
+      explode(f.x,f.y,150,9,4,{soft:true,quiet:true});ring(f.x,f.y,110,f.col[0],16,3);flash=Math.max(flash,.22);sfx('boom',.45);sfx('pop',.8);fwCheer(f.x,f.y);witness(f.x,f.y,'seeBoom',null,null,'','look',420);}}
+  for(let i=fwStars.length-1;i>=0;i--){const s=fwStars[i];if(s.tr){s.hx.push(s.x);s.hy.push(s.y);if(s.hx.length>s.tr){s.hx.shift();s.hy.shift();}}
+    s.vx*=s.drag;s.vy=s.vy*s.drag+s.g;s.x+=s.vx;s.y+=s.vy;s.life--;if(s.y>FLOOR-2||s.y<CEIL||s.x<XL||s.x>XR)s.life=0;
+    if(s.life<=0){
+      if(s.sub){fwBurst(s.x,s.y,'peony',s.sub,1,true);if(frame-fwCrk>3){fwCrk=frame;sfx('pop',.5);}}
+      else if(s.crk){for(let k=0;k<4;k++)part(s.x,s.y,rnd(-2.2,2.2),rnd(-2.2,2.2),rnd(8,16),rnd(1.2,2),k%2?'#ffffff':'#ffe9a8',{type:1,g:.03});if(frame-fwCrk>4){fwCrk=frame;sfx('crackle',.5);}}
+      fwStars.splice(i,1);}}
+  for(let i=fwGlow.length-1;i>=0;i--)if(--fwGlow[i].life<=0)fwGlow.splice(i,1);}
+/* drawn glowing (the canvas is already adding light here): the light of each burst, every star's trail and head, the rockets */
+function drawFireworks(g){if(!fwStars.length&&!fwGlow.length&&!fireworks.length)return;
+  for(const e of fwGlow){const t=e.life/e.max,R=e.R*(1.25-t*.25);g.globalAlpha=.34*t;g.drawImage(SPR.glow,e.x-R,e.y-R,R*2,R*2);}
+  g.lineCap='round';
+  for(const s of fwStars){const t=s.life/s.max;let a=Math.min(1,t*1.6);if(s.tw&&t<.5&&((frame+s.seed)&3)<2)a*=.3;
+    const q=s.hx.length;if(q>1){g.globalAlpha=a*.42;g.strokeStyle=s.col;g.lineWidth=s.r*.8;g.beginPath();g.moveTo(s.hx[0],s.hy[0]);const m=q>>1;g.lineTo(s.hx[m],s.hy[m]);g.lineTo(s.x,s.y);g.stroke();}
+    g.globalAlpha=a;g.fillStyle=t>.72?'#ffffff':s.col;const r=s.r*(.5+.6*t);g.beginPath();g.arc(s.x,s.y,r,0,6.3);g.fill();}
+  for(const f of fireworks){g.globalAlpha=.9;g.fillStyle='#fff6d8';g.beginPath();g.arc(f.x,f.y,3.2,0,6.3);g.fill();g.globalAlpha=.35;g.drawImage(SPR.glow,f.x-26,f.y-26,52,52);}
+  g.globalAlpha=1;}
 function gizmoStep(){
   infinityStep();
   if(meteorRain>0&&--meteorRain%28===0)makeMeteor(rnd(XL+90,XR-90),FLOOR-20);
@@ -3503,11 +3555,7 @@ function gizmoStep(){
     for(const b of bodies){if(b.kind==='anchor')continue;const sc=1/Math.sqrt(Math.max(.3,b.ms));for(const p of b.pts){if(p.pin)continue;const v=(p.x-p.px)*wind.dx+(p.y-p.py)*wind.dy;if(v<10){p.px-=wind.dx*k*sc;p.py-=wind.dy*k*sc;}}if(b.kind==='ragdoll'&&!b.dead)b.balance=Math.max(0,b.balance-.025);}
     for(let i=0;i<LN;i++)if(LTYPE[i]<ROCK){LVX[i]+=wind.dx*.22;LVY[i]+=wind.dy*.22;}for(const f of flames){f.vx+=wind.dx*.3;f.vy+=wind.dy*.3;}
     for(let i=0;i<2;i++)part(rnd(XL,XR),rnd(CEIL,FLOOR),wind.dx*rnd(14,22),wind.dy*rnd(14,22),16,1.6,'#cfe6ff',{type:1,g:0,drag:1});}}
-  for(let i=fireworks.length-1;i>=0;i--){const f=fireworks[i];f.x+=f.vx;f.y+=f.vy;f.vy+=.12;f.t--;part(f.x,f.y,rnd(-.5,.5),rnd(1,2.5),14,2.2,'#ffd9a0',{type:1,g:.05});
-    for(const b of bodies){if(b.kind==='anchor'||b.maxx<f.x-24||b.minx>f.x+24||b.maxy<f.y-24||b.miny>f.y+24)continue;if(f.hit&&f.hit.includes(b))continue;let touch=false;for(const p of b.pts)if(!p.pin&&hyp(p.x-f.x,p.y-f.y)<p.r+16){touch=true;break;}if(!touch)continue;(f.hit||(f.hit=[])).push(b);const k=11/Math.sqrt(Math.max(.5,b.ms));for(const p of b.pts)if(!p.pin&&(b.kind!=='ragdoll'||p.att)){p.py+=k;p.px-=f.vx*2;}if(b.kind==='ragdoll'){tumbleStart(b);b.airT=14;}}   // takes along what it runs into
-    if(f.t<=0||f.y<CEIL+40){fireworks.splice(i,1);const cols=['#ff5a7a','#ffd24a','#7dff9a','#5ad1ff','#c79bff'],c=pick(cols),c2=pick(cols);
-      for(let k=0;k<70;k++){const a=rnd(0,6.3),v=rnd(2,9);part(f.x,f.y,Math.cos(a)*v,Math.sin(a)*v,rnd(34,62),rnd(2,3.4),k%3?c:c2,{type:1,g:.07,drag:.96});}
-      explode(f.x,f.y,150,9,3,{soft:true,quiet:true});ring(f.x,f.y,120,c,18,4);flash=Math.max(flash,.25);sfx('boom',.45);sfx('pop',.8);witness(f.x,f.y,'seeBoom',null,null,'','look',420);}}
+  fwStep();
   for(let i=geysers.length-1;i>=0;i--){const G=geysers[i];if(--G.t<=0){geysers.splice(i,1);continue;}
     if(G.lava){if(liqCount[LAVA]<700&&G.t%2===0)fluidAdd(LAVA,G.x+rnd(-8,8),G.y-6,rnd(-2.2,2.2),-rnd(7,11));if(G.t%6===0)addFlame(G.x+rnd(-8,8),G.y-8,rnd(-1,1),-rnd(2,4),rnd(10,16));if(G.t%14===0)sfx('boom',.18);continue;}
     if(liqCount[WATER]<2400)for(let k=0;k<3;k++)fluidAdd(WATER,G.x+rnd(-9,9),G.y-6,rnd(-.8,.8),-rnd(11,12.5));
@@ -3997,8 +4045,8 @@ const TOOLS={
     paint(x,y){if(mouse.alt){concreteRemove(x,y);return;}if(concreteAdd(x,y)&&!(frame-this.sf<6)){this.sf=frame;sfx('click',.5);}}},
   hammer:{name:'Hammer',icon:'🔨',desc:'Click to bring a hammer down on that spot. It flattens whatever is under it, cracks crates and shakes the ground.',
     down(){const x=mouse.x,y=mouse.y;explode(x,y,74,10,18,{col:'#ffd24a'});for(const b of bodies){if(b.kind==='anchor'||(b.kind==='ragdoll'&&uiOn(b)))continue;for(const p of b.pts)if(!p.pin&&hyp(p.x-x,p.y-y)<70)p.py-=7;}sparks(x,y,12,'#ffe9a8',6);say(x,y-26,'BONK!','#ffe066',18);shake=Math.max(shake,5);sfx('thud',1.2);witness(x,y,'seeBoom',null,null,'','duck',260);}},
-  firework:{name:'Firework',icon:'🎆',desc:'Click to launch a firework from that spot. It carries along anything it hits on the way up and bursts in colour.',
-    down(){fireworks.push({x:mouse.x,y:mouse.y,vx:rnd(-.6,.6),vy:-11.5,t:rnd(46,62)});if(fireworks.length>12)fireworks.shift();sfx('whoosh',1.2);}},
+  firework:{name:'Firework',icon:'🎆',desc:'Click to launch a firework from that spot; hold and drag for a volley. Each one bursts a different way: balls, long glittering trails, rings, golden willows, crackling stars, double bursts, palms, hearts and stars. It carries along anything it hits on the way up.',
+    last:-99,down(){fwLaunch(mouse.x,mouse.y);this.last=frame;},step(){if(mouse.down&&mouse.inside&&frame-this.last>=11){fwLaunch(mouse.x,mouse.y);this.last=frame;}}},   /* held down: one every sixth of a second, from wherever the cursor is */
   spikes:{name:'Spikes',icon:'📍',desc:'Place a strip of spikes on the ground. Landing or lying on it hurts; it pops balloons. Dummies walk round it.',
     down(){gizmos.push({type:'spikes',x:mouse.x,y:groundBelow(mouse.x,mouse.y-10,true),w:70,cd:0});if(gizmos.length>40)gizmos.shift();sfx('click');}},
   belt:{name:'Conveyor',short:'Belt',icon:'⏩',desc:'Place a conveyor belt on the ground. It carries whatever stands or lies on it to the right; right-click (or Shift-click) for one that runs left.',
@@ -5195,6 +5243,7 @@ function render(a){
   for(const p of parts){const t=p.life/p.max;
     if(p.type===1){g.globalAlpha=t;g.fillStyle=p.col;g.beginPath();g.arc(p.x,p.y,p.r*t+.5,0,6.3);g.fill();}
     else if(p.type===3){g.globalAlpha=t*.8;g.fillStyle=t>.6?'#ffe37a':t>.3?'#ff8a2a':'#b3311a';g.beginPath();g.arc(p.x,p.y,p.r*(.4+t*.8),0,6.3);g.fill();}}
+  drawFireworks(g);
   g.globalAlpha=1;
   for(const e of fx){const t=e.life/e.max;
     if(e.type==='ring'){g.strokeStyle=e.col;g.globalAlpha=t;g.lineWidth=e.lw*t+1;g.beginPath();g.arc(e.x,e.y,e.r1*(1-t*t),0,6.3);g.stroke();}
@@ -5603,7 +5652,7 @@ function syncMapUI(){$('mapBtn').textContent=MAPS[curMap].name+' ▾';document.q
   const hn=$('mhint');if(hn)hn.textContent=defMap?'★ '+MAPS[defMap].name.replace(/^\S+\s/,'')+' is your default map: the game starts there.':'Click a ☆ to choose the map the game starts on. With no star it starts where you left off.';}
 function setDefMap(id){defMap=id&&MAPS[id]?id:null;try{if(defMap)localStorage.setItem('flopworksM.defmap',defMap);else localStorage.removeItem('flopworksM.defmap');}catch(e){}syncMapUI();setInfo(defMap?'<b>'+MAPS[defMap].name+'</b> is now your default map':'Default map cleared — the game starts where you left off');}
 function showSettings(v){menuShow($('settings'),v);$('bSet').classList.toggle('on',v);}
-function clearAll(){partyQ=[];stormT=0;BONDN=0;RELN=RELC;if(honeyRain){honeyRain=false;const o=document.querySelector('.ib[data-id="honeyrain"]');if(o)o.classList.remove('tog');}dropped=[];liqGrabN=0;bullets=[];flasks=[];gun=null;gizmos=[];fireworks=[];geysers=[];wind=null;meteorRain=0;if(acidRain){acidRain=false;const o=document.querySelector('.ib[data-id="acidrain"]');if(o)o.classList.remove('tog');}ambulances.length=0;bodies=[];links=[];walls=[];rockets=[];fx=[];parts=[];texts=[];flames=[];fires=[];scorch=[];burns=[];fireSrc=[];stains=[];splats=[];splatBakeClear();fluidClear();pads=[];fans=[];portals=[];quake=0;grab=null;tele=null;ropeA=null;possessed=null;select(null);}
+function clearAll(){partyQ=[];stormT=0;BONDN=0;RELN=RELC;if(honeyRain){honeyRain=false;const o=document.querySelector('.ib[data-id="honeyrain"]');if(o)o.classList.remove('tog');}dropped=[];liqGrabN=0;bullets=[];flasks=[];gun=null;gizmos=[];fireworks=[];fwStars=[];fwGlow=[];geysers=[];wind=null;meteorRain=0;if(acidRain){acidRain=false;const o=document.querySelector('.ib[data-id="acidrain"]');if(o)o.classList.remove('tog');}ambulances.length=0;bodies=[];links=[];walls=[];rockets=[];fx=[];parts=[];texts=[];flames=[];fires=[];scorch=[];burns=[];fireSrc=[];stains=[];splats=[];splatBakeClear();fluidClear();pads=[];fans=[];portals=[];quake=0;grab=null;tele=null;ropeA=null;possessed=null;select(null);}
 let curMap='lab';
 let defMap=null;                                      /* the map the player starred as the one to start on */
 let customSize=[3000,1200];try{const s=(localStorage.getItem('flopworksM.custom')||'').split(',').map(Number);if(s.length===2&&s[0]>0&&s[1]>0)customSize=[clamp(s[0],500,6000),clamp(s[1],400,3000)];}catch(e){}
@@ -5866,7 +5915,7 @@ function worldResize(w,h){const ow=XR-XL,oh=FLOOR-CEIL;if(Math.abs(w-ow)<2&&Math
   for(const list of [pads,fans,portals,gizmos,fires,scorch,stains,burns]){for(const o of list){o.x+=dx;if(o.y!==undefined)o.y+=dy;if(o.rx!==undefined){o.rx+=dx;o.px+=dx;o.ry+=dy;o.py+=dy;}}
     for(let i=list.length-1;i>=0;i--){const o=list[i];if(o.x<XL||o.x>X1||(o.y!==undefined&&(o.y<CEIL||o.y>Y1+6)))list.splice(i,1);else if(o.y!==undefined&&(list===pads||list===gizmos)&&o.y>Y1)o.y=Y1;}}
   for(let i=walls.length-1;i>=0;i--){const wl=walls[i];if(wl.maxx<XL||wl.minx>X1||wl.maxy<CEIL||wl.miny>Y1)walls.splice(i,1);}
-  fx=[];parts=[];texts=[];flames=[];fireworks=[];geysers=[];bullets.length=0;ambulances.length=0;for(const b of bodies)if(b.medic)b.medic=null;
+  fx=[];parts=[];texts=[];flames=[];fireworks=[];fwStars=[];fwGlow=[];geysers=[];bullets.length=0;ambulances.length=0;for(const b of bodies)if(b.medic)b.medic=null;
   if(grab){grab.b.held=false;grab=null;}if(tele){tele.b.held=false;tele=null;}ropeA=null;wallA=null;aim=null;fanA=null;
   worldSize=[w,h];fitWorld();bgKey='';zoom=minZoom();camX=(XL+XR)/2;camY=(CEIL+FLOOR+14)/2;clampCam();mouseWorld();}
 function fitNow(){const t=wantWorld();if(!t)return;const cw=XR-XL,ch=FLOOR-CEIL;if(Math.abs(Math.log((t[0]/(t[1]+14))/(cw/(ch+14))))<.1)return;   /* still near enough the shape of the screen */
