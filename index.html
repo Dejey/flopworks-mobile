@@ -1766,6 +1766,14 @@ function drawWave(g,e){const ax=e.ax===undefined?1:e.ax,ay=e.ay||0,nx=-ay,ny=ax,
     for(let i=N;i>=0;i--){const d=L*i/N,h=hw(d)*k;g.lineTo(e.x1+ax*d-nx*h,e.y1+ay*d-ny*h);}g.closePath();g.fill();}
   g.strokeStyle='rgba(255,255,255,.55)';g.lineCap='round';g.lineWidth=2.2;for(let i=0;i<5;i++){const d=((frame*17+i*L/5)%Math.max(40,L));if(d>L-6)continue;const h=hw(d)*1.25,cx=e.x1+ax*d,cy=e.y1+ay*d,bow=h*.5;g.beginPath();g.moveTo(cx+nx*h-ax*bow,cy+ny*h-ay*bow);g.quadraticCurveTo(cx+ax*bow,cy+ay*bow,cx-nx*h-ax*bow,cy-ny*h-ay*bow);g.stroke();}   /* crests riding out along it */
   g.fillStyle='rgba(200,235,255,.8)';g.beginPath();g.arc(e.x1,e.y1,w*(1.35+.15*Math.sin(frame*.9)),0,6.3);g.fill();g.lineCap='butt';}
+/* the Wave power: water let in at one side a column a frame for WSURGET frames, as a wave passing through the wall. The column's height follows the wave's
+   profile (what comes first is its front): it climbs steeply to the crest about a quarter of the way through, then falls away in a long back. The higher in
+   the column, the faster the water moves, so the crest leans out over its own foot and curls; while it is still climbing the top is thrown upward a little. */
+const WSURGET=28,WSURGEH=25;
+function waveFeed(e){const u=e.t/WSURGET,prof=Math.sin(Math.PI*Math.pow(u,.55)),rows=Math.max(2,Math.round(WSURGEH*prof)),rising=u<.28,d=e.d;e.t++;
+  if(liqCount[WATER]>3400)return;
+  for(let j=0;j<rows;j++){const k=j/WSURGEH;fluidAdd(WATER,e.x0+d*rnd(0,5),FLOOR-10-j*8.5,d*(8.6+4*k+rnd(0,1)),rising?-rnd(.4,2.6)*k:rnd(-.4,.9));}
+  if(rows>8)for(let i=0;i<2;i++)part(e.x0+d*rnd(4,26),FLOOR-10-rows*8.5-rnd(0,14),d*rnd(4,9),-rnd(.5,3),rnd(16,28),rnd(1.8,3.4),pick(['#eaf6ff','#ffffff','#bfe6ff']),{type:1,g:.16});}   /* foam torn off the crest */
 function drawStillDome(g,e){const al=Math.min(1,e.life/20);g.save();g.globalCompositeOperation='source-over';g.globalAlpha=al;g.fillStyle='rgba(6,22,34,.58)';g.beginPath();g.arc(e.x,e.y,e.r,0,6.3);g.fill();g.strokeStyle='rgba(60,170,230,.35)';g.lineWidth=11;g.stroke();g.strokeStyle='rgba(170,235,255,.95)';g.lineWidth=3;g.stroke();
   g.strokeStyle='rgba(190,240,255,.5)';g.lineWidth=1.6;g.beginPath();for(let i=0;i<60;i++){const a=i/60*6.2832,r0=e.r*(i%5?.955:.91),c=Math.cos(a),s=Math.sin(a);g.moveTo(e.x+c*r0,e.y+s*r0);g.lineTo(e.x+c*e.r*.985,e.y+s*e.r*.985);}g.stroke();   /* a dial round the rim, and its marks do not move */
   g.strokeStyle='rgba(170,235,255,.26)';g.lineWidth=1.2;for(let i=1;i<=3;i++){g.beginPath();g.arc(e.x,e.y,e.r*i*.24,0,6.3);g.stroke();}
@@ -3126,6 +3134,7 @@ function fxStep(){
       if(hit){e.life=0;const by=e.by&&!e.by.remove?e.by:null;explode(e.x,e.y,150+e.r*2,22,34,by?{skip:by,by,col:'#bfe9ff'}:{col:'#bfe9ff'});ring(e.x,e.y,170,'#bfe9ff',22,6);shake=Math.max(shake,8);flash=Math.max(flash,.35);sfx('boom',.9);
         for(let i=0;i<22;i++){const a=rnd(0,6.283),sp=rnd(3,10);part(e.x,e.y,Math.cos(a)*sp,Math.sin(a)*sp,rnd(16,30),rnd(2,4.5),pick(['#bfe9ff','#ffffff','#7dd0ff']),{type:1,g:0,drag:.94});}}
       continue;}
+    if(e.type==='wsurge'){waveFeed(e);continue;}
     if(e.type==='clash'){clashStep(e);continue;}
     if(e.type==='still'){stillStep(e);continue;}
     if(e.type==='realm'){const k=e.max-e.life,by=e.by;e.r=Math.min(e.R,e.r+14);if(!by||by.remove||by.dead){e.life=Math.min(e.life,12);continue;}if(inClash(e))continue;   /* (in a clash it does nothing) */
@@ -4574,8 +4583,8 @@ const POWERS={
     down(){this.sx=mouse.x;this.sy=mouse.y;},up(){if(this.sx===undefined)return;let dx=mouse.x-this.sx,dy=mouse.y-this.sy;const d=hyp(dx,dy);if(d<12){dx=1;dy=0;}else{dx/=d;dy/=d;}this.sx=undefined;wind={dx,dy,t:130};sfx('whoosh',1.5);witness((XL+XR)/2,FLOOR-80,'seeBoom',null,null,'','cover',5000);}},
   geyser:{name:'Geyser',icon:'⛲',desc:'Click the ground: a jet of water erupts there for three seconds, throwing up whatever stands on it and leaving a puddle.',
     down(){if(powerCd>0)return;powerCd=20;const x=clamp(mouse.x,XL+20,XR-20);geysers.push({x,y:groundBelow(x,mouse.y-10,true),t:180});if(geysers.length>4)geysers.shift();witness(x,mouse.y,'seeBoom',null,null,'','gasp',300);}},
-  wave:{name:'Wave',icon:'🌊',desc:'Click: a wall of water sweeps in from the nearer side of the arena. Right-click (or Shift-click) sends it from the far side.',
-    down(){if(powerCd>0||liqCount[WATER]>2600)return;powerCd=90;const left=(mouse.x<(XL+XR)/2)!==!!mouse.alt,x0=left?XL+12:XR-12,d=left?1:-1;for(let j=0;j<26;j++)for(let i=0;i<12;i++)fluidAdd(WATER,x0+d*i*8.5,FLOOR-10-j*8.5,d*rnd(9,12),rnd(-1,1));sfx('roar',.6);witness(x0,FLOOR-80,'seeBoom',null,null,'','run',5000);}},
+  wave:{name:'Wave',icon:'🌊',desc:'Click: a wave rolls in from the nearer side of the arena, a tall curling crest with a long swell behind it. Right-click (or Shift-click) sends it from the far side.',
+    down(){if(powerCd>0||liqCount[WATER]>2600)return;powerCd=90;const left=(mouse.x<(XL+XR)/2)!==!!mouse.alt,x0=left?XL+12:XR-12,d=left?1:-1;fx.push({type:'wsurge',x0,d,t:0,life:WSURGET,max:WSURGET});sfx('roar',.6);   /* the water itself comes in over the next half second (waveFeed) */witness(x0,FLOOR-80,'seeBoom',null,null,'','run',5000);}},
   party:{name:'Party',icon:'🪩',desc:'Click: every dummy nearby drops what it is doing and dances. They keep dancing until you click Party over them again (or someone picks a fight with them). Calms down anyone who was only fighting back.',
     down(){const x=mouse.x,y=mouse.y;ring(x,y,260,'#ff8ac4',26,5);sfx('heal',.8);for(let k=0;k<26;k++){const a=rnd(0,6.3),v=rnd(2,7);part(x,y,Math.cos(a)*v,Math.sin(a)*v-2,rnd(30,55),rnd(2,3.5),pick(['#ff5a7a','#ffd24a','#7dff9a','#5ad1ff','#c79bff']),{type:1,g:.08});}
       for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||b===possessed||b.zombie)continue;const h=b.pts[HIP];if(hyp(h.x-x,h.y-y)>270)continue;if(b.jam>0){b.jam=0;continue;}if(b.soc.partner)endChat(b);b.sleep=0;
