@@ -6026,10 +6026,10 @@ setInterval(()=>{const b=possessed&&!possessed.remove&&!possessed.dead?possessed
 
 /* ---- phone performance mode ---- */
 {const p0=window.part;let n=0;window.part=function(){if(MOBV.perf&&parts.length>420&&(++n)%3)return;return p0.apply(this,arguments);};   /* a crowd of sparks: two in three are skipped */
- const f0=window.fluidAdd;let fullT=-1e9;window.fluidAdd=function(){if(MOBV.perf&&LN>=2000){if(mouse.down&&LIQT[curId]!==undefined&&frame-fullT>300){fullT=frame;setInfo('<b>Liquid is full</b> — phone performance mode allows 2000 drops. Erase some, or switch performance mode off in ⚙ Settings to pour more.');}return -1;}return f0.apply(this,arguments);};}   /* (and it says so when you pour into a full scene, rather than seeming broken) */                /* liquid: no more than 2000 drops at once */
+ const f0=window.fluidAdd;let fullT=-1e9;window.fluidAdd=function(){if(MOBV.perf&&LN>=3000){if(mouse.down&&LIQT[curId]!==undefined&&frame-fullT>300){fullT=frame;setInfo('<b>Liquid is full</b> — phone performance mode allows 3000 drops. Erase some, or switch performance mode off in ⚙ Settings to pour more.');}return -1;}return f0.apply(this,arguments);};}   /* (and it says so when you pour into a full scene, rather than seeming broken) */                /* liquid: no more than 3000 drops at once */
 function setPerf(v){MOBV.perf=!!v;MOBV.dpr=v?1.5:2;try{localStorage.setItem('flopworksM.perf',v?'1':'0');}catch(e){}$('setPerf').checked=MOBV.perf;resize();if(zoom<minZoom())zoom=minZoom();clampCam();mouseWorld();}
 {const g=document.querySelector('#settings .sgroup'),l=document.createElement('label');l.className='srow';
-  l.innerHTML='<span class="si">📱</span><span class="st"><b>Phone performance mode</b><small>Keeps the game smooth on a phone: a slightly softer picture, fewer sparks and splashes, and at most 2000 drops of liquid. Switch it off on a fast phone or a tablet</small></span><input type="checkbox" id="setPerf"><i class="sw"></i>';
+  l.innerHTML='<span class="si">📱</span><span class="st"><b>Phone performance mode</b><small>Keeps the game smooth on a phone: a slightly softer picture, fewer sparks and splashes, and at most 3000 drops of liquid. Switch it off on a fast phone or a tablet</small></span><input type="checkbox" id="setPerf"><i class="sw"></i>';
   g.insertBefore(l,g.firstChild);$('setPerf').checked=MOBV.perf;$('setPerf').onchange=e=>setPerf(e.target.checked);}
 
 /* ---- the start card, and the turn-your-phone note ---- */
