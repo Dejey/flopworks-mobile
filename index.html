@@ -1302,7 +1302,7 @@ function infNear(b,x,y,core){let q=null,qd=1e9;const P=b.pts;for(let i=0;i<P.len
    Caught: inside INFZONE a thing loses its speed, the more the nearer it is (down to INFDRAG of it a frame at the barrier), and may leave no faster than
    INFOUT+INFOUTK*gap a frame: people who walk into it slow right down and are stuck there for a few seconds before they can pull away. Something knocked
    away faster than INFKNOCK (a punch from the user, a blast) breaks free, and its whole body is let go for a while (o.infFreeT). */
-function infFields(last){infList.length=0;for(const b of bodies)if(infOn(b))infList.push(b);if(!infList.length)return;
+function infFields(last){infList.length=0;for(const b of bodies)if(infOn(b)||(b.kind==='ragdoll'&&b.shield>0&&!b.dead&&!b.remove))infList.push(b);if(!infList.length)return;   /* (the Infinity power as well: besides its own capsule, things are now held off every part of the body, so nothing comes to rest against a hand or a foot that sticks out of it) */
   for(const b of infList){const reach=INFPAD+INFZONE+14,core=!!b.atk;
     for(const o of bodies){if(o===b||o.remove||o.kind==='anchor'||o.owner===b||(b.grip&&b.grip.o===o)||o.maxx<b.minx-reach||o.minx>b.maxx+reach||o.maxy<b.miny-reach||o.miny>b.maxy+reach)continue;
       const free=o.infFreeT>frame;let caught=false,knock=false;
@@ -1602,7 +1602,7 @@ function tkEnd(b,thrown){const K=b.tk,o=K.o;b.tk=null;if(o.tkBy===b)o.tkBy=null;
   for(const p of o.pts)if(!p.pin){p.px=p.x-dx;p.py=p.y-dy;}
   if(o.kind==='ragdoll'){tumbleStart(o);o.tumbleDmg=0;o.hitGuard=0;o.tkT=frame+110;damage(o,6);if(!o.dead)react(o,'thrown',null,true);}else o.tkShot={by:b,t:frame+34};   // (o.tkT: thrown by telekinesis. What it hits in the next couple of seconds hurts in full, not as a tumble's knocks do)
   sfx('whoosh',1.1);ring(c[0],c[1],60,TKCOL,14,5);const h=b.pts[HEAD];say(h.x,h.y-34,'THROW!','#7df0ff',15);}
-function specialRange(b){const a=(b.dim.uarm+b.dim.farm);return{uppercut:a+26,slam:150*b.sc,whip:a*2.1,laser:480,blink:520,gust:170,bone:460,pounce:330,frost:185,fireball:460,needles:140,spook:210,jet:340,broccoli:130,tk:TKRANGE,ui:400,wave:520,aura:380,rush:420,orb:520,realm:200,still:200,spark:a+30,inf:150}[curSp(b)]||(b.C.specials&&(spNext(b,true),0))||undefined;}   /* (several moves, and the one that is up has no reach of its own: another one is brought up, so the dummy is never left waiting on it) */
+function specialRange(b){const a=(b.dim.uarm+b.dim.farm);return{uppercut:a+26,slam:150*b.sc,whip:a*2.1,laser:480,blink:520,gust:170,bone:460,pounce:330,frost:185,fireball:460,needles:140,spook:210,jet:340,broccoli:130,tk:TKRANGE,ui:400,wave:520,aura:380,rush:420,orb:520,realm:200,still:200,spark:a+30,inf:150,flurry:a+40}[curSp(b)]||(b.C.specials&&(spNext(b,true),0))||undefined;}   /* (several moves, and the one that is up has no reach of its own: another one is brought up, so the dummy is never left waiting on it) */
 /* ---- several special moves on one character (customs) ----
    C.specials: the list, when a custom has more than one (C.special is then the first). hasSp: does it have this one (for the always-on ones: Flight,
    Ultra Instinct). curSp: the move a dummy has up next (b.spSel, an index into the list). spNext: move on to the next (in Possess), or to any (in a fight). */
@@ -1615,7 +1615,7 @@ function spReach(b){const s=curSp(b);return s==='uppercut'||s==='whip'||s==='sla
 /* ---- anime-style special moves (customs): the ones that take time ----
    animeStep runs a move in progress, every frame, after the dummy has done its own thinking (it overrides where it goes and what its arms do).
    A move is broken off if the dummy is killed, frozen, stunned hard, knocked over or picked up. */
-const WAVECHARGE=34,ORBCHARGE=58,SIGNT=24;   // SIGNT: frames the hand sign is held before the realm opens
+const WAVECHARGE=34,ORBCHARGE=58,SIGNT=24,FLURRYT=84,FLURRYPOW=.4;   // SIGNT: frames the hand sign is held before the realm opens
 /* the hand sign itself, drawn over the joined hands: two fingers raised, in a purple glow (also drawn on the big figure in the cut-scene) */
 function drawSign(g,b){const A=b.anime;if(!A||(A.k!=='sign'&&A.k!=='clash')||b.dead)return;const P=b.pts,hl=P[HL],hr=P[HR];if(hl.gone&&hr.gone)return;
   const s=b.sc*b.C.scale,f=b.facing<0?-1:1,h=f>0?(hr.gone?hl:hr):(hl.gone?hr:hl),x=h.rx,y=h.ry,k=A.k==='clash'?1:Math.min(1,A.t/10);
@@ -1647,6 +1647,16 @@ function animeStep(b,I){const A=b.anime,P=b.pts,hip=P[HIP],neck=P[NECK],head=P[H
       const char=v.kind==='ragdoll'&&!(warded(v))&&!v.C.fireProof&&!uiOn(v);for(const p of v.pts){if(p.gone||distSeg(p.x,p.y,x1,y1,x2,y2)>w+p.r)continue;hit=true;if(!p.pin){p.px-=A.ax*k;p.py-=A.ay*k;}if(char)p.burnt=Math.min(.72,(p.burnt||0)+.06);}   /* (charred where the beam touched) */
       if(hit&&v.kind==='ragdoll'&&!(warded(v))){provoke(v,b);damage(v,3.4);v.balance=Math.max(0,v.balance-.2);}}
     if(A.t>WAVECHARGE+28){if(A.bx1!==undefined)fx.push({type:'burnline',x1:A.bx1,y1:A.by1,x2:A.bx2,y2:A.by2,life:130,max:130});b.anime=null;}return;}   /* the smoke and embers left hanging where it went */
+  if(A.k==='flurry'){if(!o){b.anime=null;return;}   /* Rapid Punches: for FLURRYT frames both fists fly at whoever it is, in turn, a light punch landing every fourth frame. It steps in to stay in reach, and the last one is a proper punch. */
+    const th=o.pts[HIP],dx=th.x-hip.x,reach=b.dim.uarm+b.dim.farm+14*o.sc*o.C.scale,want=[NECK,HEAD,NECK,HIP][(A.n+(A.miss||0))%4];let q=o.pts[want];if(q.gone||!q.att||hyp(q.x-neck.x,q.y-neck.y)>reach+12*s){let bd=1e9;for(const k of [HEAD,NECK,HIP]){const u=o.pts[k];if(u.gone||(!u.att&&k!==HIP))continue;const d=hyp(u.x-neck.x,u.y-neck.y);if(d<bd){bd=d;q=u;}}}   /* head, chest, head, belly in turn; if that one is out of reach (or gone), whichever is nearest */
+    b.facing=dx>=0?1:-1;I.jump=false;I.mv=Math.abs(dx)>reach*.78?b.facing*.9:0;I.arms='flurry';I.fx=q.x;I.fy=q.y;const inReach=hyp(q.x-neck.x,q.y-neck.y)<reach+12*s,last=A.t>=FLURRYT;
+    if(inReach&&frame%2===0)part(q.x-b.facing*rnd(6,30)*s,q.y+rnd(-13,13)*s,b.facing*rnd(3,6),rnd(-.6,.6),5,rnd(2.6,4.2)*s,b.pal.skin,{type:1,g:0});   /* fists, too fast to count */
+    if(last){if(inReach){const h0=o.hp;strike(b,o,q,{dx:b.facing,dy:-.35,type:'punch',pow:1.8});if(o.hp<h0){A.n++;ring(q.x,q.y,34,'#ffffff',10,3);sfx('hit',.9);}}if(A.n>0)say(head.x,head.y-34,A.n+' HITS!','#7df0ff',16);b.anime=null;return;}
+    if(A.t%4===2){if(inReach){const h0=o.hp;strike(b,o,q,{dx:b.facing,dy:rnd(-.25,.1),type:'punch',pow:FLURRYPOW});
+        if(o.hp<h0){A.n++;sparks(q.x,q.y,2,'#ffffff',4);if(A.n%2)sfx('hit',.45);for(const p of o.pts)if(!p.pin){p.px=p.x-(p.x-p.px)*.3;p.py=p.y-(p.y-p.py)*.3;}if(!o.dead){o.balance=Math.max(o.balance,.42);o.stun=Math.max(o.stun,7);o.atk=null;}}   /* (and it cannot hit back between two of them, however tough it is: that is the point of the move. Somebody else still can) */   /* a punch that landed (not one stopped by Infinity or dodged) is counted, and most of its shove is taken back: the flurry holds them where they are, juddering, instead of knocking them out of reach */
+        else A.miss=(A.miss||0)+1;}
+      else if(A.t%8===2)sfx('whoosh',.3);}
+    return;}
   if(A.k==='rush'){if(!o){b.anime=null;return;}I.mv=0;I.jump=false;
     if(A.t%8===1){const th=o.pts[HIP],side=A.n%2?1:-1,nx=clamp(th.x+side*(30*s+22*o.sc*o.C.scale),XL+30,XR-30),leg=b.dim.thigh+b.dim.shin+P[FL].r,dy=groundBelow(nx,th.y-60)-leg*.95-hip.y,dx=nx-hip.x,last=A.n>=4;
       uiGhost(b);smoke(hip.x,neck.y,2);for(const p of P){if(!p.att||p.pin)continue;p.x+=dx;p.y+=dy;p.px=p.x;p.py=p.y;p.lx=p.x;p.ly=p.y;}b.facing=-side;b.planted=false;b.hitGuard=20;sfx('whoosh',.6);   /* gone from one side, there on the other (an afterimage is left behind) */
@@ -1839,6 +1849,7 @@ function special(b,t,player){
     case 'orb':b.anime={k:'orb',t:0,o:t&&t.kind==='ragdoll'&&!t.dead?t:null};lbl('Star Orb…');sfx('whoosh',.5);break;
     case 'still':b.anime={k:'sign',t:0,dom:'still'};sfx('whoosh',.4);break;   /* the Still Realm: the same hand sign, another domain */
     case 'realm':b.anime={k:'sign',t:0};sfx('whoosh',.4);break;   /* first the hand sign (animeStep); the realm opens when it is made */   /* with Move cinematics on, the cut-scene plays first and the dome opens when it ends */
+    case 'flurry':{const o=t&&t.kind==='ragdoll'&&!t.dead&&t!==b?t:nearestRag(b,x=>!x.dead&&!allies(b,x));if(!o||hyp(o.pts[HIP].x-hip.x,o.pts[HIP].y-hip.y)>(b.dim.uarm+b.dim.farm)*2.4+40){lbl('Nobody in range');b.spCd=40;break;}b.anime={k:'flurry',t:0,o,n:0};lbl('RAPID PUNCHES!');sfx('whoosh',.7);break;}   /* Rapid Punches: the flurry itself is in animeStep */
     case 'spark':if(startAttack(b,'punch',t,{pow:3.2,label:'CRIMSON SPARK!',spark:true})){ring(P[f>0?HR:HL].x,P[f>0?HR:HL].y,46,'#ff2a3a',12,3);const h=P[f>0?HR:HL];for(let i=0;i<16;i++)part(h.x,h.y,rnd(-4,4),rnd(-4,4),rnd(10,18),rnd(1.5,3),pick(['#1a0508','#ff2a3a','#ff7a8a']),{type:1,g:0});flash=Math.max(flash,.15);sfx('zap',.6);lbl('Crimson Spark!');}break;
     case 'tk':tkStart(b,t,player);break;                                                              // telekinesis: lift it, hold it, throw it (the rest is tkStep, every frame while it is held)
     case 'taser':{const o=t&&t.kind==='ragdoll'&&!t.dead?t:nearestRag(b,x=>!x.dead&&!allies(b,x));                    // the officer's taser: whoever it is facing down goes rigid and drops
@@ -3051,6 +3062,7 @@ function applyPose(b,I){
         if(Math.abs(smv)>.05){const ph=b.t*.24+i*PI;tx=neck.x+f*(Math.cos(ph)*armLen*.85+armLen*.2);ty=neck.y+Math.sin(ph)*armLen*.55;}
         else{tx=neck.x+sg*armLen*(.55+.2*Math.sin(b.t*.25+i));ty=neck.y+armLen*.25+Math.cos(b.t*.25+i)*6*s;}break;}
       case 'run':{const of=b.feet[1-i],sw=b.planted?clamp(((smoothOn&&of.cx!==undefined?of.cx:of.x)-hip.x)*.95,-armLen*.7,armLen*.7):Math.sin(b.t*.45+i*PI)*armLen*.5;tx=neck.x+sw+f*3*s;ty=neck.y+armLen*.58-Math.abs(sw)*.3;b1=.5*k;mv=11;break;}   // running: elbows bent, fists pumping in time with the opposite foot
+      case 'flurry':if((((b.t>>2)&1)===i)&&I.fx!==undefined){tx=I.fx;ty=I.fy;}else{tx=neck.x+f*5*s;ty=neck.y+9*s;}g1=.9;b1=k;mv=32*s;break;   // Rapid Punches: fists out and back in turn
       case 'cuffed':tx=hip.x-f*8*s+sg*1.5*s;ty=hip.y-3*s;g1=.5;b1=.75*k;break;                            // hands behind the back
       case 'cpr':tx=I.fx+sg*1.5*s;ty=I.fy;g1=.5;b1=.8*k;mv=I.fmv||9;break;                              // both hands, one on the other, on the chest
       case 'hold':tx=neck.x+f*armLen*.72;ty=neck.y+(4+sg*3)*s;g1=.5;b1=.8*k;break;
@@ -3795,9 +3807,9 @@ function fwBurst(x,y,kind,C,S=1,sub=false){const K=fwK(),N=q=>Math.max(6,Math.ro
 function fwCheer(x,y){if(!reactOn)return;for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||b.zombie||b===possessed||b.reactCd>0||b.fearOf||b.grudge||b.sleep>0||b.frozen>0||!(b.mode==='stand'||isWalk(b)||b.mode==='dance'))continue;
     const h=b.pts[HEAD],d=hyp(h.x-x,h.y-y);if(d<130||d>640||Math.random()>.3)continue;bubble(b,pick(['Ooooh!','Aaaah!','Pretty!','Do another!','Wow!','So many colours!','Again! Again!']),80);b.reactCd=110;}}
 function fwStep(){
-  for(let i=fireworks.length-1;i>=0;i--){const f=fireworks[i];f.ph+=.5;f.vx+=Math.sin(f.ph)*.05;f.x+=f.vx;f.y+=f.vy;f.vy+=.12;f.t--;
+  for(let i=fireworks.length-1;i>=0;i--){const f=fireworks[i];f.ph+=.5;f.vx+=Math.sin(f.ph)*.05;if(infList.length||shList.length)infHoldPoint(f,18);f.x+=f.vx;f.y+=f.vy;f.vy+=.12;f.t--;
     part(f.x+rnd(-2,2),f.y+6,rnd(-.6,.6)-f.vx*.3,rnd(1,2.8),rnd(10,18),rnd(1.6,2.6),Math.random()<.5?'#ffd9a0':'#ff9a3c',{type:1,g:.05});
-    for(const b of bodies){if(b.kind==='anchor'||b.maxx<f.x-24||b.minx>f.x+24||b.maxy<f.y-24||b.miny>f.y+24)continue;if(f.hit&&f.hit.includes(b))continue;let touch=false;for(const p of b.pts)if(!p.pin&&hyp(p.x-f.x,p.y-f.y)<p.r+16){touch=true;break;}if(!touch)continue;(f.hit||(f.hit=[])).push(b);const k=11/Math.sqrt(Math.max(.5,b.ms));for(const p of b.pts)if(!p.pin&&(b.kind!=='ragdoll'||p.att)){p.py+=k;p.px-=f.vx*2;}if(b.kind==='ragdoll'){tumbleStart(b);b.airT=14;}}   // takes along what it runs into
+    for(const b of bodies){if(b.kind==='anchor'||b.maxx<f.x-24||b.minx>f.x+24||b.maxy<f.y-24||b.miny>f.y+24||(b.kind==='ragdoll'&&warded(b)))continue;if(f.hit&&f.hit.includes(b))continue;let touch=false;for(const p of b.pts)if(!p.pin&&hyp(p.x-f.x,p.y-f.y)<p.r+16){touch=true;break;}if(!touch)continue;(f.hit||(f.hit=[])).push(b);const k=11/Math.sqrt(Math.max(.5,b.ms));for(const p of b.pts)if(!p.pin&&(b.kind!=='ragdoll'||p.att)){p.py+=k;p.px-=f.vx*2;}if(b.kind==='ragdoll'){tumbleStart(b);b.airT=14;}}   // takes along what it runs into
     if(f.t<=0||(!f.aim&&f.vy>-1.2)||(f.aim&&f.y>FLOOR-6)||f.y<CEIL+46||f.x<XL+8||f.x>XR-8){fireworks.splice(i,1);fwBurst(f.x,f.y,f.kind,f.col);                                           /* at the top of its climb (or against the ceiling): the burst */
       explode(f.x,f.y,150,9,4,{soft:true,quiet:true});ring(f.x,f.y,110,f.col[0],16,3);flash=Math.max(flash,.22);sfx('boom',.45);sfx('pop',.8);fwCheer(f.x,f.y);witness(f.x,f.y,'seeBoom',null,null,'','look',420);}}
   for(let i=fwStars.length-1;i>=0;i--){const s=fwStars[i];if(s.tr){s.hx.push(s.x);s.hy.push(s.y);if(s.hx.length>s.tr){s.hx.shift();s.hy.shift();}}
@@ -4753,6 +4765,8 @@ function paintBMigrate(cv){const W=PAINTPX,g=cv.getContext('2d'),img=g.getImageD
   if(moved)g.putImageData(img,0,0);return moved;}
 const COLLAR=[104,30,152,54];   /* the collar zone in the flat layout: x0,y0,x1,y1 (round the base of the neck, from just under the chin to the top of the shoulders) */
 function bodyTexBuild(C){const im=C.paintB,W=PAINTPX,D=im.getContext('2d').getImageData(0,0,W,W).data,keys=Object.keys(PBODY).map(Number),T={};
+  {const avg=(x0,y0,x1,y1)=>{let r=0,g2=0,b2=0,n=0,all=0;for(let y=y0;y<y1;y+=2)for(let x=x0;x<x1;x+=2){all++;const p=(y*W+x)*4;if(D[p+3]<200)continue;r+=D[p];g2+=D[p+1];b2+=D[p+2];n++;}return n>all*.4?[r/n,g2/n,b2/n]:null;};
+    C.texTop=avg(110,92,146,130);C.texPants=avg(102,140,128,182);}   /* the colour of the painted top over the belly, and of the painted trousers at the thigh (null where that is not painted): what a belly and a seat are drawn in (drawBelly) */
   const tI=(90*W+128)*4,tc=D[tI+3]>200?[D[tI],D[tI+1],D[tI+2]]:null,isTop=p=>tc&&Math.abs(D[p]-tc[0])+Math.abs(D[p+1]-tc[1])+Math.abs(D[p+2]-tc[2])<44;   /* the colour of the top itself (at the middle of the chest), if it is painted */
   const add=(id,x0,y0,w,h)=>{const c=document.createElement('canvas');c.width=Math.max(1,Math.round(w));c.height=Math.max(1,Math.round(h));T[id]={cv:c,x0:Math.round(x0),y0:Math.round(y0),img:c.getContext('2d').createImageData(c.width,c.height),any:false};};
   for(const i of keys){const R=PBODY[i];add(i,R[0]-R[3]/2-PMARG,R[1]-R[3]/2-PMARG,R[3]+2*PMARG,R[2]+R[3]+2*PMARG);}
@@ -5019,11 +5033,20 @@ function throwPotion(k,x,y,vx,vy){if(flasks.length>=30)flasks.shift();flasks.pus
 function potionSplash(F){const P=POTIONS[F.k],x=F.x,y=F.y;sfx('snip',.9);sfx('pop',.6);ring(x,y,95,P.col,18,4);
   for(let i=0;i<26;i++){const a=rnd(0,6.283),v=rnd(1,6);part(x,y,Math.cos(a)*v,Math.sin(a)*v-1.5,rnd(26,48),rnd(4,9),P.col,{type:2,g:-.004,drag:.94});}
   for(let i=0;i<9;i++){const a=rnd(0,6.283),v=rnd(2,7);part(x,y,Math.cos(a)*v,Math.sin(a)*v-2,rnd(30,50),rnd(1.2,2.4),'#dff1ff',{g:.3});}                    // broken glass
-  for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||b.remove||b.shield>0)continue;for(const p of b.pts)if(p.att&&!p.gone&&hyp(p.x-x,p.y-y)<95){drink(b,F.k,true);break;}}}
-function flasksStep(){for(let i=flasks.length-1;i>=0;i--){const F=flasks[i];F.t++;F.vy+=gravity*.55;F.vx*=.996;F.x+=F.vx;F.y+=F.vy;F.rot+=F.sp;
+  for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||b.remove||warded(b))continue;for(const p of b.pts)if(p.att&&!p.gone&&hyp(p.x-x,p.y-y)<95){drink(b,F.k,true);break;}}}
+/* Infinity and the things that are not bodies (a thrown potion, a firework): o has x,y,vx,vy and is rad across. Near anyone whose Infinity is up, of either kind,
+   it may close on them only a fraction of what is left each frame, so it slows and slows and never arrives; one that got inside is put back out. Both kinds:
+   the special (infList, measured from the nearest part of the body) and the power (shList, measured from its capsule). Returns true while it is being held. */
+function infHoldAt(o,nx,ny,gap,qvx,qvy){const app=-((o.vx-qvx)*nx+(o.vy-qvy)*ny);if(gap>INFZONE*1.6){if(app>gap*.6){const cut=app-gap*.6;o.vx+=nx*cut;o.vy+=ny*cut;}return false;}   /* (still outside, but coming fast enough to jump the whole zone: braked) */
+  if(gap<0){o.x-=nx*gap;o.y-=ny*gap;gap=0;}const lim=Math.max(.02,gap*.16);if(app>lim){const cut=app-lim;o.vx+=nx*cut;o.vy+=ny*cut;}return gap<INFZONE;}
+function infHoldPoint(o,rad){let held=false;
+  for(const b of infList){if(b.remove||o.x<b.minx-140||o.x>b.maxx+140||o.y<b.miny-140||o.y>b.maxy+140)continue;const q=infNear(b,o.x,o.y);if(!q)continue;const dx=o.x-q.x,dy=o.y-q.y,d=hyp(dx,dy)||1e-6;if(infHoldAt(o,dx/d,dy/d,d-q.r-INFPAD-rad,q.x-q.px,q.y-q.py))held=true;}
+  for(const b of shList){if(b.remove||!(b.shield>0))continue;const S=infShape(b),ex=S[2]-S[0],ey=S[3]-S[1];let t=((o.x-S[0])*ex+(o.y-S[1])*ey)/(ex*ex+ey*ey||1e-6);t=t<0?0:t>1?1:t;const dx=o.x-(S[0]+ex*t),dy=o.y-(S[1]+ey*t),d=hyp(dx,dy)||1e-6;if(infHoldAt(o,dx/d,dy/d,d-S[4]*INFSTOP-rad,0,0))held=true;}
+  return held;}
+function flasksStep(){for(let i=flasks.length-1;i>=0;i--){const F=flasks[i];F.t++;F.vy+=gravity*.55;F.vx*=.996;if(infList.length||shList.length)infHoldPoint(F,16);F.x+=F.vx;F.y+=F.vy;F.rot+=F.sp;
     let hit=F.y>=FLOOR-5||F.y<=CEIL+4||F.x<=XL+4||F.x>=XR-4||F.t>900;
     if(!hit)for(const w of walls)if(F.x>w.minx-12&&F.x<w.maxx+12&&F.y>w.miny-12&&F.y<w.maxy+12&&distSeg(F.x,F.y,w.x1,w.y1,w.x2,w.y2)<w.hw+5){hit=true;break;}
-    if(!hit&&F.t>2&&findPoint(F.x,F.y,15,b=>b.kind!=='balloon'&&b.kind!=='anchor'))hit=true;
+    if(!hit&&F.t>2&&findPoint(F.x,F.y,15,b=>b.kind!=='balloon'&&b.kind!=='anchor'&&!(b.kind==='ragdoll'&&warded(b))))hit=true;   /* (it never touches someone with Infinity: it slides round and breaks somewhere else) */
     if(hit){F.x=clamp(F.x,XL+4,XR-4);F.y=clamp(F.y,CEIL+4,FLOOR-5);potionSplash(F);flasks.splice(i,1);}}}
 function drawFlasks(g){for(const F of flasks){g.save();g.translate(F.x,F.y);g.rotate(F.rot);g.fillStyle='rgba(225,240,255,.9)';g.fillRect(-2,-13,4,7);g.fillStyle='#8a6a48';g.fillRect(-2.6,-15.2,5.2,2.6);g.fillStyle=POTIONS[F.k].col;g.beginPath();g.arc(0,-2,6,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.5)';g.beginPath();g.arc(-2,-4,1.8,0,6.3);g.fill();g.restore();}}
 /* the potion tools: press on a living dummy and it is handed the bottle and drinks; press anywhere else and you are holding one to throw: let go to drop it there, or drag first to throw it that way */
@@ -5370,16 +5393,18 @@ function fatBurn(b){
   for(const p of [h,q]){p.fuel=Math.min(p.fuel0||1,(p.fuel||0)+.4);p.heat=Math.max(p.heat,1.05);}                         // and it feeds the fire
   say(h.x,h.y-52,b.fat?'SIZZLE!':'ALL BURNT OFF','#ffb347',14);for(let i=0;i<8;i++)addFlame(h.x+b.facing*8*b.sc+rnd(-8,8),h.y+rnd(-10,6),rnd(-1.5,1.5),-rnd(1.5,3.5)*u,rnd(12,20));sfx('hiss',.6);}
 function drawBelly(g,b){
-  const st=b.sticks[SP];if(st.cut)return;const q=b.pts[NECK],h=b.pts[HIP],f=b.facing,k=b.fat/FATMAX,pal=b.pal,w=st.w,L=st.len0;
+  const st=b.sticks[SP];if(st.cut)return;const q=b.pts[NECK],h=b.pts[HIP],f=b.facing,k=b.fat/FATMAX,pal=b.pal,w=st.w,L=st.len0,C=b.C;
+  if(C.paintB&&C.texOf!==C.paintB)bodyTexBuild(C);   /* a character with painted clothes: the belly is the colour of the painted top, not of the plain shirt under it (it used not to match), and it rots and chars as the painting does */
+  const tn=v=>css(mixc(b.rot>0?mixc(v,[96,124,46],b.rot*.55):v,[22,20,20],(b.charr||0)*.8)),TS=C.paintB&&!isSkel(b)?C.texTop:null,TP=C.paintB&&!isSkel(b)?C.texPants:null,shirt=TS?tn(TS):pal.shirt,shirtD=TS?tn(mixc(TS,[0,0,0],.3)):pal.shirtD,pants=TP?tn(TP):pal.pants;
   const kk=(.45+.55*k)*b.sc,jig=(b.js||0)*1.5*kk+Math.sin(b.t*.07)*.5*k,D=(w*(.16+.4*k)+L*.05*k)*(1+(b.jf||0)*.045*(.5+.5*k))-(b.js||0)*.35*kk;   // jig: the bounce up and down the body; D: how far it stands out, which pulses as it bounces
   g.save();g.translate(h.rx,h.ry);g.rotate(Math.atan2(q.ry-h.ry,q.rx-h.rx));                                              // x runs up the spine from the hips, +y*f is the front
-  g.fillStyle=pal.pants;g.beginPath();g.ellipse(L*.04+jig*.45,-f*w*.34,L*(.15+.05*k),w*(.24+.16*k)*(1-(b.jf||0)*.02),0,0,6.3);g.fill();             // a bigger seat behind (it wobbles too)
+  g.fillStyle=pants;g.beginPath();g.ellipse(L*.04+jig*.45,-f*w*.34,L*(.15+.05*k),w*(.24+.16*k)*(1-(b.jf||0)*.02),0,0,6.3);g.fill();             // a bigger seat behind (it wobbles too)
   const top=L*(.8-.04*k),low=-L*(.08+.14*k),xm=L*(.24-.06*k)+jig,Y=w*.5+D;                                               // starts under the chest, is fullest low down, and sags below the belt
   const belly=()=>{g.beginPath();g.moveTo(top,f*w*.3);g.bezierCurveTo(top-L*.02,f*(w*.5+D*.72),xm+L*.3,f*Y,xm,f*Y);g.bezierCurveTo(xm-L*.26,f*Y,low+jig*.4,f*(w*.5+D*.5),low+L*.03,f*w*.2);g.lineTo(L*.1,0);g.lineTo(L*.5,0);g.closePath();};
-  if(b.fat>=3){g.fillStyle=pal.skin;belly();g.fill();g.save();g.beginPath();g.rect(L*(.1-.05*k),-400,800,800);g.clip();g.fillStyle=pal.shirt;belly();g.fill();g.restore();}   // from size three the shirt no longer covers the bottom of it
-  else{g.fillStyle=pal.shirt;belly();g.fill();}
+  if(b.fat>=3){g.fillStyle=pal.skin;belly();g.fill();g.save();g.beginPath();g.rect(L*(.1-.05*k),-400,800,800);g.clip();g.fillStyle=shirt;belly();g.fill();g.restore();}   // from size three the shirt no longer covers the bottom of it
+  else{g.fillStyle=shirt;belly();g.fill();}
   {const ch=(h.burnt+q.burnt)*.5;if(ch>.02){g.fillStyle='rgba(20,15,13,'+Math.min(.9,ch*.9)+')';belly();g.fill();}}
-  g.strokeStyle=b.fat>=3?pal.skinD:pal.shirtD;g.lineWidth=1.7*b.sc;g.lineCap='round';g.beginPath();g.moveTo(xm-L*.05,f*(Y-.4));g.bezierCurveTo(xm-L*.24,f*Y,low+jig*.4+L*.02,f*(w*.5+D*.5),low+L*.05,f*w*.24);g.stroke();   // the shadow under the overhang
+  g.strokeStyle=b.fat>=3?pal.skinD:shirtD;g.lineWidth=1.7*b.sc;g.lineCap='round';g.beginPath();g.moveTo(xm-L*.05,f*(Y-.4));g.bezierCurveTo(xm-L*.24,f*Y,low+jig*.4+L*.02,f*(w*.5+D*.5),low+L*.05,f*w*.24);g.stroke();   // the shadow under the overhang
   g.restore();}
 const GLUERGB='238,236,226';   // the colour of a coat of glue on a body (honey's is gold)
 const BONE='#efe9d6',METAL='#8f9aae',SKULLC=new WeakMap();
@@ -5797,6 +5822,7 @@ let SPEC=null;function specialList(){if(!SPEC){SPEC={};for(const id in CHARS){co
   SPEC.realm={name:'Malevolent Shrine',cd:600,from:'anime',desc:'the Malevolent Shrine: it makes a hand sign, and a great dark dome opens around it for five seconds. Its wall is solid: everyone else caught inside is cut again and again, and nothing gets them out. An enemy who has a domain of their own always answers with it at once, and the two domains clash: one of them shatters the other, and which one is down to chance.'};
   SPEC.still={name:'Still Realm',cd:640,from:'anime',desc:'the Still Realm: it makes a hand sign, and a pale dome opens around it for five seconds. Every enemy inside is stilled: held exactly where it is, in mid-air if need be, unable to move, strike or use any technique. Ultra Instinct and Infinity stop working for them and their shots hang in the air, so they can be hit freely. All the while knowledge pours into their heads, more than a head can take: a count of it runs up over each of them and it hurts them steadily, about a third of their health in all. An enemy who has a domain of their own always answers with it at once, and the two domains clash.'};
   SPEC.inf={name:'Infinity',cd:320,from:'anime',desc:'Infinity: an invisible barrier that nothing gets through. Whatever comes at it slows more and more the nearer it gets and never arrives: fists, weapons, bullets, thrown things, liquids, other bodies. Anyone who walks into it is caught: slowed right down and stuck there for a moment before they can pull away. Nothing can hurt, cut, burn, freeze, shock or grab the character while it is up, and it stays up while the character attacks (its own blows reach out through it). Only your hand, sleep and a Malevolent Shrine take it down. Used as a move, it throws back everything round it.'};
+  SPEC.flurry={name:'Rapid Punches',cd:240,from:'anime',desc:'Rapid Punches: a storm of quick punches with both fists, about twenty in a second and a half. Each one is light, but together they keep whoever is on the end of them reeling, and the last is a proper punch that sends them back.'};
   SPEC.spark={name:'Crimson Spark',cd:170,from:'anime',desc:'the Crimson Spark: one punch, three times as hard. Black lightning edged in red bursts out where it lands, the world stops for an instant, and whoever it hit is thrown.'};}return SPEC;}   /* every special move in the game, with the character it comes from */
 function customRegister(d){
   const B=CHARS[d.base]&&!CHARS[d.base].custom?CHARS[d.base]:CHARS.human,H=d.head!=='blank'&&CHARS[d.head]&&!CHARS[d.head].custom?CHARS[d.head]:null,C=CHARS[d.id]||{};
