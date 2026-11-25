@@ -327,6 +327,7 @@ html.mrot .panel,html.mrot #bottom,html.mrot #top,html.mrot #settings,html.mrot 
     <label class="srow"><span class="si">🧟</span><span class="st"><b>Dead rise as zombies</b><small>Anyone who dies gets back up as a zombie a few seconds later (as long as they still have a head), and goes after the living</small></span><input type="checkbox" id="setRise"><i class="sw"></i></label>
     <label class="srow"><span class="si">🌊</span><span class="st"><b>Smooth movement</b><small>Dummies are drawn with their little shakes, twitches and snaps eased out, they walk with longer, flowing steps, easing into and out of their stride, and when one turns to face the other way its face swings across its head over a moment instead of flipping at once. Fast things (throws, punches, falls) are left as sharp as ever</small></span><input type="checkbox" id="setSmooth"><i class="sw"></i></label>
     <label class="srow"><span class="si"></span><span class="st"><b>Fast liquid</b><small>Liquid is drawn more coarsely, which costs much less when there is a lot of it: switch it on if pools and waves make the game slow. Its edges are a little less fine; it flows exactly the same</small></span><input type="checkbox" id="setFastLiq"><i class="sw"></i></label>
+    <label class="srow"><span class="si"></span><span class="st"><b>Low-end mode</b><small>For a slow phone or computer: a softer picture, far fewer sparks and flames, thinner fireworks, and liquid drawn the fast way. Switch it on if the game runs slowly; nothing about how things behave changes</small></span><input type="checkbox" id="setLow"><i class="sw"></i></label>
     <label class="srow"><span class="si">😱</span><span class="st"><b>Reactions</b><small>They shout, gasp, run and duck at what happens, disasters included</small></span><input type="checkbox" id="setReact" checked><i class="sw"></i></label>
     <label class="srow"><span class="si">👀</span><span class="st"><b>Watch the cursor</b><small>Standing dummies turn to face your cursor and wave when it comes near. Off: they take no notice of it</small></span><input type="checkbox" id="setWatch" checked><i class="sw"></i></label>
     <label class="srow"><span class="si">🪂</span><span class="st"><b>Realistic falling</b><small>Fast free fall and painful landings (default). Off = feather fall</small></span><input type="checkbox" id="setFall"><i class="sw"></i></label>
@@ -405,7 +406,10 @@ const $=id=>document.getElementById(id);
 const cv=$('c'),ctx=cv.getContext('2d');
 let W=0,H=0,XL=MOBV.l,XR=0,CEIL=MOBV.t,FLOOR=0,DPR=1,VL=MOBV.l,VR=0,VT=MOBV.t,VB=0,worldSize=null;   /* V*: where the arena sits on screen. XL..FLOOR: the world, which a custom map makes any size */
 function fitWorld(){XL=VL;CEIL=VT;if(worldSize){XR=XL+worldSize[0];FLOOR=CEIL+worldSize[1];}else{XR=VR;FLOOR=VB;}}
-function resize(){MOBV.sync();DPR=Math.min(MOBV.dpr,window.devicePixelRatio||1);W=MOBV.w();H=MOBV.h();cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.width=W+'px';cv.style.height=H+'px';/* keep the canvas the size of the window at any browser zoom or screen scaling */VR=W-MOBV.r;VB=H-MOBV.b;fitWorld();}
+/* Settings: Low-end mode, for a slow phone or computer. lowEnd is read here, before the canvas is first sized: it caps the sharpness the canvas is drawn at (resize),
+   thins sparks (part), flames (addFlame) and fireworks (fwK), and draws liquid on the coarse grid (drawFluid), whatever the Fast liquid switch says. */
+let lowEnd=false,lowN=0;try{lowEnd=localStorage.getItem('flopworksM.low')==='1';}catch(e){}
+function resize(){MOBV.sync();DPR=Math.min(lowEnd?1:MOBV.dpr,window.devicePixelRatio||1);W=MOBV.w();H=MOBV.h();cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.width=W+'px';cv.style.height=H+'px';/* keep the canvas the size of the window at any browser zoom or screen scaling */VR=W-MOBV.r;VB=H-MOBV.b;fitWorld();}
 addEventListener('resize',resize);resize();
 const rnd=(a=1,b)=>b===undefined?Math.random()*a:a+Math.random()*(b-a);
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -645,7 +649,7 @@ function repal(b){const c=b.C.col,ch=b.charr*.8,pal={};
   b.pal=pal;}
 
 /* ============================== particles & fx ============================== */
-function part(x,y,vx,vy,life,r,col,o){if(parts.length>1000)parts.shift();parts.push(Object.assign({x,y,vx,vy,life,max:life,r,col,g:.15,drag:.98,type:0},o));}
+function part(x,y,vx,vy,life,r,col,o){if(lowEnd&&parts.length>140&&((lowN=(lowN+1)|0)&1))return;if(parts.length>(lowEnd?360:1000))parts.shift();   /* (Low-end mode: once there is a crowd of them, every other spark is left out, and far fewer are kept) */parts.push(Object.assign({x,y,vx,vy,life,max:life,r,col,g:.15,drag:.98,type:0},o));}
 function sparks(x,y,n,col,sp=5){for(let i=0;i<n;i++){const a=rnd(0,6.3),v=rnd(1,sp);part(x,y,Math.cos(a)*v,Math.sin(a)*v,rnd(12,30),rnd(1.5,3),col,{type:1});}}
 function smoke(x,y,n){for(let i=0;i<n;i++)part(x+rnd(-6,6),y+rnd(-6,6),rnd(-.6,.6),rnd(-1.2,-.2),rnd(30,60),rnd(5,10),'#8a93a8',{type:2,g:-.01});}
 /* ---- fire: every body part has heat, fuel and a flame of its own ---- */
@@ -658,7 +662,7 @@ const SPR={
   glow:mkSprite([[0,'rgba(255,150,50,.55)'],[.4,'rgba(255,100,20,.2)'],[1,'rgba(255,80,0,0)']],128)};
 function upDir(){return gravity>0?1:gravity<0?-1:0;}
 function rise(){const u=upDir();return u?-rnd(.5,1.3)*u:rnd(-.5,.5);}
-function addFlame(x,y,vx,vy,size,life){const n=flames.length;if(n>1700||(n>1100&&Math.random()<(n-1100)/600))return;life=life||rnd(20,36);flames.push({x,y,vx,vy,size,life,max:life,seed:rnd(0,6.3)});}
+function addFlame(x,y,vx,vy,size,life){const n=flames.length,hi=lowEnd?700:1700,lo=lowEnd?400:1100;if(n>hi||(n>lo&&Math.random()<(n-lo)/(hi-lo)))return;life=life||rnd(20,36);flames.push({x,y,vx,vy,size,life,max:life,seed:rnd(0,6.3)});}
 function flame(x,y){addFlame(x+rnd(-4,4),y+rnd(-4,4),rnd(-.4,.4),rise(),rnd(11,17));}
 function soot(x,y,k=1){const u=upDir();part(x+rnd(-5,5),y,rnd(-.4,.4),-rnd(.7,1.5)*u,rnd(55,95),rnd(5,9)*k,'#232329',{type:2,g:-.012*u,drag:.985});}
 function wisp(x,y){const u=upDir();part(x,y,rnd(-.3,.3),-rnd(.5,1)*u,rnd(25,45),rnd(3,5),'#9aa0ad',{type:2,g:-.01*u});}
@@ -2028,6 +2032,7 @@ function witness(x,y,key,a,v,name,kind,R,what){                /* what: the dang
 }
 let rotOn=true;const ROTWAIT=1500,ROTTIME=2400;          // starts about 25 seconds after death, fully green 40 seconds later
 let riseOn=false,turnOn=false,smoothOn=false;
+function setLow(v){lowEnd=!!v;$('setLow').checked=lowEnd;try{localStorage.setItem('flopworksM.low',lowEnd?'1':'0');}catch(e){}resize();if(typeof minZoom==='function'&&zoom<minZoom())zoom=minZoom();}   /* (the canvas is sized afresh: its sharpness changes) */
 let fastLiq=false;function setFastLiq(v){fastLiq=v;$('setFastLiq').checked=v;try{localStorage.setItem('flopworksM.fastliq',v?'1':'0');}catch(e){}}   /* Settings: Fast liquid (a coarser grid in drawFluid) */
 function setSmoothOn(v){smoothOn=v;$('setSmooth').checked=v;try{localStorage.setItem('flopworksM.smooth',v?'1':'0');}catch(e){}setTurnOn(v);}   /* one switch for both (the user asked): smooth movement, and smooth turning with it */
 function setTurnOn(v){turnOn=v;try{localStorage.setItem('flopworksM.turn',v?'1':'0');}catch(e){}}   /* (it has no switch of its own any more: setSmoothOn sets it) */
@@ -3711,7 +3716,7 @@ function drawFluid(g){
   const cam=worldSize||zoom>1.001,z=cam?zoom:1,vc=viewC();
   let wx0=cam?(VL-vc[0])/z+camX:VL,wx1=cam?(VR-vc[0])/z+camX:VR,wy0=cam?(VT-vc[1])/z+camY:VT,wy1=cam?(H-vc[1])/z+camY:H;
   if(wx0<XL-8)wx0=XL-8;if(wx1>XR+8)wx1=XR+8;if(wy0<CEIL-8)wy0=CEIL-8;if(wy1>FLOOR+8)wy1=FLOOR+8;if(wx1<=wx0||wy1<=wy0)return;
-  const cs=Math.round(clamp((fastLiq?5.5:3)/z,fastLiq?4.25:2.25,9)*4)/4,inv=1/cs,   /* the size of a cell of the grid, in world units: nearly twice as big with Fast liquid on, so about a third of the cells to fill, shade and outline */
+  const FL=fastLiq||lowEnd,cs=Math.round(clamp((FL?5.5:3)/z,FL?4.25:2.25,9)*4)/4,inv=1/cs,   /* the size of a cell of the grid, in world units: nearly twice as big with Fast liquid on, so about a third of the cells to fill, shade and outline */
     gxi=Math.floor(wx0*inv)-1,gyi=Math.floor(wy0*inv)-1,gx0=gxi*cs,gy0=gyi*cs,gw=Math.ceil((wx1-gx0)*inv)+2,gh=Math.ceil((wy1-gy0)*inv)+2;
   fluidGrid(gw,gh);const SW=fSW;fCS=cs;fINV=inv;fGX=gx0;fGY=gy0;fGXI=gxi;fGYI=gyi;fGW=gw;fGH=gh;fFlip=gravity<0;
   for(let t=0;t<8;t++){if(FF[t]&&fbx1[t]>=fbx0[t]&&fClr){FF[t].fill(0,0,fClr);FS[t].fill(0,0,fClr);if(t===PASTE&&fPR){fPR.fill(0,0,fClr);fPG.fill(0,0,fClr);fPB.fill(0,0,fClr);}if(t===HONEY&&fGL)fGL.fill(0,0,fClr);}fbx0[t]=fby0[t]=1e9;fbx1[t]=fby1[t]=-1;}
@@ -3810,7 +3815,7 @@ function infinityStep(){shList.length=0;
 const FWCOLS=[['#ff5a7a','#ffd0da'],['#ffd24a','#fff3b0'],['#7dff9a','#d6ffe0'],['#5ad1ff','#d0f1ff'],['#c79bff','#eadcff'],['#ff9a3c','#ffe0b0'],['#ff4fd8','#ffd0f4'],['#ffffff','#fff6d8']],
   FWKINDS=['peony','peony','chrys','chrys','ring','willow','crackle','double','palm','heart','star'];
 let fwStars=[],fwGlow=[],fwCrk=0;
-function fwK(){return typeof MOBV!=='undefined'&&MOBV.perf?.6:1;}
+function fwK(){return lowEnd?.45:typeof MOBV!=='undefined'&&MOBV.perf?.6:1;}
 function fwLaunch(x,y,kind,ux,uy,pull){const h=Math.max(60,(y-CEIL-70)*rnd(.7,.95)),vy=-clamp(Math.sqrt(2*.12*h),5,13.5);   /* it climbs most of the way to the ceiling from wherever it was lit */
   const f={x,y,vx:rnd(-.7,.7),vy,t:150,kind:kind&&FWKINDS.includes(kind)?kind:pick(FWKINDS),col:pick(FWCOLS),ph:rnd(0,6.3)};
   if(ux!==undefined){const sp=clamp((pull||0)*.09,7,14.5);f.vx=ux*sp;f.vy=uy*sp;f.t=(38+rnd(0,18))|0;f.aim=true;}   /* aimed: it flies the way it was pointed and bursts after a moment, wherever it has got to */
@@ -3989,12 +3994,42 @@ function drawBoulder(g,p){const r=p.r,K=[1,.9,1.04,.86,1,.92,1.05,.88,.98];g.fil
    gloveGo: the Boxing glove. Everything along a line from x,y in the direction ux,uy is punched that way. gloveFx: the gloves being drawn (each for a quarter of a second).
    drawDestroyFx: the chainsaw at the cursor while that tool is held, and the gloves. drawMace: the spiked ball. */
 let gloveFx=[];
+/* ---- the Chainsaw: sections cut out ----
+   chainPieces: every piece of a dummy that is still there: its whole parts, and the pieces of the ones already cut (on the body or lying about).
+   chainCut: for each part the chain is on, the nearest piece; held there for CHDWELL frames, a section CHSEC wide is cut out of it (chainSection),
+   and that part is then left alone for CHGAP frames so the saw has to be held or moved to take another. The head loses a slice off the side the saw
+   is on (headSlice); if no slice can come off there, the neck goes. chainSection: two cuts with sliceLimb, one each side of the chain, and the piece
+   between them is ground away (chainPieceOff); near an end of the piece there is one cut and the end goes; a short piece goes whole. */
+const CHDWELL=5,CHGAP=12,CHSEC=12;
+function chainPieces(o){const out=[];for(let i=0;i<=SHR;i++){const st=o.sticks[i];if(st.gone)continue;if(!st.cut)out.push(st);else if(st.subs)for(const u of st.subs)if(!u.cut)out.push(u);}return out;}
+function chainPieceOff(o,u){const sub=u.src!==undefined,root=sub?u.src:o.sticks.indexOf(u),RT=o.sticks[root];if(!sub){destroyPart(o,root);return;}
+  u.cut=true;for(const e of [u.p,u.q])if(e.stub&&!e.gone){e.gone=true;e.r=1.5;e.fire=0;}
+  const mx=(u.p.x+u.q.x)/2,my=(u.p.y+u.q.y)/2,ci=Math.max(0,PASTEK.indexOf(o.cid));{const j=fluidAdd(PASTE,mx+rnd(-3,3),my+rnd(-3,3),rnd(-2,2),rnd(-3,-.5));if(j>=0)LTM[j]=ci;}   /* what it was is ground to paste */
+  bleedFx(o,mx,my,5,0,-1,4);confetti(mx,my,4,o.pal.shirt);mayhem+=6;if(!RT.subs.some(q=>!q.cut))destroyPart(o,root);else refreshAttach(o);}   /* (the last piece of a part: the part itself is gone) */
+function chainSection(o,s,x,y){const sub=s.src!==undefined,root=sub?s.src:o.sticks.indexOf(s),RT=o.sticks[root],ex=s.q.x-s.p.x,ey=s.q.y-s.p.y,L=hyp(ex,ey)||1;
+  if(root===SN||root>SHR||L<CHSEC*.75){chainPieceOff(o,s);return;}
+  const t0=clamp(((x-s.p.x)*ex+(y-s.p.y)*ey)/(L*L),0,1),half=CHSEC*.5/L,ta=t0-half,tb=t0+half,nx=-ey/L,ny=ex/L,sg=(x-s.p.x)*nx+(y-s.p.y)*ny>0?-1:1;
+  const cutAt=(st,t)=>{const n0=RT.subs?RT.subs.length:0;swipeN++;sliceLimb(o,st,0,0,0,0,nx*sg*.4,ny*sg*.4-.25,1,t);const S=RT.subs;return S&&S.length===n0+2?[S[n0],S[n0+1]]:null;};   /* (the pieces are nudged away from the saw) */
+  if(ta<=.1&&tb>=.9){chainPieceOff(o,s);return;}
+  if(ta<=.1){const pr=cutAt(s,tb);if(pr&&!o.remove)chainPieceOff(o,pr[0]);return;}
+  if(tb>=.9){const pr=cutAt(s,ta);if(pr&&!o.remove)chainPieceOff(o,pr[1]);return;}
+  const pr=cutAt(s,ta);if(!pr||o.remove)return;const p2=cutAt(pr[1],clamp((tb-ta)/(1-ta),.05,.95));if(o.remove)return;chainPieceOff(o,p2?p2[0]:pr[1]);}
+function chainCut(o,x,y,R){const best=new Map(),hd=o.pts[HEAD],dHead=hyp(x-hd.x,y-hd.y)-hd.r;let onHead=!hd.gone&&o.C.tear!==0&&dHead<R*.3;   /* on the head: the middle of the chain inside it or just at its edge */
+  for(const s of chainPieces(o)){const d=distSeg(x,y,s.p.x,s.p.y,s.q.x,s.q.y);if(d>R*.55+s.w*.5)continue;const root=s.src===undefined?o.sticks.indexOf(s):s.src;if(root===SN&&onHead)continue;hurtPart(s.p,.04,.05);hurtPart(s.q,.04,.05);const b0=best.get(root);if(!b0||d<b0.d)best.set(root,{s,d});}
+  if(best.size>1){let k=-1,bd=1e9;for(const [r,B] of best)if(B.d<bd){bd=B.d;k=r;}const keep=best.get(k);best.clear();best.set(k,keep);}
+  if(onHead&&best.size){const B=best.values().next().value;if(B.d<dHead)onHead=false;else best.clear();}   /* the head or a limb, whichever the chain is more squarely on: never both at once */   /* only the part the chain is most squarely on is cut: one section at a time, where you hold it */
+  for(const [root,B] of best){const RT=o.sticks[root];if(frame<(RT.chCd||0))continue;RT.chT=RT.chF===frame-1||RT.chF===frame?(RT.chT||0)+(RT.chF===frame?0:1):1;RT.chF=frame;if(RT.chT<CHDWELL)continue;
+    RT.chT=0;RT.chCd=frame+CHGAP;chainSection(o,B.s,x,y);shake=Math.max(shake,2);if(o.remove)return;}
+  if(onHead&&frame>=(hd.chCd||0)){hd.chT=hd.chF===frame-1?(hd.chT||0)+1:1;hd.chF=frame;
+    if(hd.chT>=CHDWELL){hd.chT=0;hd.chCd=frame+CHGAP;const dx=x-hd.x,dy=y-hd.y,d=hyp(dx,dy)||1,ux=d>1?dx/d:1,uy=d>1?dy/d:0,D=clamp(d-R*.45,hd.r*.2,hd.r*.82),tx=-uy,ty=ux,cx=hd.x+ux*D,cy=hd.y+uy*D;swipeN++;
+      const r=headSlice(o,cx-tx*hd.r*2,cy-ty*hd.r*2,cx+tx*hd.r*2,cy+ty*hd.r*2,tx,ty,1,!hd.att);if(r===2&&!o.sticks[SN].gone&&distSeg(x,y,o.sticks[SN].p.x,o.sticks[SN].p.y,o.sticks[SN].q.x,o.sticks[SN].q.y)<R*.55+o.sticks[SN].w*.5)destroyPart(o,SN);}}}   /* a slice off the side of the head the saw is on; from underneath, where nothing can be sliced off, the neck */
 function chainsawAt(x,y){const R=20;let hit=false;
   for(const o of bodies){if(o.remove||o.kind==='anchor'||o.kind==='saw'||o.maxx<x-R-24||o.minx>x+R+24||o.maxy<y-R-24||o.miny>y+R+24)continue;
-    if(o.kind==='ragdoll'){if(o.shield>0)continue;let on=false;for(let i=0;i<=SHR;i++){const st=o.sticks[i];if(!st.gone&&distSeg(x,y,st.p.x,st.p.y,st.q.x,st.q.y)<R+st.w){on=true;break;}}if(!on)continue;
+    if(o.kind==='ragdoll'){if(o.shield>0)continue;let on=false;for(const st of chainPieces(o))if(distSeg(x,y,st.p.x,st.p.y,st.q.x,st.q.y)<R+st.w){on=true;break;}if(!on&&!o.pts[HEAD].gone&&hyp(x-o.pts[HEAD].x,y-o.pts[HEAD].y)<R+o.pts[HEAD].r)on=true;if(!on)continue;
       if(infOn(o)){infRipple(o,x,y);continue;}if(uiOn(o)){const d=o.pts[HIP].x>=x?1:-1;uiDodge(o,o.pts[NECK].x,o.pts[NECK].y,d,0,null);uiDash(o,d);continue;}
       hit=true;damage(o,1.6);o.stun=Math.max(o.stun,8);
-      for(let i=0;i<=SHR;i++){const st=o.sticks[i];if(st.gone||distSeg(x,y,st.p.x,st.p.y,st.q.x,st.q.y)>R+st.w)continue;const full=PART_HP[i]*o.C.hp/100*o.sc*o.sc;if(st.hp===undefined||st.hp>full)st.hp=full;st.hp-=Math.max(4,full/25);hurtPart(st.p,.04,.05);hurtPart(st.q,.04,.05);if(st.hp<=0){destroyPart(o,i);if(o.remove)break;}}
+      if(o.C.tear!==0)chainCut(o,x,y,R);   /* sections are cut out of it. (Someone who cannot be cut, a ghost, is worn away part by part as before:) */
+      else for(let i=0;i<=SHR;i++){const st=o.sticks[i];if(st.gone||distSeg(x,y,st.p.x,st.p.y,st.q.x,st.q.y)>R+st.w)continue;const full=PART_HP[i]*o.C.hp/100*o.sc*o.sc;if(st.hp===undefined||st.hp>full)st.hp=full;st.hp-=Math.max(4,full/25);hurtPart(st.p,.04,.05);hurtPart(st.q,.04,.05);if(st.hp<=0){destroyPart(o,i);if(o.remove)break;}}
       if(!o.remove&&frame%2===0){if(canBleed(o))bleedFx(o,x+rnd(-10,10),y+rnd(-10,10),1,rnd(-1,1),-1,5);else part(x+rnd(-10,10),y+rnd(-10,10),rnd(-4,4),rnd(-5,-1),rnd(15,30),rnd(2,3),'#f2eedf',{g:.25});}}
     else{let on=false;for(const p of o.pts)if(hyp(p.x-x,p.y-y)<R+(p.r||0)){on=true;break;}if(!on)continue;hit=true;if(o.kind==='balloon')popBalloon(o);else if(o.kind==='crate')crateHit(o,3);else if(o.kind==='bomb')ignite(o);}}
   if(frame%3===0)sparks(x+rnd(-8,8),y+rnd(-8,8),hit?3:1,'#ffd27a',hit?5:2);if(hit&&frame-sawSfx>6){sawSfx=frame;sfx('snip',.5);}}
@@ -4494,7 +4529,7 @@ const TOOLS={
   spikes:{name:'Spikes',icon:'📍',desc:'Place a strip of spikes on the ground. Landing or lying on it hurts; it pops balloons. Dummies walk round it.',
     down(){gizmos.push({type:'spikes',x:mouse.x,y:groundBelow(mouse.x,mouse.y-10,true),w:70,cd:0});if(gizmos.length>40)gizmos.shift();sfx('click');}},
   boulder:{name:'Boulder',icon:'',desc:'Drop a huge boulder. It is far heavier than a bowling ball and rolls over whatever is in its way. Throw it with the hand.',down(){const b=makeBowl(mouse.x,mouse.y,27,34);b.rock=true;sfx('click');}},
-  chainsaw:{name:'Chainsaw',icon:'',desc:'Hold and move it over a dummy: the chain grinds away every part it touches, just as a saw does, whatever the settings. It bursts balloons, chews through crates and sets bombs off.',step(){if(mouse.down)chainsawAt(mouse.x,mouse.y);}},
+  chainsaw:{name:'Chainsaw',icon:'',desc:'Hold it on a dummy and it cuts a section out of whatever part it is on: an arm, a leg or the body is cut through on both sides of the chain and the piece between is ground away, and a slice comes off the head. Keep it there, or move it, to take more. It bursts balloons, chews through crates and sets bombs off.',step(){if(mouse.down)chainsawAt(mouse.x,mouse.y);}},
   mace:{name:'Mace',icon:'',desc:'Click to hang a spiked ball on a chain from that spot. Pull it back with the hand and let it swing: whatever it strikes is knocked flying and torn open.',
     down(){const a=makeAnchor(mouse.x,mouse.y).pts[0],len=clamp(groundBelow(mouse.x,mouse.y)-mouse.y-30,50,150),b=makeBowl(mouse.x,mouse.y+len,16,15);b.spiky=true;links.push({p:a,q:b.pts[0],len,len0:len,stiff:1,kind:'rope',w:4,cut:false,tear:0});sfx('click');}},
   glove:{name:'Boxing glove',short:'Glove',icon:'',desc:'Drag to aim and let go: a boxing glove on a spring shoots out and punches whatever is in front of it clean across the room. A quick click punches towards the nearest dummy.',
@@ -6109,7 +6144,7 @@ function buildUI(){
   $('bPause').onclick=togglePause;$('bGrav').onclick=cycleGrav;$('bClear').onclick=()=>clearAll();$('bReset').onclick=()=>resetScene();
   $('bSet').onclick=()=>{showMapMenu(false);showSettings(!menuOpen($('settings')));};$('setClose').onclick=()=>showSettings(false);
   $('setSound').onchange=e=>{if(e.target.checked===muted)toggleMute();e.target.blur();};
-  $('setReset').onclick=()=>{setShowVit(true);setBodyFig(true);setGore(true);setBrutal(true);setWatch(true);setCineOn(true);setSocial(true);setReactOn(true);setAidOn(true);setRotOn(true);setFilmOn(true);setArrestOn(true);setRiseOn(false);setTurnOn(false);setSmoothOn(false);setFastLiq(typeof MOBV!=='undefined');setSplatLife(0);setRealFall(true);setPaste(false);setEdgePan(false);setFullView(false);mapCamDefault();setDefChar('bob',true);if(muted)toggleMute();$('setReset').blur();};
+  $('setReset').onclick=()=>{setShowVit(true);setBodyFig(true);setGore(true);setBrutal(true);setWatch(true);setCineOn(true);setSocial(true);setReactOn(true);setAidOn(true);setRotOn(true);setFilmOn(true);setArrestOn(true);setRiseOn(false);setTurnOn(false);setSmoothOn(false);setFastLiq(typeof MOBV!=='undefined');setLow(false);setSplatLife(0);setRealFall(true);setPaste(false);setEdgePan(false);setFullView(false);mapCamDefault();setDefChar('bob',true);if(muted)toggleMute();$('setReset').blur();};
   document.addEventListener('pointerdown',e=>{const s=$('settings');if(menuOpen(s)&&!s.contains(e.target)&&!$('bSet').contains(e.target))showSettings(false);});
   $('setVit').onchange=e=>{setShowVit(e.target.checked);e.target.blur();};
   try{if(localStorage.getItem('flopworksM.vitals')!=='1')showVit=false;}catch(e){}
@@ -6153,6 +6188,7 @@ function buildUI(){
   $('setArrest').onchange=e=>{setArrestOn(e.target.checked);e.target.blur();};try{if(localStorage.getItem('flopworksM.arrest')==='0')arrestOn=false;}catch(e){}setArrestOn(arrestOn);
   $('setRise').onchange=e=>{setRiseOn(e.target.checked);e.target.blur();};try{if(localStorage.getItem('flopworksM.rise')==='1')riseOn=true;}catch(e){}setRiseOn(riseOn);
   try{if(localStorage.getItem('flopworksM.turn')==='1')smoothOn=true;}catch(e){}   /* (someone who had only the old Smooth turning switch on keeps their smooth turns) */
+  $('setLow').onchange=e=>{setLow(e.target.checked);e.target.blur();};$('setLow').checked=lowEnd;
   $('setFastLiq').onchange=e=>{setFastLiq(e.target.checked);e.target.blur();};{let v=typeof MOBV!=='undefined';try{const q=localStorage.getItem('flopworksM.fastliq');if(q==='1')v=true;else if(q==='0')v=false;}catch(e){}setFastLiq(v);}
   $('setSmooth').onchange=e=>{setSmoothOn(e.target.checked);e.target.blur();};try{if(localStorage.getItem('flopworksM.smooth')==='1')smoothOn=true;}catch(e){}setSmoothOn(smoothOn);
   $('setSplat').onchange=e=>{setSplatLife(e.target.value);e.target.blur();};{let v=0;try{v=+localStorage.getItem('flopworksM.splat')||0;}catch(e){}setSplatLife(v);}
@@ -6639,7 +6675,8 @@ function icoInl(ic){return typeof ic==='string'&&ic[0]==='<'?ic.replace(/style="
 function icoTop(){const U=ICO.U,S=ICO.svg;$('bClear').innerHTML=S(U.clear,16,true)+' Clear';{const q=$('bSplit');if(q)q.innerHTML=S(ICO.XI.swords,15,true)+' Red vs Blue';const fl=$('mkFill');if(fl)fl.innerHTML=S(ICO.XI.bucket,15,true)+' Fill';const hg=$('helpGear');if(hg)hg.innerHTML=S(U.gear,15,true);}{const h=$('setTitle');if(h)h.innerHTML=S(U.gear,17,true)+' Settings';}$('bReset').innerHTML=S(U.reset,15,true)+' Reset';$('bSet').innerHTML=S(U.gear,18,true);$('bHelp').innerHTML=S(U.help,18,true);
   $('bPause').innerHTML=paused?S(U.play,15,true)+' Play':S(U.pause,15,true)+' Pause';$('bMute').innerHTML=S(muted?U.mute:U.sound,18,true);$('bGrav').innerHTML=S(U.grav,16,true)+' '+GRAVS[gravMode].n;icoRows();}
 /* the settings rows: each one's picture, found by the id of its switch */
-function icoRows(){for(const id in ICO.SI){const el=$(id),row=el&&el.closest('.srow'),si=row&&row.querySelector('.si');if(si)si.innerHTML=ICO.svg(ICO.SI[id],20);}}
+function icoRows(){if(!ICO.SI.setLow)ICO.SI.setLow=ICO.SI.setPerf;   /* (Low-end mode shares the performance picture) */
+  for(const id in ICO.SI){const el=$(id),row=el&&el.closest('.srow'),si=row&&row.querySelector('.si');if(si)si.innerHTML=ICO.svg(ICO.SI[id],20);}}
 icoApply();customsLoad();buildUI();icoTop();defCharUI();$('setDefChar').onchange=e=>{setDefChar(e.target.value);e.target.blur();};pickTool('grab');{let mp='lab';try{defMap=localStorage.getItem('flopworksM.defmap');if(!MAPS[defMap])defMap=null;mp=defMap||localStorage.getItem('flopworksM.map')||'lab';}catch(e){}loadMap(mp);}
 setInfo('<b>'+icoInl(TOOLS.grab.icon)+' Grab</b> — drag a ragdoll around, or pick a tool, power, character or mode.');
 requestAnimationFrame(loop);
