@@ -393,7 +393,7 @@ html.mrot .panel,html.mrot #bottom,html.mrot #top,html.mrot #settings,html.mrot 
     <li><b>Maps</b> (top bar): Lab, OG Map (the original starting scene), Playground, Volcano, Water Park, Sky Towers, Moon Base, Gauntlet. Reset rebuilds the current map.</li>
     <li><b>Modes</b>: Limp, Stand, Walk, Fight, Zombie, Dance, Flee, Possess. Grab a ragdoll to select it — modes apply to the selected one, or to everyone if none is selected.</li>
     <li><b>Possess</b>: <kbd>A</kbd>/<kbd>D</kbd> move · <kbd>W</kbd>/<kbd>Space</kbd> jump · <kbd>S</kbd> crouch · <kbd>F</kbd> punch · <kbd>C</kbd> grab / let go (then <kbd>F</kbd> throws) · <kbd>G</kbd> kick · <kbd>E</kbd> special · <kbd>Q</kbd> go limp</li>
-    <li><kbd>H</kbd> heal the dummy under the cursor · <kbd>M</kbd> pause (tools still work while paused, so you can set things up) · <kbd>T</kbd> slow-mo · <kbd>R</kbd> reset · <kbd>N</kbd> mute · The view starts at 1.2× zoom: <kbd>Z</kbd> zooms in · <kbd>J</kbd> zooms out · double-tap <kbd>Z</kbd> goes back to 1.2× · push the cursor to an edge to pan · right-click = alt action (shrink / cancel) · the <b>gear</b> button opens settings: vitals panel, NPCs socializing, NPCs reacting (to each other and to disasters), realistic falling, blood and bruises, full destruction (smash any body part into paste)</li>
+    <li><kbd>H</kbd> heal the dummy under the cursor · <kbd>M</kbd> pause (tools still work while paused, so you can set things up) · <kbd>T</kbd> slow-mo · <kbd>R</kbd> reset · <kbd>N</kbd> mute · The view starts at 1.2× zoom: <kbd>Z</kbd> zooms in · <kbd>J</kbd> zooms out · double-tap <kbd>Z</kbd> goes back to 1.2× · push the cursor to an edge to pan · right-click = alt action (shrink / cancel) · the <span id="helpGear"><b>gear</b></span> button opens settings: vitals panel, NPCs socializing, NPCs reacting (to each other and to disasters), realistic falling, blood and bruises, full destruction (smash any body part into paste)</li>
   </ul>
   <button id="bStart">Start flopping</button>
 </div></div>
@@ -1048,14 +1048,14 @@ function relThink(b,I){
     else if(reactOn&&b.reactCd<=0&&!b.bubble&&(b.t+b.id*91)%420===0){bubble(b,customLine(b,'love',o.C.name)||pick(['I missed you!','You look lovely today.','Stay close to me.','There you are, my love.']),95);b.reactCd=110;}}
 }
 function loveFree(o,b){return (o.mode==='stand'||isWalk(o))&&!o.dead&&!o.grudge&&!o.fearOf&&!o.react&&!(o.sleep>0)&&!o.held&&o.balance>.6&&!o.aid&&!o.cpr&&!o.swim&&o!==possessed&&!(o.cuffT>frame)&&(!o.soc.partner||o.soc.partner===b);}
-/* the two of them, in step: a hug (arms round each other), a kiss (heads together, a Mwah! and hearts) or a flower handed over */
+/* the two of them, in step: a hug (arms round each other), a kiss (heads together, a pair of lips and hearts) or a flower handed over */
 function loveAct(b,I,A,p){const hip=b.pts[HIP],ph=p.pts[HIP],dx=ph.x-hip.x,d=Math.abs(dx),sc=b.C.scale*b.sc,dir=dx>=0?1:-1,t=A.t,pn=p.pts[NECK],phd=p.pts[HEAD],bh=b.pts[HEAD];
   b.facing=dir;I.jump=false;b.loveT=frame;(b.pass||(b.pass={}))[p.id]=frame+12;
   const want=A.k==='gift'?46*sc:A.k==='kiss'?25*sc:20*sc;I.mv=d>want+5?dir*.5:d<want-5?-dir*.35:0;
   if(A.k==='hug'){I.arms='cpr';I.fx=pn.x+dir*5*sc;I.fy=pn.y+12*sc;I.fmv=7;I.lean=5;
     if(t===36){for(let i=0;i<3;i++)say(bh.x+rnd(-12,12),bh.y-22-rnd(0,14),'♥','#ff6b9a',12+rnd(0,7));b.pain=Math.max(0,b.pain-12);}}       // a hug makes it hurt less
   else if(A.k==='kiss'){I.arms='five';I.fx=phd.x-dir*3*sc;I.fy=phd.y+5*sc;I.fmv=6;I.lean=9;
-    if(t===30&&A.lead){const mx=(bh.x+phd.x)/2,my=Math.min(bh.y,phd.y)-20;say(mx,my,'Mwah!','#ff6b9a',15);sfx('pop',.35);for(let i=0;i<4;i++)say(mx+rnd(-16,16),my-rnd(6,20),'♥','#ff6b9a',11+rnd(0,6));}}
+    if(t===30&&A.lead){const mx=(bh.x+phd.x)/2,my=Math.min(bh.y,phd.y)-20;say(mx,my,ICOLIPS,'#ff6b9a',18);sfx('pop',.35);for(let i=0;i<4;i++)say(mx+rnd(-16,16),my-rnd(6,20),'♥','#ff6b9a',11+rnd(0,6));}}
   else{const gx=hip.x+dir*d*.5,gy=b.pts[NECK].y+10*sc;if(A.lead||t>30){I.arms='five';I.fx=gx;I.fy=gy;I.fmv=6;}                       // the flower: the giver holds it out, the other reaches for it and takes it
     if(A.lead){if(t<46)b.flowerT=frame+2;else if(t===46){b.flowerT=0;p.flowerT=frame+600;sfx('pop',.3);for(let i=0;i<3;i++)say(gx+rnd(-12,12),gy-18-rnd(0,14),'♥','#ff6b9a',11+rnd(0,6));}}}
 }
@@ -2174,7 +2174,8 @@ function zombieSpeak(t){
   const g=pick(['Urrgh','Hrrr','Braaains','Mmmrrgh','Grrrh','Uuuhh']);
   return keep.length?g+'… '+keep.join('… ')+'…':g+'…';
 }
-function bubble(b,t,life,raw){if(b.kind==='ragdoll'&&!b.pts[HEAD].att)return;   /* nothing to speak with */
+function bubble(b,t,life,raw){if(typeof t==='string'&&t[0]==='<')raw=true;   /* (a drawn icon in a bubble, the hands of rock paper scissors: never reworded) */
+ if(b.kind==='ragdoll'&&!b.pts[HEAD].att)return;   /* nothing to speak with */
  if(b.C&&b.C.mean&&!b.zombie&&!raw&&typeof t==='string')t=meanSpeak(t);   // a mean one says nothing that is not mean
  if(b.zombie&&!raw&&!(b.C&&b.C.custom))t=zombieSpeak(t);b.bubble={t,life:life||95};}   /* (and says them plainly: only the stock characters turn to groaning) */
 function besideWall(b){const P=b.pts;for(const i of [HIP,KL,KR,FL,FR]){const p=P[i];if(p.x<XL+34||p.x>XR-34)return true;for(const w of walls){if(p.x<w.minx-40||p.x>w.maxx+40||p.y<w.miny-40||p.y>w.maxy+40)continue;if(distSeg(p.x,p.y,w.x1,w.y1,w.x2,w.y2)<w.hw+26)return true;}}return false;}
@@ -2289,7 +2290,7 @@ function chatScript(cv,sp,li,near,r){
       if(good)Q.push({w:0,t:j[1],act:'laugh',actT:56,fn:(c,s,l)=>{bubble(l,pick(JOKEHA));overhear(c,OVERHA);}});else Q.push({w:0,t:j[1]},{w:1,t:pick(GROAN),fn:c=>overhear(c,OVERGROAN)});}
     else if(k<.54)Q.push({w:0,t:pick(PRAISE),fn:(c,s,l)=>{l.cheerT=frame+220;}},{w:1,t:pick(THANKS)});
     else if(k<.7&&x){const G=GOSSIP[x.dead?'dead':x.zombie||x.mode==='zombie'?'zombie':x.sleep>0?'sleep':x.mode==='fight'?'fight':x.mode==='dance'?'dance':bruiseLevel(x)>.35||x.hp<x.maxHp*.5?'hurt':'plain'];cv.pt=x;Q.push({w:0,t:pick(G[0]),act:'point',actT:62},{w:1,t:pick(G[1])});}
-    else if(k<.8&&near){const a=(Math.random()*3)|0,b=(Math.random()*3)|0,E=['Rock!','Paper!','Scissors!'],w=a===b?-1:(a-b+3)%3===1?0:1;                                       // rock paper scissors: paper beats rock, scissors beat paper, rock beats scissors
+    else if(k<.8&&near){const a=(Math.random()*3)|0,b=(Math.random()*3)|0,E=ICORPS,w=a===b?-1:(a-b+3)%3===1?0:1;                                       // rock paper scissors: paper beats rock, scissors beat paper, rock beats scissors
       Q.push({w:0,t:pick(RPSASK)},{w:1,t:pick(RPSYES)},{w:0,both:['One… two…','…three!'],act:'rps',actT:80},{w:0,both:[E[a],E[b]],life:80});
       if(w<0)Q.push({w:0,t:'A tie!'},{w:1,t:pick(['Great minds.','Again!','We are too alike.'])});else Q.push({w:w,t:pick(RPSWIN),fn:(c,s,l)=>{s.cheerT=frame+220;}},{w:1-w,t:pick(RPSLOSE)});}
     else if(k<.93&&near&&cv.a.mode==='walk'&&cv.b.mode==='walk'&&XR-XL>520)Q.push({w:0,t:pick(RACEASK)},{w:1,t:pick(RACEYES),fn:c=>{c.raceGo=frame+70;}});
@@ -2640,7 +2641,7 @@ function updateVitals(){
   s+='<div class="vr"><span>Pulse</span><div class="vp">'+(C.pulse>0?'<b class="hb'+(bpm>3?' on':'')+'"'+beat+'>♥</b> '+bpm+' bpm':'— no heartbeat')+'</div></div>';
   const ef=effectsOf(b);
   s+='<h4>Effects</h4><div class="vc">'+(ef.length?ef.map(e=>'<span style="border-color:'+e[1]+';color:'+e[1]+'">'+e[0]+'</span>').join(''):'<span class="none">None</span>')+'</div>';
-  let have=0;const chips=PARTS.map(pr=>{const st=b.sticks[pr[0]],ok=!st.cut&&st.p.att&&st.q.att,ch=(st.p.burnt+st.q.burnt)*.5>.5;if(ok)have++;return '<span class="'+(ok?(ch?'burnt':'ok'):'lost')+'">'+(ok&&!st.gone?'✓ ':'✗ ')+pr[1]+'</span>';}).join('');
+  let have=0;const chips=PARTS.map(pr=>{const st=b.sticks[pr[0]],ok=!st.cut&&st.p.att&&st.q.att,ch=(st.p.burnt+st.q.burnt)*.5>.5;if(ok)have++;return '<span class="'+(ok?(ch?'burnt':'ok'):'lost')+'">'+(st.gone?ICOGONE+' ':ok?'✓ ':'✗ ')+pr[1]+'</span>';}).join('');
   s+='<h4>Body parts <small>'+have+'/'+PARTS.length+'</small></h4>'+(bodyFig?bodyFigure(b):'<div class="vc parts">'+chips+'</div>');
   el.innerHTML=s;if(bodyFig)bodyFigDraw(b);
 }
@@ -2659,7 +2660,7 @@ function figStub(b){let f=FIGSTUB.get(b);if(f&&f.cid===b.cid)return f;f=mkStub(b
 function figLost(b){const lost=[];for(let i=0;i<=SHR;i++){const st=b.sticks[i];lost[i]=!(!st.cut&&st.p.att&&st.q.att);}return lost;}
 function figWeak(b,i){const st=b.sticks[i];return pasteOn&&st.hp!==undefined?1-clamp(st.hp/((PART_HP[i]*b.C.hp/100*b.sc*b.sc)||1),0,1):0;}   /* Full destruction: how near a part is to coming off */
 function bodyFigure(b){const lost=figLost(b),notes=[];let have=0;
-  PARTS.forEach(pr=>{const st=b.sticks[pr[0]];if(lost[pr[0]]){notes.push('<span class="lost">'+'✗ '+pr[1]+'</span>');return;}have++;
+  PARTS.forEach(pr=>{const st=b.sticks[pr[0]];if(lost[pr[0]]){notes.push('<span class="lost">'+(st.gone?ICOGONE+' ':'✗ ')+pr[1]+'</span>');return;}have++;
     if((st.p.burnt+st.q.burnt)*.5>.5)notes.push('<span class="burnt">Charred: '+pr[1]+'</span>');else if(figWeak(b,pr[0])>.5)notes.push('<span class="hurt">Weak: '+pr[1]+'</span>');});
   const hd=b.pts[HEAD];if(hd.cutA>0&&!hd.gone&&!lost[SN])notes.push('<span class="hurt">Head: sliced</span>');
   return '<div class="vfig"><span id="vfigc"></span><div class="vl"><b'+(have===PARTS.length?' class="ok">All '+have+' parts there':'>'+have+' of '+PARTS.length+' parts there')+'</b>'+notes.join('')+'</div></div>';}
@@ -5607,9 +5608,9 @@ function drawRagOverlay(g,b){
     if(b.hurtShow>0||b===selected){const w=34,x=hd.rx-w/2,y=top-4,f=clamp(b.hp/b.maxHp,0,1);g.fillStyle='rgba(0,0,0,.6)';g.fillRect(x-1,y-1,w+2,6);g.fillStyle=f>.5?'#5ae07a':f>.25?'#ffd24a':'#ff5a5a';g.fillRect(x,y,w*f,4);if(b.infect>0&&!b.zombie){g.fillStyle='#9be56a';g.fillRect(x,y+5,w*b.infect,2);}}
     if(b===possessed&&b.spCd>0){g.fillStyle='rgba(125,240,255,.8)';g.fillRect(hd.rx-17,top+3,34*(1-clamp(b.spCd/80,0,1)),2);}
   }
-  if(b.bubble&&!b.dead){const B=b.bubble;g.font='600 11px system-ui';const w=g.measureText(B.t).width+14,x=clamp(hd.rx-w/2,XL+4,XR-w-4),y=top-40;g.globalAlpha=Math.min(1,B.life/12);
+  if(b.bubble&&!b.dead){const B=b.bubble;g.font='600 11px system-ui';const bic=typeof B.t==='string'&&B.t[0]==='<',w=bic?32:g.measureText(B.t).width+14,x=clamp(hd.rx-w/2,XL+4,XR-w-4),y=top-40;g.globalAlpha=Math.min(1,B.life/12);
     g.fillStyle='rgba(255,255,255,.95)';rr(g,x,y,w,19,8);g.fill();g.beginPath();g.moveTo(hd.rx-4,y+18);g.lineTo(hd.rx+4,y+18);g.lineTo(hd.rx,y+25);g.closePath();g.fill();
-    g.fillStyle='#141a2c';g.textAlign='left';g.fillText(B.t,x+7,y+13.5);g.globalAlpha=1;}
+    g.fillStyle='#141a2c';g.textAlign='left';if(bic)icoDraw(g,B.t,x+w/2,y+15.8,17);else g.fillText(B.t,x+7,y+13.5);g.globalAlpha=1;}
 }
 function drawProp(g,b){
   const p=b.pts[0];
@@ -5702,7 +5703,7 @@ function drawFeeds(g){
     g.fillStyle='rgba(0,0,0,.28)';g.fillRect(x,y,PW,17);g.fillRect(x,y+PH-20,PW,20);
     if((frame>>4)&1){g.fillStyle='#ff3b3b';g.beginPath();g.arc(x+9,y+8.5,3.4,0,6.3);g.fill();}g.fillStyle='#fff';g.font='700 9.5px system-ui';g.textAlign='left';g.fillText(A.heal?'LIVE · hero cam':'LIVE',x+16,y+12);
     const sec=(A.t/60)|0;g.textAlign='right';g.fillText(((sec/60)|0)+':'+String(sec%60).padStart(2,'0'),x+PW-5,y+12);
-    const views=Math.round((40+A.t*(A.heal?3.1:1.7)+Math.sin(A.t*.05)*9)*(1+(b.fame||0)/2500));g.textAlign='left';g.font='600 9px system-ui';g.fillText((views>999?(views/1000).toFixed(1)+'k':views)+' watching  ·  '+o.C.name,x+5,y+PH-7);
+    const views=Math.round((40+A.t*(A.heal?3.1:1.7)+Math.sin(A.t*.05)*9)*(1+(b.fame||0)/2500));g.textAlign='left';g.font='600 9px system-ui';icoDraw(g,ICOEYE,x+10,y+PH-4.4,11);g.fillText((views>999?(views/1000).toFixed(1)+'k':views)+'  ·  '+o.C.name,x+18,y+PH-7);
     g.fillStyle='#ff6b9a';for(let k=0;k<3;k++){const u=((frame*.012+k*.37+b.id*.11)%1),hx=x+PW-12+Math.sin(u*6+k)*5,hy=y+PH-26-u*70;g.globalAlpha=al*(1-u);g.beginPath();g.moveTo(hx,hy+3);g.bezierCurveTo(hx-6,hy-2,hx-2.5,hy-6,hx,hy-2);g.bezierCurveTo(hx+2.5,hy-6,hx+6,hy-2,hx,hy+3);g.fill();}g.globalAlpha=al;   // likes floating up
     g.restore();
     g.fillStyle='#cdd8f5';g.font='600 10px system-ui';g.textAlign='center';g.fillText('@'+b.C.name.toLowerCase()+(b.fame>=1?'  ·  '+fameTxt(b.fame):''),x+PW/2,y+PH+15);g.globalAlpha=1;});
@@ -5775,7 +5776,7 @@ function render(a){
     else if(e.type==='shard'){g.save();g.globalCompositeOperation='source-over';g.globalAlpha=Math.min(1,e.life/45);g.translate(e.x,e.y);g.rotate(e.ang);g.translate(-e.gx,-e.gy);g.beginPath();for(let i=0;i<e.poly.length;i++)g.lineTo(e.poly[i][0],e.poly[i][1]);g.closePath();if(e.col){g.fillStyle=e.col;g.fill();if(e.rim){g.strokeStyle=e.rimC;g.lineWidth=1.6;g.lineCap='butt';g.beginPath();g.moveTo(e.rim[0],e.rim[1]);g.lineTo(e.rim[2],e.rim[3]);g.stroke();}}else{g.clip();if(e.img)g.drawImage(e.img,-e.ih/2,-e.ih/2,e.ih,e.ih);else{g.translate(-e.cx,-e.cy);drawProp(g,e.b);}}g.restore();}}
   if(curId==='skylaser'&&mouse.down&&POWERS.skylaser.end){const e=POWERS.skylaser.end;g.globalAlpha=1;for(const [lw,col] of [[22,'rgba(255,60,50,.25)'],[10,'rgba(255,120,90,.6)'],[3,'#fff']]){g.strokeStyle=col;g.lineWidth=lw*(.85+.15*Math.sin(frame*.9));g.beginPath();g.moveTo(mouse.x,CEIL);g.lineTo(mouse.x,e);g.stroke();}}
   g.globalAlpha=1;g.globalCompositeOperation='source-over';
-  for(const t of texts){const k=t.life/t.max;g.globalAlpha=Math.min(1,k*2.5);g.font='900 '+t.size+'px system-ui';g.textAlign='center';g.lineWidth=4;g.strokeStyle='rgba(0,0,0,.7)';g.strokeText(t.t,t.x,t.y);g.fillStyle=t.col;g.fillText(t.t,t.x,t.y);}
+  for(const t of texts){const k=t.life/t.max;g.globalAlpha=Math.min(1,k*2.5);if(typeof t.t==='string'&&t.t[0]==='<'){icoDraw(g,t.t,t.x,t.y,t.size*1.5);continue;}   /* (a drawn icon floating up, not words) */g.font='900 '+t.size+'px system-ui';g.textAlign='center';g.lineWidth=4;g.strokeStyle='rgba(0,0,0,.7)';g.strokeText(t.t,t.x,t.y);g.fillStyle=t.col;g.fillText(t.t,t.x,t.y);}
   g.globalAlpha=1;
   // tool previews
   if(mouse.inside){
@@ -5788,17 +5789,17 @@ function render(a){
     if(aim){g.strokeStyle='rgba(255,210,74,.85)';g.lineWidth=3;g.beginPath();g.moveTo(aim.x,aim.y);g.lineTo(mouse.x,mouse.y);g.stroke();g.fillStyle=aim.pot?POTIONS[aim.pot].col:'#2a2d36';g.beginPath();g.arc(aim.x,aim.y,aim.pot?7:9,0,6.3);g.fill();}
     const R={ice:95,fire:26,blast:60,bolt:40,size:30,heal:40,sleep:150,lift:200,meteor:36}[curId];
     if(R){g.strokeStyle='rgba(255,255,255,.28)';g.lineWidth=1.5;g.setLineDash([4,5]);g.beginPath();g.arc(mouse.x,mouse.y,R,0,6.3);g.stroke();g.setLineDash([]);}
-    if(curId==='spawn'){g.globalAlpha=.5;g.font='22px system-ui';g.textAlign='center';g.fillText('+',mouse.x,mouse.y-14);g.globalAlpha=1;}
+    if(curId==='spawn'){g.globalAlpha=.5;g.font='22px system-ui';g.textAlign='center';icoDraw(g,TOOLS.spawn.icon,mouse.x,mouse.y-8,22);g.globalAlpha=1;}
     if(['grab','pin','rocket','balloon','tele','eraser','rope','weld','rage','clone'].includes(curId)&&!grab&&!tele){const p=findPoint(mouse.x,mouse.y,curId==='tele'||curId==='rage'||curId==='clone'?60:36,curId==='rope'||curId==='weld'||curId==='eraser'?()=>true:null);if(p){g.strokeStyle='rgba(255,255,255,.7)';g.lineWidth=1.5;g.beginPath();g.arc(p.rx,p.ry,p.r+4,0,6.3);g.stroke();}}
   }
   g.restore();
   if(flash>.02){g.fillStyle='rgba(255,255,255,'+flash*.5+')';g.fillRect(0,0,W,H);}
   if(cine)drawCine(g);if(!!cine!==cineHid){cineHid=!!cine;const v=$('vit');if(v)v.style.visibility=cineHid?'hidden':'';}   /* (the vitals panel is put away while a cut-scene plays: it sat over the picture) */
   if(raining){g.fillStyle='rgba(30,50,100,.13)';g.fillRect(VL,VT,VR-VL,VB-VT);}
-  if(timeScale!==1){g.fillStyle='rgba(120,200,255,.06)';g.fillRect(VL,VT,VR-VL,VB-VT);g.fillStyle='rgba(160,220,255,.8)';g.font='700 12px system-ui';g.textAlign='left';g.fillText(timeScale<1?'SLOW-MO':'FAST-FORWARD',VL+12,VT+20);}
-  if(Math.abs(zoom-defZoom())>.01){g.fillStyle='rgba(255,255,255,.75)';g.font='700 12px system-ui';g.textAlign='left';g.fillText('Zoom '+zoom.toFixed(1)+'×   Z in · J out · double-tap Z to reset · wheel or arrow keys move the view',VL+12,VT+(timeScale!==1?38:20));}
+  if(timeScale!==1){g.fillStyle='rgba(120,200,255,.06)';g.fillRect(VL,VT,VR-VL,VB-VT);g.fillStyle='rgba(160,220,255,.8)';g.font='700 12px system-ui';g.textAlign='left';icoDraw(g,(timeScale<1?POWERS.slow:POWERS.fast).icon,VL+20,VT+24,16);g.fillText(timeScale<1?'SLOW-MO':'FAST-FORWARD',VL+33,VT+20);}
+  if(Math.abs(zoom-defZoom())>.01){g.fillStyle='rgba(255,255,255,.75)';g.font='700 12px system-ui';g.textAlign='left';icoDraw(g,ICOZOOM,VL+20,VT+(timeScale!==1?42:24),16);g.fillText('      '+zoom.toFixed(1)+'×   Z in · J out · double-tap Z to reset · wheel or arrow keys move the view',VL+12,VT+(timeScale!==1?38:20));}
   if(paused){g.fillStyle='rgba(255,255,255,.85)';g.font='800 22px system-ui';g.textAlign='center';g.fillText('PAUSED',(VL+VR)/2,VT+34);g.font='600 12px system-ui';g.fillStyle='rgba(255,255,255,.7)';g.fillText('Time is stopped, tools still work: tie ropes, pin, cut, place things, drag dummies into poses.  M to resume',(VL+VR)/2,VT+54);}
-  if(false&&possessed&&!possessed.remove){g.fillStyle='rgba(125,240,255,.85)';g.font='600 12px system-ui';g.textAlign='center';g.fillText('Driving '+possessed.C.name+' — A/D move · W jump · '+(possessed.grip?'F throw · C let go':(possessed.gun?(GUNS[possessed.gun.id].melee?'F swing':'F shoot at the cursor'):'F punch')+' · C grab')+' · G kick · E '+possessed.C.spName+' · Q limp',(VL+VR)/2,VB-10);}
+  if(false&&possessed&&!possessed.remove){g.fillStyle='rgba(125,240,255,.85)';g.font='600 12px system-ui';g.textAlign='center';g.fillText(possHint='Driving '+possessed.C.name+' — A/D move · W jump · '+(possessed.grip?'F throw · C let go':(possessed.gun?(GUNS[possessed.gun.id].melee?'F swing':'F shoot at the cursor'):'F punch')+' · C grab')+' · G kick · E '+possessed.C.spName+' · Q limp',(VL+VR)/2,VB-10);icoDraw(g,MODES.possess.icon,(VL+VR)/2-g.measureText(possHint).width/2-13,VB-7,15);}
   drawFeeds(g);
 }
 
@@ -5942,7 +5943,7 @@ function makerRels(){                                           // the list of w
   for(const id in CHARS){const C=CHARS[id];if(C.hidden||id==='__mk'||id===mk.id)continue;add(id,C.name+(C.custom?' (yours)':''));}if(keep)w.value=keep;if(!w.value)w.value='__self';
   const box=$('mkRels');box.innerHTML='';
   mk.rel.forEach((r,i)=>{const e=document.createElement('button');e.type='button';e.className=r.k;const nm=r.id==='__self'?'its own kind':CHARS[r.id]?CHARS[r.id].name:'someone deleted';
-    e.textContent=(r.k==='love'?'♥ In love with ':r.k==='enemy'?'Enemies with ':'Friends with ')+nm+'  ✕';e.title='Click to remove';e.onclick=()=>{mk.rel.splice(i,1);makerRels();};box.appendChild(e);});}
+    e.textContent=(r.k==='love'?'♥ In love with ':r.k==='enemy'?'Enemies with ':'Friends with ')+nm+'  ✕';if(r.k!=='love')e.insertAdjacentHTML('afterbegin',ICO.svg(r.k==='enemy'?ICO.P.feud:ICO.U.people,14,true)+' ');e.title='Click to remove';e.onclick=()=>{mk.rel.splice(i,1);makerRels();};box.appendChild(e);});}
 /* ---- the paint bucket ----
    Fills the area the click is on: the pixels joined to it that are like it (the same colour, near enough; or, on an empty spot, empty or only faintly
    painted) and on the same side of the head's edge. The soft edge of a painted line next to the fill gets the colour put in under it, so no pale rim
@@ -6015,7 +6016,7 @@ function makerPreview(){                                       // the guide unde
   C.paintCv=null;g.translate(PAINTPX/2,PAINTPX/2);g.scale(k,k);g.fillStyle=b.pal.skin;g.fillRect(-r*.3,r*.6,r*.6,r*1.3);g.fillStyle=b.pal.shirt;rr(g,-r*1.1,r*1.45,r*2.2,r*.6,r*.3);g.fill();noHelm=true;drawHead(g,b,0,0,0);noHelm=false;
   C.paintCv=mk.painted?$('mkPaint'):null;C.paintB=mk.paintedB?$('mkPaintB'):null;C.texOf=null;makerGuideB();C.paintC=mk.paintedC?$('mkPaintC'):null;C.clothOf=null;C.clothAt=mk.clothAt||'neck';makerGuideC();drawPortrait($('mkPrev'),'__mk');}
 function makerSync(){document.querySelectorAll('#mkHeads button').forEach(e=>e.classList.toggle('on',e.dataset.id===mk.head));
-  for(const k of ['skin','shirt','pants','shoe'])$('mkC_'+k).value=mk.col[k];document.querySelectorAll('#mkTraits button').forEach(e=>{const t=MKTR.find(q=>q[0]===e.dataset.k),s=mk.traits[t[0]];e.className=s==='weak'?'weak':s==='immune'?'imm':'';e.textContent=t[1]+(s==='weak'?' · weak':s==='immune'?' · immune':'');e.title=t[3]+'. Now: '+(s||'normal')+'.';});
+  for(const k of ['skin','shirt','pants','shoe'])$('mkC_'+k).value=mk.col[k];document.querySelectorAll('#mkTraits button').forEach(e=>{const t=MKTR.find(q=>q[0]===e.dataset.k),s=mk.traits[t[0]];e.className=s==='weak'?'weak':s==='immune'?'imm':'';e.innerHTML=mkTrIco(t[0])+t[1]+(s==='weak'?' · weak':s==='immune'?' · immune':'');e.title=t[3]+'. Now: '+(s||'normal')+'.';});
   $('mkBase').value=mk.base;$('mkGun').value=mk.gun||'';$('mkRole').value=mk.role||'';$('mkZombie').checked=!!mk.zombie;$('mkMood').value=mk.mood||'';$('mkSpecial').options[0].textContent='The same as the body: '+CHARS[mk.base].spName;$('mkSpecial').value=mk.special||'';for(const s of document.querySelectorAll('#mkSpMore select'))s.options[0].textContent=$('mkSpecial').options[0].textContent;$('mkSize').value=mk.size;$('mkNoFace').checked=mk.noFace;$('mkJointOn').checked=!!mk.joint;if(mk.joint)$('mkC_joint').value=mk.joint;$('mkNoWings').checked=!!mk.noWings;$('mkNoWingsRow').style.display=mk.specials.includes('fly')?'':'none';   /* only a flyer has wings to hide */
   makerTools();makerPreview();}
 function makerOpen(id){
@@ -6583,11 +6584,20 @@ const ICO=(()=>{
   const XI={pencil:p('M4 20.2 L5 15.6 L15.6 5 L19 8.4 L8.4 19.2Z',YE)+p('M4 20.2 L5 15.6 L8.4 19.2Z',SK)+p('M15.6 5 L17.4 3.2 Q18.4 2.4 19.4 3.4 L20.6 4.6 Q21.6 5.6 20.8 6.6 L19 8.4Z',PK),
     bin:r(9.4,2.4,5.2,2.6,ST,.8)+r(3.8,4.6,16.4,2.8,ST,1)+r(5.6,7.4,12.8,14,GY,2)+s('M9.4 10.4 V18.4 M12 10.4 V18.4 M14.6 10.4 V18.4',DK,1.4),
     tick:s('M4.4 12.8 L9.6 18 L19.8 6.2',GR,3.2)};
+  Object.assign(XI,{   /* drawn in place of the last emoji: crossed swords, a paint bucket, lips, the three hands of rock paper scissors, a bullet */
+    swords:s('M5.2 18.8 L18.6 5.4',ST,2.6)+s('M18.8 18.8 L5.4 5.4',ST,2.6)+s('M4.4 15.4 L8.6 19.6',BR,2.4)+s('M19.6 15.4 L15.4 19.6',BR,2.4)+c(3.8,20.2,1.4,YE)+c(20.2,20.2,1.4,YE),
+    bucket:s('M5.4 8.6 Q12 -1.6 18.6 8.6',GY,1.7)+p('M4.6 8.2 H19.4 L17.4 20.6 H6.6Z',BL)+e(12,8.2,7.4,2.3,LB)+e(12,8.4,5.6,1.4,PK)+p('M17.6 12 Q21.6 13 20.4 17.4 Q19 15.4 17 16Z',PK),
+    lips:p('M2.8 12 Q7.4 5.6 12 9.2 Q16.6 5.6 21.2 12 Q16.6 19 12 19 Q7.4 19 2.8 12Z',RD)+s('M3.6 12 Q12 14.8 20.4 12','#a3211b',1.3)+e(8.6,9.6,1.6,.8,'#ff9a9d'),
+    fist:r(5.8,8.2,12.8,10,SK,3.2)+s('M9.2 8.6 V12.2 M12.2 8.6 V12.2 M15.2 8.6 V12.2','#c99a70',1.2)+r(4.2,11.8,8.2,4.2,SK,2.1)+s('M5 15.9 H11.8','#c99a70',1.1),
+    hand:r(7,3.8,2.3,9,SK,1.1)+r(9.7,2.4,2.3,10,SK,1.1)+r(12.4,2.8,2.3,10,SK,1.1)+r(15.1,4.6,2.3,8,SK,1.1)+r(7,10.2,10.4,10.4,SK,3)+g(-38,r(3.4,11.6,2.5,7,SK,1.2),4.8,15),
+    peace:g(-12,r(8,2.4,2.6,11.4,SK,1.3),9.3,12)+g(12,r(12.8,2.4,2.6,11.4,SK,1.3),14.1,12)+r(7.2,11.6,10,9.2,SK,3)+r(5.6,14.2,6.2,3.2,SK,1.6)+s('M15.6 13.6 V16.6','#c99a70',1.2),
+    bullet:p('M9 20.6 V9.2 Q9 3.6 12 2.2 Q15 3.6 15 9.2 V20.6Z',YE)+r(8.4,15.8,7.2,5,BR,.8)+r(9,9.2,6,1.2,'#d9a520')});
   const svg=(b,z,inl)=>'<svg viewBox="0 0 24 24" width="'+(z||24)+'" height="'+(z||24)+'" style="display:'+(inl?'inline-block;vertical-align:-'+Math.round((z||24)*.26)+'px':'block')+'">'+b+'</svg>';
   return {T,P,M,U,MAPI,SI,FI,XI,svg};
 })();
-let ICOCUFF='',ICOMAD='';   /* over a dummy's head: in handcuffs, and angry (drawn icons, as the mode icons are) */
-function icoApply(){ICOCUFF=ICO.svg(ICO.SI.setArrest,20,true);ICOMAD=ICO.svg(ICO.P.rage,20,true);{const R={police:ICO.SI.setArrest,medic:ICO.T.kit,fire:ICO.P.potFire};for(const k in R)if(ROLES[k]&&R[k])ROLES[k].icon=ICO.svg(R[k],20,true);}   /* a job's icon over the head: a badge, a medkit, an extinguisher */
+let ICOCUFF='',ICOMAD='',ICOEYE='',ICOZOOM='',ICOGONE='',ICOLIPS='',ICORPS=[],possHint='';   /* over a dummy's head: in handcuffs, and angry (drawn icons, as the mode icons are) */
+function mkTrIco(k){const d={hit:ICO.P.blast,bullet:ICO.XI.bullet,fire:ICO.P.fire,shock:ICO.P.bolt,ice:ICO.P.ice,acid:ICO.T.acid,water:ICO.T.water}[k];return d?ICO.svg(d,15,true)+' ':'';}   /* the picture on a weakness button in the character creator */
+function icoApply(){ICOCUFF=ICO.svg(ICO.SI.setArrest,20,true);ICOMAD=ICO.svg(ICO.P.rage,20,true);ICOEYE=ICO.svg(ICO.SI.setWatch,20,true);ICOZOOM=ICO.svg(ICO.U.zoom,20,true);ICOGONE=ICO.svg(ICO.SI.setPaste,11,true);ICOLIPS=ICO.svg(ICO.XI.lips,24);ICORPS=[ICO.svg(ICO.XI.fist,24),ICO.svg(ICO.XI.hand,24),ICO.svg(ICO.XI.peace,24)];{const R={police:ICO.SI.setArrest,medic:ICO.T.kit,fire:ICO.P.potFire};for(const k in R)if(ROLES[k]&&R[k])ROLES[k].icon=ICO.svg(R[k],20,true);}   /* a job's icon over the head: a badge, a medkit, an extinguisher */
   for(const id in ICO.T)if(TOOLS[id]&&!/^<svg/.test(TOOLS[id].icon||''))TOOLS[id].icon=ICO.svg(ICO.T[id],24);
   for(const id in ICO.P)if(POWERS[id])POWERS[id].icon=ICO.svg(ICO.P[id],24);
   for(const id in ICO.M)if(MODES[id]&&ICO.M[id])MODES[id].icon=ICO.svg(ICO.M[id],20,true);
@@ -6600,7 +6610,7 @@ function icoDraw(g,ic,x,y,z){if(typeof ic!=='string'||ic[0]!=='<'){g.fillText(ic
 /* an icon inside a line of text (the top line): the same drawing, smaller and on the line */
 function icoInl(ic){return typeof ic==='string'&&ic[0]==='<'?ic.replace(/style="display:block"/,'style="display:inline-block;vertical-align:-4px;height:17px;width:auto"'):ic;}
 /* the top bar's own buttons */
-function icoTop(){const U=ICO.U,S=ICO.svg;$('bClear').innerHTML=S(U.clear,16,true)+' Clear';{const h=$('setTitle');if(h)h.innerHTML=S(U.gear,17,true)+' Settings';}$('bReset').innerHTML=S(U.reset,15,true)+' Reset';$('bSet').innerHTML=S(U.gear,18,true);$('bHelp').innerHTML=S(U.help,18,true);
+function icoTop(){const U=ICO.U,S=ICO.svg;$('bClear').innerHTML=S(U.clear,16,true)+' Clear';{const q=$('bSplit');if(q)q.innerHTML=S(ICO.XI.swords,15,true)+' Red vs Blue';const fl=$('mkFill');if(fl)fl.innerHTML=S(ICO.XI.bucket,15,true)+' Fill';const hg=$('helpGear');if(hg)hg.innerHTML=S(U.gear,15,true);}{const h=$('setTitle');if(h)h.innerHTML=S(U.gear,17,true)+' Settings';}$('bReset').innerHTML=S(U.reset,15,true)+' Reset';$('bSet').innerHTML=S(U.gear,18,true);$('bHelp').innerHTML=S(U.help,18,true);
   $('bPause').innerHTML=paused?S(U.play,15,true)+' Play':S(U.pause,15,true)+' Pause';$('bMute').innerHTML=S(muted?U.mute:U.sound,18,true);$('bGrav').innerHTML=S(U.grav,16,true)+' '+GRAVS[gravMode].n;icoRows();}
 /* the settings rows: each one's picture, found by the id of its switch */
 function icoRows(){for(const id in ICO.SI){const el=$(id),row=el&&el.closest('.srow'),si=row&&row.querySelector('.si');if(si)si.innerHTML=ICO.svg(ICO.SI[id],20);}}
@@ -6624,7 +6634,7 @@ window.__flop={get bodies(){return bodies;},get links(){return links;},get walls
     <button type="button" data-k="KeyF" class="big">👊<small id="mHitL">Punch</small></button>
   </div>
 </div>
-<div id="mTurn" class="mhide">↻ Turn your phone sideways for a bigger view.<b id="mTurnLock">Rotation locked? Tap to turn the game sideways</b><i id="mTurnHide">tap here to hide</i></div>
+<div id="mTurn" class="mhide">↻ Turn your phone sideways for a bigger view.<b id="mTurnLock"><span id="mLockIco"></span>Rotation locked? Tap to turn the game sideways</b><i id="mTurnHide">tap here to hide</i></div>
 <script>
 /* ===== Flopworks Mobile: the touch layer. Runs after the game; uses the game's own names (keys, pressed, zoom, camX, cur, ...) =====
    - drawers: Tools, Powers, and the character bar slide over the arena; picking a tool shuts its drawer; a tap on the arena shuts an open one
@@ -6660,9 +6670,9 @@ $('mAlt').onclick=()=>{setAlt(!MOBV.alt);setInfo(MOBV.alt?'<b>Alt is on</b> — 
 {const am=window.applyMode;window.applyMode=function(m){const r=am.apply(this,arguments);drawer(null);return r;};}   /* picking a mode shuts the sheet, as picking a tool shuts its drawer */
 /* the Possess pad and the chips: drawn too */
 {const PADI={KeyQ:ICO.M.limp,KeyV:ICO.P.swap,KeyE:ICO.U.powers,KeyC:ICO.T.grab,KeyG:ICO.P.haste,KeyF:ICO.M.fight};for(const b of document.querySelectorAll('#mBtns button')){const sm=b.querySelector('small');b.innerHTML=ICO.svg(PADI[b.dataset.k],26);if(sm)b.appendChild(sm);}
-  $('mGive').innerHTML=ICO.svg(ICO.T.grab,17,true)+' Give it to a dummy';$('mDet').innerHTML=ICO.svg(ICO.P.blast,17,true)+' Detonate';}
+  $('mGive').innerHTML=ICO.svg(ICO.T.grab,17,true)+' Give it to a dummy';$('mDet').innerHTML=ICO.svg(ICO.P.blast,17,true)+' Detonate';{const li=$('mLockIco');if(li)li.innerHTML=ICO.svg(ICO.SI.setSide,15,true)+' ';}}
 $('mGive').onclick=()=>{audioKick();giveGun();};$('mDet').onclick=()=>{audioKick();c4Detonate();};
-{const si=window.setInfo;window.setInfo=function(h){return si.call(this,String(h).replace(/Right-click switches which food you drop/g,'Switch ⇄ Alt on and tap to change which food you drop').replace(/Right-click to set off every charge/g,'Tap Detonate to set off every charge').replace(/Left-click/g,'Tap').replace(/left-click/g,'tap').replace(/(^|[^-\w])Click\b/g,'$1Tap').replace(/(^|[^-\w])click\b/g,'$1tap').replace(/Press Backspace on it again/g,'Tap Give again').replace(/press <b>Backspace<\/b>/g,'tap <b>Give</b>').replace(/Backspace/g,'The Give button'));};}   /* the top line talks about the button, not the key */
+{const si=window.setInfo;window.setInfo=function(h){return si.call(this,String(h).replace(/Right-click switches which food you drop/g,'Switch ⇄ Alt on and tap to change which food you drop').replace(/Right-click to set off every charge/g,'Tap '+ICO.svg(ICO.P.blast,15,true)+' Detonate to set off every charge').replace(/Left-click/g,'Tap').replace(/left-click/g,'tap').replace(/(^|[^-\w])Click\b/g,'$1Tap').replace(/(^|[^-\w])click\b/g,'$1tap').replace(/Press Backspace on it again/g,'Tap '+ICO.svg(ICO.T.grab,15,true)+' Give again').replace(/press <b>Backspace<\/b>/g,'tap <b>'+ICO.svg(ICO.T.grab,15,true)+' Give</b>').replace(/Backspace/g,'The '+ICO.svg(ICO.T.grab,15,true)+' Give button'));};}   /* the top line talks about the button, not the key */
 $('mCancel').onclick=()=>{ropeA=null;wallA=null;aim=null;fanA=null;};
 
 /* ---- the camera: two fingers ---- */
@@ -6752,7 +6762,7 @@ $('mTurnHide').onclick=()=>{turnHid=true;turnNote();};$('bStart').addEventListen
 $('bStart').addEventListener('click',()=>setTimeout(()=>{turnHid=true;turnNote();},14000));   /* the note goes away by itself after a while */
 /* ---- the sideways lock (see MOBV.sync): on, the game stays sideways on an upright screen, for a phone whose own rotation lock is on ---- */
 function setSideLock(v){MOBV.lock=!!v;try{localStorage.setItem('flopworksM.sidelock',v?'1':'0');}catch(e){}$('setSide').checked=MOBV.lock;window.dispatchEvent(new Event('resize'));
-  if(v)setInfo(MOBV.rot?'<b>Sideways lock is on.</b> Hold the phone sideways with its top to the left. Switch it off in Settings.':'<b>Sideways lock is on.</b> It turns the game whenever the screen is upright.');}
+  if(v)setInfo(MOBV.rot?'<b>Sideways lock is on.</b> Hold the phone sideways with its top to the left. Switch it off in '+ICO.svg(ICO.U.gear,15,true)+' Settings.':'<b>Sideways lock is on.</b> It turns the game whenever the screen is upright.');}
 $('mTurnLock').onclick=()=>{audioKick();setSideLock(true);};
 {const g=document.querySelector('#settings .sgroup'),l=document.createElement('label');l.className='srow';
   l.innerHTML='<span class="si">'+ICO.svg(ICO.SI.setSide,20)+'</span><span class="st"><b>Sideways lock</b><small>Keeps the game sideways even when the screen is upright. For a phone with its rotation lock on (an iPhone only locks upright): hold it sideways with its top to the left</small></span><input type="checkbox" id="setSide"><i class="sw"></i>';
