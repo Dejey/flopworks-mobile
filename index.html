@@ -674,7 +674,7 @@ function meltStep(b){
 }
 function meltAway(b){const hp=b.pts[HIP];if(!b.dead)kill(b);
   for(const p of b.pts){if(p.gone)continue;for(let i=0;i<3;i++)fluidAdd(WATER,p.x+rnd(-4,4),p.y+rnd(-4,4),rnd(-1.2,1.2),rnd(-1.5,.5));wisp(p.x,p.y-6);}
-  say(hp.x,hp.y-30,'MELTED','#bfe3ff',18);sfx('hiss',.8);sfx('splash',.6);if(selected===b)select(null);if(possessed===b)possessed=null;removeBody(b);}
+  say(hp.x,hp.y-30,'MELTED','#bfe3ff',18);sfx('hiss',.8);if(selected===b)select(null);if(possessed===b)possessed=null;removeBody(b);}
 function fireStep(){
   const u=upDir(),src=[];let total=0;
   for(const b of bodies){
@@ -3085,7 +3085,7 @@ function pour(type,self,glue){   /* glue: honey, marked as glue (LTM 1) */
   const vx=clamp((mouse.x-(self.lx===undefined?mouse.x:self.lx))*.35,-6,6);self.lx=mouse.x;
   const r=FLOWR[flow-1],hw=Math.max(5,4.2*r);self.acc=(self.acc||0)+r;                       // the Flow setting: particles per frame, and a wider spout to match
   while(self.acc>=1){self.acc--;const i=fluidAdd(type,mouse.x+rnd(-hw,hw),mouse.y+rnd(-5,5),vx+rnd(-.4,.4),6+rnd(0,1));if(glue)LTM[i]=1;}
-  if(frame%9===0)sfx('splash',.22);
+  /* (pouring is silent: the user asked for the water sounds to be removed) */
 }
 function fluidErase(x,y,R){for(let i=0;i<LN;i++){const dx=LX[i]-x,dy=LY[i]-y;if(dx*dx+dy*dy<R*R)LDEAD[i]=1;}}
 function fluidFreeze(x,y,R){for(let i=0;i<LN;i++){const dx=LX[i]-x,dy=LY[i]-y;if(dx*dx+dy*dy>=R*R)continue;if(LTYPE[i]===WATER){LTYPE[i]=ICE;LTM[i]=rnd(520,700);LVX[i]=LVY[i]=0;}else if(LTYPE[i]===LAVA){LTYPE[i]=ROCK;LVX[i]=LVY[i]=0;}}}
@@ -3191,7 +3191,7 @@ function fluidBodies(){
         if(p.tox>0||p.acid>0){if(p.tox>.04){b.washAt=frame;if(Math.random()<.2)part(p.x+rnd(-4,4),p.y+rnd(-4,4),rnd(-.7,.7),-rnd(.2,.9),rnd(20,36),rnd(2,4.5),pick(['#b6ff5a','#d8ffb0']),{type:1,g:-.02});}p.tox=p.tox<.01?0:p.tox*.93;if(p.acid>0)p.acid=Math.max(0,p.acid-4);}   /* water washes acid off: the green drains away in a second or so, it stops eating at that part, and the poisoning stops with it */
         if(p.fire>0){for(let i=0;i<3;i++)wisp(p.x,p.y-p.r);if(frame-hissT>8){hissT=frame;sfx('hiss',.6);}}p.fire=0;p.heat=0;p.smolder=0;}
       if(RG&&b.dead&&cw>=3&&!b.washed){b.washed=true;const dirty=b.rot>0||b.deadFor>600;b.deadFor=0;b.deadT=0;if(b.rot>0){b.rot=0;b.rotShown=0;repal(b);}
-        if(dirty){const h=b.pts[HIP];say(h.x,h.y-40,'CLEAN!','#9fe8ff',16);for(let i=0;i<14;i++){const q=pick(b.pts);part(q.x+rnd(-8,8),q.y-rnd(0,14),rnd(-.6,.6),-rnd(.5,1.6),rnd(30,50),rnd(2,3.5),pick(['#ffffff','#bfe6ff','#9fe8ff']),{type:1,g:-.02});}sfx('splash',.5);}}
+        if(dirty){const h=b.pts[HIP];say(h.x,h.y-40,'CLEAN!','#9fe8ff',16);for(let i=0;i<14;i++){const q=pick(b.pts);part(q.x+rnd(-8,8),q.y-rnd(0,14),rnd(-.6,.6),-rnd(.5,1.6),rnd(30,50),rnd(2,3.5),pick(['#ffffff','#bfe6ff','#9fe8ff']),{type:1,g:-.02});}}}
       if(RG&&!b.dead&&b.cid==='ember'){b.douseT=frame;damage(b,Math.min(.32,.045*cw));if(frame%5===0){const q=pick(b.pts);wisp(q.x,q.y-q.r);}if(frame-hissT>10){hissT=frame;sfx('hiss',.45);}}   /* the more of her is in it, the faster it puts her out: a wet foot stings, a dunking is deadly in about five seconds */
       if(RG&&!b.dead&&b.C.waterWeak){damage(b,Math.min(.32,.045*cw));if(frame%6===0){const q=pick(b.pts);wisp(q.x,q.y-q.r);}}   /* weak to water: it stings, more the deeper in */
       if(RG&&!b.dead&&cw>=3){if(b.frozen<=0)b.cold=Math.min(62,b.cold+.28);
@@ -3634,7 +3634,7 @@ function gizmoStep(){
     if(G.lava){if(liqCount[LAVA]<700&&G.t%2===0)fluidAdd(LAVA,G.x+rnd(-8,8),G.y-6,rnd(-2.2,2.2),-rnd(7,11));if(G.t%6===0)addFlame(G.x+rnd(-8,8),G.y-8,rnd(-1,1),-rnd(2,4),rnd(10,16));if(G.t%14===0)sfx('boom',.18);continue;}
     if(liqCount[WATER]<2400)for(let k=0;k<3;k++)fluidAdd(WATER,G.x+rnd(-9,9),G.y-6,rnd(-.8,.8),-rnd(11,12.5));
     for(const b of bodies){if(b.kind==='anchor'||b.maxx<G.x-34||b.minx>G.x+34)continue;let any=false;for(const p of b.pts){if(p.pin||Math.abs(p.x-G.x)>30||p.y>G.y+4||p.y<G.y-330)continue;any=true;p.py+=(1-(G.y-p.y)/330)*1.5/Math.sqrt(Math.max(.4,b.ms));}if(any&&b.kind==='ragdoll')b.balance=Math.max(0,b.balance-.05);}
-    if(G.t%10===0)sfx('splash',.35);}
+    }
   for(let i=gizmos.length-1;i>=0;i--){const G=gizmos[i];if(G.cd>0)G.cd--;const x0=G.x-G.w/2,x1=G.x+G.w/2;let used=false;
     if(G.vy!==undefined&&gravity>0){const gy=groundBelow(G.x,G.y-10);                                             // dropped things fall until something is under them, with one small bounce
       if(G.y<gy-.5){G.vy=Math.min(16,G.vy+gravity);G.y+=G.vy;if(G.y>=gy){if(G.vy>5){G.vy=-G.vy*.28;G.y=gy-1;sfx('thud',.25);}else{G.vy=0;G.y=gy;}}}else{G.y=gy;G.vy=0;}}
@@ -4211,9 +4211,9 @@ const POWERS={
   gust:{name:'Gust',icon:'💨',desc:'Drag in a direction and let go: a gale blows across the whole arena that way for two seconds. A plain click blows to the right.',
     down(){this.sx=mouse.x;this.sy=mouse.y;},up(){if(this.sx===undefined)return;let dx=mouse.x-this.sx,dy=mouse.y-this.sy;const d=hyp(dx,dy);if(d<12){dx=1;dy=0;}else{dx/=d;dy/=d;}this.sx=undefined;wind={dx,dy,t:130};sfx('whoosh',1.5);witness((XL+XR)/2,FLOOR-80,'seeBoom',null,null,'','cover',5000);}},
   geyser:{name:'Geyser',icon:'⛲',desc:'Click the ground: a jet of water erupts there for three seconds, throwing up whatever stands on it and leaving a puddle.',
-    down(){if(powerCd>0)return;powerCd=20;const x=clamp(mouse.x,XL+20,XR-20);geysers.push({x,y:groundBelow(x,mouse.y-10,true),t:180});if(geysers.length>4)geysers.shift();sfx('splash',1);witness(x,mouse.y,'seeBoom',null,null,'','gasp',300);}},
+    down(){if(powerCd>0)return;powerCd=20;const x=clamp(mouse.x,XL+20,XR-20);geysers.push({x,y:groundBelow(x,mouse.y-10,true),t:180});if(geysers.length>4)geysers.shift();witness(x,mouse.y,'seeBoom',null,null,'','gasp',300);}},
   wave:{name:'Wave',icon:'🌊',desc:'Click: a wall of water sweeps in from the nearer side of the arena. Right-click (or Shift-click) sends it from the far side.',
-    down(){if(powerCd>0||liqCount[WATER]>2600)return;powerCd=90;const left=(mouse.x<(XL+XR)/2)!==!!mouse.alt,x0=left?XL+12:XR-12,d=left?1:-1;for(let j=0;j<26;j++)for(let i=0;i<12;i++)fluidAdd(WATER,x0+d*i*8.5,FLOOR-10-j*8.5,d*rnd(9,12),rnd(-1,1));sfx('splash',1.2);sfx('roar',.6);witness(x0,FLOOR-80,'seeBoom',null,null,'','run',5000);}},
+    down(){if(powerCd>0||liqCount[WATER]>2600)return;powerCd=90;const left=(mouse.x<(XL+XR)/2)!==!!mouse.alt,x0=left?XL+12:XR-12,d=left?1:-1;for(let j=0;j<26;j++)for(let i=0;i<12;i++)fluidAdd(WATER,x0+d*i*8.5,FLOOR-10-j*8.5,d*rnd(9,12),rnd(-1,1));sfx('roar',.6);witness(x0,FLOOR-80,'seeBoom',null,null,'','run',5000);}},
   party:{name:'Party',icon:'🪩',desc:'Click: every dummy nearby drops what it is doing and dances. They keep dancing until you click Party over them again (or someone picks a fight with them). Calms down anyone who was only fighting back.',
     down(){const x=mouse.x,y=mouse.y;ring(x,y,260,'#ff8ac4',26,5);sfx('heal',.8);for(let k=0;k<26;k++){const a=rnd(0,6.3),v=rnd(2,7);part(x,y,Math.cos(a)*v,Math.sin(a)*v-2,rnd(30,55),rnd(2,3.5),pick(['#ff5a7a','#ffd24a','#7dff9a','#5ad1ff','#c79bff']),{type:1,g:.08});}
       for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||b===possessed||b.zombie)continue;const h=b.pts[HIP];if(hyp(h.x-x,h.y-y)>270)continue;if(b.jam>0){b.jam=0;continue;}if(b.soc.partner)endChat(b);b.sleep=0;
