@@ -664,7 +664,7 @@ function addScorch(x,a){if(x<XL||x>XR)return;for(const s of scorch)if(Math.abs(s
 /* A snowman does not burn, he melts: heat makes him drip and shrink, and in the end there is only a puddle. Cold builds him back up. */
 function meltSize(b){const f=1-.55*(b.meltK||0),k=f/(b.meltSc||1);if(k<.985||k>1.015){scaleBody(b,k);b.meltSc=f;}}
 function meltStep(b){
-  let h=0,hot=null;for(const p of b.pts){p.fire=0;p.burnt=0;p.smolder=0;if(p.gone||!(p.heat>0))continue;if(b.shield>0){p.heat=0;continue;}if(p.heat>1.5)p.heat=1.5;h+=p.heat;if(!hot||p.heat>hot.heat)hot=p;p.heat=Math.max(0,p.heat-.006);}
+  let h=0,hot=null;for(const p of b.pts){p.fire=0;p.burnt=0;p.smolder=0;if(p.gone||!(p.heat>0))continue;if(warded(b)){p.heat=0;continue;}if(p.heat>1.5)p.heat=1.5;h+=p.heat;if(!hot||p.heat>hot.heat)hot=p;p.heat=Math.max(0,p.heat-.006);}
   b.burn=0;b.onFire=false;if(!hot||b.remove)return;
   b.meltK=Math.min(1,(b.meltK||0)+h/1500);if(!b.dead)damage(b,h*.06);
   if(!b.meltSaid&&!b.dead){b.meltSaid=1;bubble(b,customLine(b,'burning')||pick(['I am melting!','Too hot! Too hot!','Not the fire!','Oh no, I am dripping!']));witness(hot.x,hot.y,'seeFire',b,null,b.C.name,'gasp');}
@@ -680,6 +680,7 @@ function fireStep(){
   for(const b of bodies){
     if(b.kind==='anchor')continue;const fl=flamOf(b),crate=b.kind==='crate',rate=crate?1/1000:1/560;let n=0,dmg=0;if(b.wet>0)b.wet--;
     if(b.cid==='frost'){meltStep(b);continue;}
+    if(b.kind==='ragdoll'&&warded(b)){for(const p of b.pts){p.heat=0;p.fire=0;p.smolder=0;}b.burn=0;b.onFire=false;continue;}   /* Infinity: heat does not reach it, so it never catches from flames beside it or fire on the floor */
     if(b.frozen>0){let hot=false;for(const p of b.pts){if(p.heat>=1)hot=true;p.fire=0;}if(hot){for(const p of b.pts)p.heat=0;thaw(b);}b.burn=0;continue;}
     for(const p of b.pts){
       if(p.fire>0){
@@ -771,7 +772,7 @@ function hurtPart(p,bruise,gore){p.bruise=Math.min(1,p.bruise+bruise);if(gore)p.
 let pasteOn=false;
 function setPaste(v){pasteOn=v;$('setPaste').checked=v;try{localStorage.setItem('flopworksM.paste',v?'1':'0');}catch(e){}}
 const PART_HP=[72,144,64,51,64,51,70,58,70,58];   // head, torso, then upper/lower arms and legs
-function partHit(b,p,amt){if(b.shield>0)return;
+function partHit(b,p,amt){if(warded(b))return;
   if(!pasteOn||b.kind!=='ragdoll'||b.remove||!(amt>0))return;
   let share=0;for(let i=0;i<=SHR;i++){const st=b.sticks[i];if(!st.gone&&(st.p===p||st.q===p))share++;}if(!share)return;amt/=share;   /* a knock on a joint is shared between the parts that meet there (it used to cost each of them the whole amount: a bump on the hips took both legs off) */
   for(let i=0;i<=SHR;i++){const st=b.sticks[i];if(st.gone||(st.p!==p&&st.q!==p))continue;if(st.hp===undefined)st.hp=PART_HP[i]*b.C.hp/100*b.sc*b.sc;st.hp-=amt;if(st.hp<=0)destroyPart(b,i);}
@@ -822,7 +823,7 @@ function bloodBurst(b,x,y,k){
   const R=74*k;for(const o of bodies){if(o===b||o.kind!=='ragdoll'||o.remove||o.maxx<x-R||o.minx>x+R||o.maxy<y-R||o.miny>y+R)continue;for(const p of o.pts)if(hyp(p.x-x,p.y-y)<R)p.gore=Math.max(p.gore,.75);}
   shake=Math.max(shake,2+2*k);
 }
-function destroyPart(b,i,acid){if(b.shield>0)return;                        /* acid: the part dissolves away in a green fizz instead of bursting into paste */
+function destroyPart(b,i,acid){if(warded(b))return;                        /* acid: the part dissolves away in a green fizz instead of bursting into paste */
   const st=b.sticks[i];if(st.gone)return;st.gone=true;st.cut=true;st.hp=0;if(st.subs)for(const u of st.subs){u.cut=true;for(const e of [u.p,u.q])if(e.stub){e.gone=true;e.r=1.5;e.fire=0;}}
   const mx=(st.p.x+st.q.x)/2,my=(st.p.y+st.q.y)/2,ci=Math.max(0,PASTEK.indexOf(b.cid)),n=i===SP?9:i===SN?5:3;
   if(acid){for(let k=0;k<n*3;k++){const t=Math.random();part(lerp(st.p.x,st.q.x,t)+rnd(-5,5),lerp(st.p.y,st.q.y,t)+rnd(-5,5),rnd(-.5,.5),-rnd(.4,1.4),rnd(28,52),rnd(4,8),pick(['#9be56a','#d8ffb0','#7fd04a']),{type:2,g:-.012});}
@@ -836,12 +837,12 @@ function destroyPart(b,i,acid){if(b.shield>0)return;                        /* a
   let left=0;for(let k=0;k<=SHR;k++)if(!b.sticks[k].gone)left++;
   if(!left){if(acid)say(mx,my-20,'DISSOLVED','#b6ff5a',16);else{say(mx,my-20,'PASTE!','#ffb3c0',16);bloodBurst(b,mx,my,2.3);}removeBody(b);}                                  // nothing left of them but paste
 }
-function damage(b,amt){if(b.kind!=='ragdoll'||b.dead||!(amt>0)||b.shield>0||b.uiT>=frame)return;if(amt>=1.5&&infOn(b)){infRipple(b,b.pts[NECK].x,b.pts[NECK].y);return;}if(amt>=1.5&&uiOn(b)){const q=b.pts[NECK],d=Math.random()<.5?1:-1;uiDodge(b,q.x,q.y,d,0,null);uiDash(b,d);return;}   /* Ultra Instinct: a hit (not slow harm such as fire, acid or drowning) misses */b.hp-=amt;b.hurt=14;b.hurtShow=200;mayhem+=amt;b.pain=Math.min(100,b.pain+amt*1.6);if(amt>3&&b.sleep>0&&(b.sleep<300||frame-(b.sleepAt||0)>120))b.sleep=0;/* a real whack wakes a sleeper; slumping to the floor does not */if(amt>12)b.bleed+=.003*b.C.bleedK;if(b.hp<=0){if(potOn(b,'immortal'))b.hp=1;else kill(b);}}
-function kill(b){if(b.dead||b.shield>0||potOn(b,'immortal'))return;b.dead=true;b.hp=0;b.balance=0;b.atk=null;kos++;mayhem+=50;const h=b.pts[HEAD];/* (the big red K.O. that floated up over a death is gone: the user asked) */witness(h.x,h.y,'seeKO',b,null,b.C.name,'gasp');
+function damage(b,amt){if(b.kind!=='ragdoll'||b.dead||!(amt>0)||b.shield>0||b.uiT>=frame)return;if(infOn(b)){infRipple(b,b.pts[NECK].x,b.pts[NECK].y);return;}if(amt>=1.5&&uiOn(b)){const q=b.pts[NECK],d=Math.random()<.5?1:-1;uiDodge(b,q.x,q.y,d,0,null);uiDash(b,d);return;}   /* Ultra Instinct: a hit (not slow harm such as fire, acid or drowning) misses */b.hp-=amt;b.hurt=14;b.hurtShow=200;mayhem+=amt;b.pain=Math.min(100,b.pain+amt*1.6);if(amt>3&&b.sleep>0&&(b.sleep<300||frame-(b.sleepAt||0)>120))b.sleep=0;/* a real whack wakes a sleeper; slumping to the floor does not */if(amt>12)b.bleed+=.003*b.C.bleedK;if(b.hp<=0){if(potOn(b,'immortal'))b.hp=1;else kill(b);}}
+function kill(b){if(b.dead||warded(b)||potOn(b,'immortal'))return;b.dead=true;b.hp=0;b.balance=0;b.atk=null;kos++;mayhem+=50;const h=b.pts[HEAD];/* (the big red K.O. that floated up over a death is gone: the user asked) */witness(h.x,h.y,'seeKO',b,null,b.C.name,'gasp');
   if(b.infect>0&&!b.zombie&&canRise(b))b.rise=150;else if(riseOn&&!b.zombie&&canRise(b))b.rise=240;   /* the 'Dead rise' setting: anyone who dies with their head still on gets back up as a zombie four seconds later */
   if(b.cid==='puff'){b.deflate=80;sfx('pop');}
   if(b.cid==='ember'){repal(b);for(const p of b.pts)if(p.att)smoke(p.x,p.y,1);for(let i=0;i<6;i++)wisp(h.x+rnd(-6,6),h.y-h.r);sfx('hiss',.7);}}
-function ignite(b,p){if(b.remove||(b.kind==='ragdoll'&&b.shield>0))return;
+function ignite(b,p){if(b.remove||(b.kind==='ragdoll'&&warded(b)))return;
   if(b.kind==='bomb'){b.fuse=Math.min(b.fuse,10);return;}
   if(b.kind==='balloon'){popBalloon(b);return;}
   if(b.frozen>0){thaw(b);return;}
@@ -853,7 +854,7 @@ function iceStand(b){if(b.held||!b.ice||b.iceAng===undefined||Math.abs(b.iceAng)
   const err=Math.atan2(neck.x-hip.x,hip.y-neck.y)-b.iceAng;if(Math.abs(err)>(fresh0(b)?.5:ICETIP))return;
   const fresh=frame-(b.frzT0||0)<45,dm=fresh?.68:.74,a=-err*(fresh?.2:.17),co=Math.cos(a),si=Math.sin(a);   // just frozen: held firmly while what speed it had dies away
   for(const p of P){if(!p.att||p.pin)continue;const vx=(p.x-p.px)*dm,vy=(p.y-p.py)*(p.y<p.py?dm:1),rx=p.x-px,ry=p.y-py;p.x=px+rx*co-ry*si;p.y=py+rx*si+ry*co;p.px=p.x-vx;p.py=p.y-vy;}}
-function freeze(b){extinguish(b);if(b.kind!=='ragdoll'||b.shield>0)return;
+function freeze(b){extinguish(b);if(b.kind!=='ragdoll'||warded(b))return;
   if(b.C.iceProof){if(frame%20===0){const h=b.pts[HEAD];shards(h.x,h.y,1);}return;}   /* immune to ice: it will not freeze */
   if(b.cid==='frost'){if(b.meltK>0){b.meltK=Math.max(0,b.meltK-.006);meltSize(b);if(!b.meltK)b.meltSaid=0;}if(!b.dead&&b.hp<b.maxHp)b.hp=Math.min(b.maxHp,b.hp+.6);if(frame%20===0){const h=b.pts[HEAD];shards(h.x,h.y,2);}return;}   /* a snowman likes the cold */
   if(!(b.frozen>0)){b.frzT0=frame;const hp=b.pts[HIP];witness(hp.x,hp.y,'seeFrozen',b,null,b.C.name,'gasp',320);if(b.C.iceWeak)damage(b,24);}b.frozen=b.C.iceWeak?760:420;b.crack=0;b.frzCd=frame+6;/* weak to ice: freezing hurts and lasts longer */b.atk=null;b.shock=0;b.ice=[];{const q=b.pts[NECK],h=b.pts[HIP];b.iceAng=Math.atan2(q.x-h.x,h.y-q.y);}const P=b.pts.filter(p=>p.att);
@@ -895,7 +896,7 @@ function revive(b){b.unstick=frame+1;if(b.meltK>0){b.meltK=0;meltSize(b);b.meltS
   if(b.sticks.length>SOFT+1){for(const l of links)if((l.p.stub&&l.p.b===b)||(l.q.stub&&l.q.b===b))l.cut=true;if(grab&&grab.stub&&grab.b===b)grab=null;b.sticks.length=SOFT+1;b.pts.length=FR+1;}
   b.sinew=null;for(const p of b.pts){p.wfn=0;p.wfb=false;p.wst=null;p.wspine=0;p.wball=0;p.wsc=null;p.wsn=0;}b.pts[HEAD].cuts=null;b.pts[HEAD].cutA=0;for(const s of b.sticks){s.cut=false;s.gone=false;s.hp=undefined;s.subs=null;s.cuts=null;}refreshAttach(b);b.calm=25;repal(b);if(selected===b)syncModeUI();
   for(const p of b.pts)part(p.x,p.y,rnd(-1,1),rnd(-2,-.5),rnd(25,45),rnd(2,4),'#7dffb0',{type:1,g:-.02});sfx('heal');}
-function cutStick(b,s){if(s.cut||(b.kind==='ragdoll'&&b.shield>0))return;s.cut=true;const mx=(s.p.x+s.q.x)/2,my=(s.p.y+s.q.y)/2;sfx('snip');mayhem+=10;
+function cutStick(b,s){if(s.cut||(b.kind==='ragdoll'&&warded(b)))return;s.cut=true;const mx=(s.p.x+s.q.x)/2,my=(s.p.y+s.q.y)/2;sfx('snip');mayhem+=10;
   if(b.kind==='ragdoll'){confetti(mx,my,12,b.pal.shirt);b.bleed+=.035*b.C.bleedK;s.p.gore=s.q.gore=1;bleedFx(b,mx,my,12,0,-1,4);const i=b.sticks.indexOf(s);if(i===SN||i===SP)b.sticks[SOFT].cut=true;if(i>=UAL&&!b.dead){react(b,i<=FAR?'arm':'leg',null,true);witness(mx,my,'seeLimb',b,null,b.C.name,'gasp');}refreshAttach(b);
     if(b.frozen>0){b.ice=null;b.frozen=1;}
     if(!b.pts[HEAD].att&&!b.zombie)kill(b);else if(b.cid!=='bones')damage(b,22);}
@@ -1197,7 +1198,7 @@ function collideWorld(p){
 }
 let sawSfx=0,sawDoomed=[];
 /* a body the saw has taken the torso of (or all but a few parts of): the rest of it goes too, a part every few frames, wherever it lies */
-function sawDoomStep(){for(let k=sawDoomed.length-1;k>=0;k--){const o=sawDoomed[k];if(o.remove||!bodies.includes(o)){sawDoomed.splice(k,1);continue;}if(frame%5)continue;let i=-1;for(let j=0;j<=SHR;j++)if(!o.sticks[j].gone){i=j;break;}if(i<0||o.shield>0){sawDoomed.splice(k,1);o.sawDoom=false;continue;}destroyPart(o,i);}}
+function sawDoomStep(){for(let k=sawDoomed.length-1;k>=0;k--){const o=sawDoomed[k];if(o.remove||!bodies.includes(o)){sawDoomed.splice(k,1);continue;}if(frame%5)continue;let i=-1;for(let j=0;j<=SHR;j++)if(!o.sticks[j].gone){i=j;break;}if(i<0||warded(o)){sawDoomed.splice(k,1);o.sawDoom=false;continue;}destroyPart(o,i);}}
 function sawHit(S,o){
   if(o.sawT===frame||o.kind==='anchor'||o.kind==='saw')return;if(o.kind==='ragdoll'&&infOn(o)){infRipple(o,S.pts[0].x,S.pts[0].y);return;}if(o.kind==='ragdoll'&&uiOn(o)){const d=o.pts[HIP].x>=S.pts[0].x?1:-1;uiDodge(o,o.pts[NECK].x,o.pts[NECK].y,d,0,null);uiDash(o,d);return;}o.sawT=frame;const c=S.pts[0];
   if(o.kind==='ragdoll'){damage(o,1.6);o.stun=Math.max(o.stun,8);let best=null,bd=1e9;
@@ -1240,6 +1241,7 @@ function personalSpace(){
   for(let i=0;i<R.length;i++)for(let j=i+1;j<R.length;j++){const A=R[i],B=R[j];if((A.grip&&A.grip.o===B)||(B.grip&&B.grip.o===A))continue;
     const a=A.pts[HIP],c=B.pts[HIP],dx=c.x-a.x,min=15*(A.sc*A.C.scale+B.sc*B.C.scale);if(Math.abs(dx)>=min||Math.abs(c.y-a.y)>70)continue;
     const dir=dx>0||(dx===0&&A.id<B.id)?1:-1,k=(1-Math.abs(dx)/min)*.55;let ka=A===possessed?0:B===possessed?2*k:k,kb=B===possessed?0:A===possessed?2*k:k;
+    if(ka&&warded(A)){ka=0;kb*=2;}if(kb&&warded(B)){kb=0;ka*=2;}                        /* Infinity is not the one who makes room */
     if(ka&&trapAhead(A,-dir)){ka=0;kb*=2;}if(kb&&trapAhead(B,dir)){kb=0;ka*=2;}        /* never nudge someone into a trap to make room */
     for(const p of A.pts)if(p.att&&!p.pin)p.px+=dir*ka;for(const p of B.pts)if(p.att&&!p.pin)p.px-=dir*kb;}
 }
@@ -1284,19 +1286,38 @@ function paintHull(cv){const W=PAINTPX,D=cv.getContext('2d').getImageData(0,0,W,
    how far apart they are, less INFPAD (the barrier's thickness). Within INFZONE the part may close at most INFK of the gap this frame (measured against
    the user's own movement, so walking into something pushes it along ahead); anything already inside is eased back out. infBullet does the same to a
    bullet's speed. infRipple: the little ring where something is being held off. */
-const INFPAD=11,INFZONE=40,INFK=.14;let infList=[];
-function infOn(b){return b.kind==='ragdoll'&&hasSp(b.C,'inf')&&!b.dead&&!b.atk&&!(b.frozen>0)&&!(b.sleep>0)&&!(b.stun>10)&&!b.held&&!(b.infOffT>=frame);}
+const INFPAD=11,INFZONE=40,INFK=.1,INFOUT=.03,INFOUTK=.012,INFDRAG=.5,INFKNOCK=5;let infList=[];
+function infOn(b){return b.kind==='ragdoll'&&hasSp(b.C,'inf')&&!b.dead&&!(b.frozen>0)&&!(b.sleep>0)&&!b.held&&!(b.infOffT>=frame);}   /* up all the time, also while it attacks or is knocked about: only your hand, sleep, ice it was already in and a Void Realm take it down */
+function warded(b){return b.shield>0||infOn(b);}   /* nothing can harm it: the Infinity power, or the Infinity special while its barrier is up */
 function infRipple(o,x,y){o.infT=frame;}   /* (the barrier is invisible: nothing is drawn where it holds something off) */
-function infNear(b,x,y){let q=null,qd=1e9;for(const p of b.pts){if(p.gone||!p.att)continue;const d=hyp(x-p.x,y-p.y)-p.r;if(d<qd){qd=d;q=p;}}return q;}   /* the part of the user nearest to a spot */
-function infFields(){infList.length=0;for(const b of bodies)if(infOn(b))infList.push(b);if(!infList.length)return;
-  for(const b of infList){const reach=INFPAD+INFZONE+14;
-    for(const o of bodies){if(o===b||o.remove||o.kind==='anchor'||(b.grip&&b.grip.o===o)||o.maxx<b.minx-reach||o.minx>b.maxx+reach||o.maxy<b.miny-reach||o.miny>b.maxy+reach)continue;
-      for(const p of o.pts){if(p.gone||p.pin)continue;const q=infNear(b,p.x,p.y);if(!q)continue;const dx=p.x-q.x,dy=p.y-q.y,d=hyp(dx,dy)||1e-6,gap=d-p.r-q.r-INFPAD;if(gap>INFZONE)continue;
-        const nx=dx/d,ny=dy/d;if(gap<0){const e=-gap*.5;p.x+=nx*e;p.y+=ny*e;p.px+=nx*e;p.py+=ny*e;}                                              /* inside the barrier already: eased back out */
-        const app=-(((p.x-p.px)-(q.x-q.px))*nx+((p.y-p.py)-(q.y-q.py))*ny),lim=Math.max(0,gap)*INFK;
-        if(app>lim){const cut=app-lim;p.px-=nx*cut;p.py-=ny*cut;if(app>1.2)infRipple(b,p.x-nx*p.r,p.y-ny*p.r);}}}}}                               /* closing faster than a fraction of what is left: slowed to that */
-function infBullet(bl){for(const b of infList){if(bl.by===b||bl.x<b.minx-90||bl.x>b.maxx+90||bl.y<b.miny-90||bl.y>b.maxy+90)continue;const q=infNear(b,bl.x,bl.y);if(!q)continue;
-    const dx=q.x-bl.x,dy=q.y-bl.y,d=hyp(dx,dy)||1e-6,gap=d-q.r-INFPAD;if(gap>INFZONE*1.6||bl.vx*dx+bl.vy*dy<=0)continue;
+function infNear(b,x,y,core){let q=null,qd=1e9;const P=b.pts;for(let i=0;i<P.length;i++){const p=P[i];if(p.gone||!p.att||(core&&i>HIP))continue;const d=hyp(x-p.x,y-p.y)-p.r;if(d<qd){qd=d;q=p;}}return q;}   /* the part of the user nearest to a spot (core: its head and trunk only) */
+/* last: the final pass of the frame, when whatever is in the barrier's reach is also caught (see below). While the user is itself attacking, only its head and trunk
+   hold things off (core), so its own fist or foot reaches out through the barrier and lands; it is protected all the same.
+   Caught: inside INFZONE a thing loses its speed, the more the nearer it is (down to INFDRAG of it a frame at the barrier), and may leave no faster than
+   INFOUT+INFOUTK*gap a frame: people who walk into it slow right down and are stuck there for a few seconds before they can pull away. Something knocked
+   away faster than INFKNOCK (a punch from the user, a blast) breaks free, and its whole body is let go for a while (o.infFreeT). */
+function infFields(last){infList.length=0;for(const b of bodies)if(infOn(b))infList.push(b);if(!infList.length)return;
+  for(const b of infList){const reach=INFPAD+INFZONE+14,core=!!b.atk;
+    for(const o of bodies){if(o===b||o.remove||o.kind==='anchor'||o.owner===b||(b.grip&&b.grip.o===o)||o.maxx<b.minx-reach||o.minx>b.maxx+reach||o.maxy<b.miny-reach||o.miny>b.maxy+reach)continue;
+      const free=o.infFreeT>frame;let caught=false,knock=false;
+      for(const p of o.pts){if(p.gone||p.pin)continue;const q=infNear(b,p.x,p.y,core);if(!q)continue;const dx=p.x-q.x,dy=p.y-q.y,d=hyp(dx,dy)||1e-6,gap=d-p.r-q.r-INFPAD;if(gap>INFZONE)continue;
+        const nx=dx/d,ny=dy/d;if(gap<0){const e=-gap*.8;p.x+=nx*e;p.y+=ny*e;p.px+=nx*e;p.py+=ny*e;}                                              /* inside the barrier already: put back out */
+        const g0=Math.max(0,gap),qvx=q.x-q.px,qvy=q.y-q.py;let vx=p.x-p.px,vy=p.y-p.py;const app=-((vx-qvx)*nx+(vy-qvy)*ny),lim=g0*INFK;
+        if(app>lim){const cut=app-lim;vx+=nx*cut;vy+=ny*cut;if(app>1.2)infRipple(b,p.x-nx*p.r,p.y-ny*p.r);}                                       /* closing faster than a fraction of what is left: slowed to that */
+        if(last&&!free){const vn=vx*nx+vy*ny;if(vn>INFKNOCK)knock=true;else{const f=g0/INFZONE,keep=INFDRAG+(1-INFDRAG)*f,out=Math.max(INFOUT+INFOUTK*g0,qvx*nx+qvy*ny+INFOUT),n2=vn>out?out:vn;   /* (it may always get out of the way as fast as the user walks at it) */
+            vx=nx*n2+(vx-nx*vn)*keep;vy=ny*n2+(vy-ny*vn)*keep;p.x=p.px+vx;p.y=p.py+vy;if(gap<INFZONE*.7)caught=true;}}   /* (the part is put where that slower step takes it: a limit on speed alone does nothing against legs that walk it out a step at a time) */
+        p.px=p.x-vx;p.py=p.y-vy;}
+      if(knock)o.infFreeT=frame+40;else if(caught&&o.kind==='ragdoll')o.infHoldT=frame;}}}
+/* liquid is held off as well: drops are kept a barrier's width from every part of it, so it stays dry in a pool and lava, acid and glue never reach it */
+function infFluid(){if(!infList.length||!LN)return;
+  for(const b of infList){if(b.maxx<liqBox[0]-30||b.minx>liqBox[2]+30||b.maxy<liqBox[1]-30||b.miny>liqBox[3]+30)continue;
+    for(const p of b.pts){if(p.gone||!p.att)continue;const R=p.r+INFPAD+1,R2=R*R,px=p.x,py=p.y;
+      let cx0=(((px-R-XL)/FCELL)|0)+1,cx1=(((px+R-XL)/FCELL)|0)+1,cy0=(((py-R-CEIL)/FCELL)|0)+1,cy1=(((py+R-CEIL)/FCELL)|0)+1;
+      if(cx0<0)cx0=0;if(cy0<0)cy0=0;if(cx1>=gW)cx1=gW-1;if(cy1>=gH)cy1=gH-1;
+      for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const c=cx+cy*gW;for(let k=cellStart[c],e=cellStart[c+1];k<e;k++){const j=cellItems[k];if(j>=LN||LDEAD[j]||LTYPE[j]>=PASTE)continue;
+        const dx=LX[j]-px,dy=LY[j]-py,d2=dx*dx+dy*dy;if(d2>=R2)continue;const d=Math.sqrt(d2)||1e-3,nx=dx/d,ny=dy/d,vn=LVX[j]*nx+LVY[j]*ny;LX[j]=px+nx*R;LY[j]=py+ny*R;if(vn<0){LVX[j]-=vn*nx;LVY[j]-=vn*ny;}}}}}}
+function infBullet(bl){for(const b of infList){if(bl.by===b||bl.x<b.minx-90-bl.sp||bl.x>b.maxx+90+bl.sp||bl.y<b.miny-90-bl.sp||bl.y>b.maxy+90+bl.sp)continue;const q=infNear(b,bl.x,bl.y);if(!q)continue;
+    const dx=q.x-bl.x,dy=q.y-bl.y,d=hyp(dx,dy)||1e-6,gap=d-q.r-INFPAD;const head=bl.vx*dx+bl.vy*dy;if(head<=0)continue;if(gap>INFZONE*1.6){const room=gap-INFZONE*1.5;if(bl.sp>room&&head>.8*bl.sp*d){const f=Math.max(.1,room/bl.sp);bl.vx*=f;bl.vy*=f;bl.sp*=f;}continue;}   /* coming straight at it and about to arrive this frame: braked to stop at the edge */
     const top=Math.max(.04,gap*.22);if(bl.sp>top){const f=top/bl.sp;bl.vx*=f;bl.vy*=f;bl.sp=top;infRipple(b,bl.x,bl.y);}bl.life++;bl.infT=(bl.infT||0)+1;if(bl.infT>110)bl.dead=true;}   /* a bullet: slower and slower, hanging in the air, then it is spent */
   for(const b of shList){if(b.remove||!(b.shield>0)||bl.by===b)continue;const S=infShape(b),R=S[4],Ra=R*INFSTOP,ex=S[2]-S[0],ey=S[3]-S[1];   /* the Infinity power: caught at the outer line of its barrier */
     if(bl.x<Math.min(S[0],S[2])-R-70||bl.x>Math.max(S[0],S[2])+R+70||bl.y<Math.min(S[1],S[3])-R-70||bl.y>Math.max(S[1],S[3])+R+70)continue;
@@ -1527,7 +1548,7 @@ function startAttack(b,type,t,o){
 const TKHOLD=52,TKCOL='#c08bff',TKRANGE=720;   // TKRANGE: how far it reaches (it was 340 to 380: the user asked for more)
 function tkCentre(o){if(o.kind==='ragdoll'){const h=o.pts[HIP],q=o.pts[NECK];return [(h.x+q.x)/2,(h.y+q.y)/2];}const c=o.pts[o.pts.length-1];return [c.x,c.y];}
 function tkStart(b,t,player){const hip=b.pts[HIP],head=b.pts[HEAD],lbl=tx=>say(head.x,head.y-34,tx,'#7df0ff',16),far=o=>{const c=tkCentre(o);return hyp(c[0]-hip.x,c[1]-hip.y);};
-  const ok=o=>!o.remove&&o!==b&&!(o.tkBy&&!o.tkBy.remove&&o.tkBy.tk&&o.tkBy.tk.o===o)&&!(o.shield>0)&&!o.held&&!o.pts.some(p=>p.pin)&&far(o)<TKRANGE;
+  const ok=o=>!o.remove&&o!==b&&!(o.tkBy&&!o.tkBy.remove&&o.tkBy.tk&&o.tkBy.tk.o===o)&&!(warded(o))&&!o.held&&!o.pts.some(p=>p.pin)&&far(o)<TKRANGE;
   let o=t&&t.kind==='ragdoll'&&ok(t)?t:null,at=null,prop=null,pd=TKRANGE*.6;
   for(const q of bodies){if((q.kind!=='crate'&&q.kind!=='ball'&&q.kind!=='bomb'&&q.kind!=='mine')||!ok(q))continue;const d=far(q);if(d<pd&&(!player||(tkCentre(q)[0]-hip.x)*b.facing>-20)){pd=d;prop=q;}}
   if(prop&&(!o||(player?pd<far(o):far(o)>110&&Math.random()<.5))){at=o;o=prop;}                              // something loose is to hand: that is thrown at them instead
@@ -1552,7 +1573,7 @@ function tkChoke(b,I,K,o){const hip=b.pts[HIP],neck=b.pts[NECK],nk=o.pts[NECK],h
   if(K.t%10===0)ring(nk.x,nk.y,15,TKCOL,9,2);
   if(K.t>=TKCHOKE)tkEnd(b,false);}
 function tkStep(b,I){const K=b.tk,o=K.o,hip=b.pts[HIP],neck=b.pts[NECK];
-  if(o.remove||b.dead||b.balance<.35||b.stun>0||b.held||b.frozen>0||o.shield>0||o.held){tkEnd(b,false);return;}                  // knocked down, grabbed, frozen: it loses its grip
+  if(o.remove||b.dead||b.balance<.35||b.stun>0||b.held||b.frozen>0||warded(o)||o.held){tkEnd(b,false);return;}                  // knocked down, grabbed, frozen: it loses its grip
   const c=tkCentre(o),sc=b.sc*b.C.scale;K.t++;
   if(K.choke){tkChoke(b,I,K,o);return;}
   const hx=clamp(c[0],hip.x-TKRANGE,hip.x+TKRANGE),hy=Math.min(c[1],hip.y-112*sc),vx=clamp((hx-c[0])*.1,-5,5),vy=clamp((hy-c[1])*.16,-7,7),g=gravity*(o.grav===undefined?1:o.grav);
@@ -1564,7 +1585,7 @@ function tkStep(b,I){const K=b.tk,o=K.o,hip=b.pts[HIP],neck=b.pts[NECK];
     const h=b.pts[b.facing>0?HR:HL],u=Math.random();part(lerp(h.x,c[0],u),lerp(h.y,c[1],u),rnd(-.3,.3),rnd(-.3,.3),12,rnd(1.2,2.2),'#e6d4ff',{type:1,g:0});}
   if(K.t%9===0)ring(c[0],c[1],30,TKCOL,10,2);
   if(K.t>=TKHOLD)tkEnd(b,true);}
-function tkHit(o,v){const S=o.tkShot;if(frame>S.t){o.tkShot=null;return;}if(v.kind!=='ragdoll'||v===S.by||v.dead||v.shield>0)return;o.tkShot=null;if(uiOn(v)){uiDodge(v,v.pts[NECK].x,v.pts[NECK].y,1,0,S.by);return;}   // thrown by telekinesis, and it has just struck someone
+function tkHit(o,v){const S=o.tkShot;if(frame>S.t){o.tkShot=null;return;}if(v.kind!=='ragdoll'||v===S.by||v.dead||warded(v))return;o.tkShot=null;if(uiOn(v)){uiDodge(v,v.pts[NECK].x,v.pts[NECK].y,1,0,S.by);return;}   // thrown by telekinesis, and it has just struck someone
   const c=o.pts[o.pts.length-1],sp=hyp(c.x-c.px,c.y-c.py),q=v.pts[NECK];if(sp<5)return;damage(v,Math.min(24,7+sp*.7)*v.C.res.impact);v.stun=Math.max(v.stun,14);v.balance=Math.max(0,v.balance-.45);provoke(v,S.by);sparks(q.x,q.y,10,TKCOL,5);sfx('thud',1);say(q.x,q.y-30,'WHAM!','#e6d4ff',14);}
 function tkEnd(b,thrown){const K=b.tk,o=K.o;b.tk=null;if(o.tkBy===b)o.tkBy=null;
   if(K.choke&&!o.remove&&o.kind==='ragdoll'){o.stun=Math.max(o.stun,34);if(!o.dead&&reactOn&&o!==possessed)o.sayLater={t:46,line:pick(['*cough* *cough*','Air… finally…','I thought that was it…','*gasp*']),force:true};}   // let go: it drops in a heap, gasping
@@ -1615,8 +1636,8 @@ function animeStep(b,I){const A=b.anime,P=b.pts,hip=P[HIP],neck=P[NECK],head=P[H
     if(A.t%3===0)for(const v of bodies){if(v===b||v.remove||v.kind==='anchor'||(v.kind==='ragdoll'&&allies(b,v)))continue;
       if(v.kind==='ragdoll'&&uiOn(v)){let near=false;for(const p of v.pts)if(!p.gone&&distSeg(p.x,p.y,x1,y1,x2,y2)<w+p.r+6){near=true;break;}if(near){const q=v.pts[NECK];uiDodge(v,q.x,q.y,A.ax>=0?1:-1,0,b);v.uiPose=frame+9;v.uiDuck=true;v.uiT=Math.max(v.uiT||0,frame+6);}continue;}   /* Ultra Instinct: it drops under the beam, and the beam does nothing to it */
       let hit=false;const k=3.2/Math.sqrt(Math.max(.3,v.ms||1));
-      const char=v.kind==='ragdoll'&&!(v.shield>0)&&!v.C.fireProof&&!uiOn(v);for(const p of v.pts){if(p.gone||distSeg(p.x,p.y,x1,y1,x2,y2)>w+p.r)continue;hit=true;if(!p.pin){p.px-=A.ax*k;p.py-=A.ay*k;}if(char)p.burnt=Math.min(.72,(p.burnt||0)+.06);}   /* (charred where the beam touched) */
-      if(hit&&v.kind==='ragdoll'&&!(v.shield>0)){provoke(v,b);damage(v,3.4);v.balance=Math.max(0,v.balance-.2);}}
+      const char=v.kind==='ragdoll'&&!(warded(v))&&!v.C.fireProof&&!uiOn(v);for(const p of v.pts){if(p.gone||distSeg(p.x,p.y,x1,y1,x2,y2)>w+p.r)continue;hit=true;if(!p.pin){p.px-=A.ax*k;p.py-=A.ay*k;}if(char)p.burnt=Math.min(.72,(p.burnt||0)+.06);}   /* (charred where the beam touched) */
+      if(hit&&v.kind==='ragdoll'&&!(warded(v))){provoke(v,b);damage(v,3.4);v.balance=Math.max(0,v.balance-.2);}}
     if(A.t>WAVECHARGE+28){if(A.bx1!==undefined)fx.push({type:'burnline',x1:A.bx1,y1:A.by1,x2:A.bx2,y2:A.by2,life:130,max:130});b.anime=null;}return;}   /* the smoke and embers left hanging where it went */
   if(A.k==='rush'){if(!o){b.anime=null;return;}I.mv=0;I.jump=false;
     if(A.t%8===1){const th=o.pts[HIP],side=A.n%2?1:-1,nx=clamp(th.x+side*(30*s+22*o.sc*o.C.scale),XL+30,XR-30),leg=b.dim.thigh+b.dim.shin+P[FL].r,dy=groundBelow(nx,th.y-60)-leg*.95-hip.y,dx=nx-hip.x,last=A.n>=4;
@@ -1639,7 +1660,7 @@ function sparkHit(b,o,q,dx,dy){const x=q.x,y=q.y;
   for(let i=0;i<26;i++){const a=rnd(0,6.2832),sp=rnd(4,13);part(x,y,Math.cos(a)*sp+dx*3,Math.sin(a)*sp+dy*3,rnd(14,28),rnd(1.5,3.6),pick(['#ff2a3a','#ff7a8a','#b0001c','#ffffff']),{type:1,g:0,drag:.92});}
   for(let i=0;i<14;i++){const a=rnd(0,6.2832),sp=rnd(3,9);part(x,y,Math.cos(a)*sp+dx*2,Math.sin(a)*sp+dy*2-1,rnd(18,32),rnd(1.6,3),'#0a0003',{type:7,g:.2,drag:.95});}
   shake=Math.max(shake,11);flash=Math.max(flash,.4);sfx('zap',1);sfx('boom',.75);if(timeScale===1){timeScale=.4;uiSlowEnd=frame+7;}
-  if(o.kind==='ragdoll'&&!o.dead){for(const p of o.pts)if(!p.pin){p.px-=dx*5.5;p.py-=dy*5.5-2.2;}damage(o,SPARKDMG*o.C.res.impact);/* the blow itself, on top of the punch (the user asked for far more damage): most of an ordinary dummy's health in one hit */if(!o.dead){o.stun=Math.max(o.stun,34);o.balance=0;}}}
+  if(o.kind==='ragdoll'&&!o.dead&&!warded(o)){for(const p of o.pts)if(!p.pin){p.px-=dx*5.5;p.py-=dy*5.5-2.2;}damage(o,SPARKDMG*o.C.res.impact);/* the blow itself, on top of the punch (the user asked for far more damage): most of an ordinary dummy's health in one hit */if(!o.dead){o.stun=Math.max(o.stun,34);o.balance=0;}}}
 const SPARKDMG=58;
 /* ---- the cut-scene for a Void Realm (Settings: Move cinematics) ----
    While cine is set the game itself does not step: the loop calls cineStep, which only runs the cut-scene's own clock (in sixtieths of a second, so it
@@ -1683,7 +1704,7 @@ function special(b,t,player){
     case 'spark':if(startAttack(b,'punch',t,{pow:3.2,label:'CRIMSON SPARK!',spark:true})){ring(P[f>0?HR:HL].x,P[f>0?HR:HL].y,46,'#ff2a3a',12,3);const h=P[f>0?HR:HL];for(let i=0;i<16;i++)part(h.x,h.y,rnd(-4,4),rnd(-4,4),rnd(10,18),rnd(1.5,3),pick(['#1a0508','#ff2a3a','#ff7a8a']),{type:1,g:0});flash=Math.max(flash,.15);sfx('zap',.6);lbl('Crimson Spark!');}break;
     case 'tk':tkStart(b,t,player);break;                                                              // telekinesis: lift it, hold it, throw it (the rest is tkStep, every frame while it is held)
     case 'taser':{const o=t&&t.kind==='ragdoll'&&!t.dead?t:nearestRag(b,x=>!x.dead&&!allies(b,x));                    // the officer's taser: whoever it is facing down goes rigid and drops
-      if(o&&!(o.shield>0)&&hyp(o.pts[HIP].x-hip.x,o.pts[HIP].y-hip.y)<250){b.facing=o.pts[HIP].x>=hip.x?1:-1;taser(b,o);lbl('TASER!');if(C.role==='police'&&o.C.role==='police')b.demote=true;}else{lbl('Nobody in range');b.spCd=40;}break;}
+      if(o&&!(warded(o))&&hyp(o.pts[HIP].x-hip.x,o.pts[HIP].y-hip.y)<250){b.facing=o.pts[HIP].x>=hip.x?1:-1;taser(b,o);lbl('TASER!');if(C.role==='police'&&o.C.role==='police')b.demote=true;}else{lbl('Nobody in range');b.spCd=40;}break;}
     case 'hose':{const h=P[f>0?HR:HL];for(let i=0;i<46;i++)part(h.x,h.y,f*rnd(5,12),rnd(-3.5,1.5),rnd(18,32),rnd(3,6.5),pick(['#f2f8ff','#d9ecff','#ffffff']),{type:2,g:.05});   // a burst of foam: everything burning in front of him is out
       for(const o of bodies){if(o===b||o.remove||o.kind==='anchor')continue;const p=o.pts[o.kind==='ragdoll'?HIP:0],dx=(p.x-hip.x)*f;if(dx<-20||dx>240||Math.abs(p.y-hip.y)>130)continue;
         if(o.kind==='ragdoll'){if(o.burn>0&&o.cid!=='ember')extinguish(o);o.wet=Math.max(o.wet||0,240);}else for(const q of o.pts){q.fire=0;q.heat=0;}}
@@ -1693,7 +1714,7 @@ function special(b,t,player){
     case 'whip':if(startAttack(b,'punch',t,{whip:true,pow:1.4,label:'WHIP!'}))lbl('Whip arm!');break;
     case 'laser':{let x2=f>0?XR:XL,y2=head.y;if(t){const q=t.pts[NECK];x2=q.x;y2=q.y;}
       fx.push({type:'beam',x1:head.x+f*6,y1:head.y-2,x2,y2,life:14,max:14});sfx('laser');lbl('Eye laser!');
-      if(t){const dx=x2-head.x,dy=y2-head.y,d=hyp(dx,dy)||1,k=8/Math.sqrt(t.ms);for(const p of t.pts)if(!p.pin){p.px-=dx/d*k;p.py-=dy/d*k;}provoke(t,b);damage(t,15);t.stun=Math.max(t.stun,14);ignite(t,t.pts[NECK]);sparks(x2,y2,14,'#ff6a5a',6);}break;}
+      if(t&&!warded(t)){const dx=x2-head.x,dy=y2-head.y,d=hyp(dx,dy)||1,k=8/Math.sqrt(t.ms);for(const p of t.pts)if(!p.pin){p.px-=dx/d*k;p.py-=dy/d*k;}provoke(t,b);damage(t,15);t.stun=Math.max(t.stun,14);ignite(t,t.pts[NECK]);sparks(x2,y2,14,'#ff6a5a',6);}break;}
     case 'blink':{let nx,dy=0;
       if(t){const th=t.pts[HIP],side=th.x>=hip.x?1:-1;nx=clamp(th.x+side*(34*b.sc+26*t.sc*t.C.scale),XL+30,XR-30);const leg=b.dim.thigh+b.dim.shin+P[FL].r;dy=groundBelow(nx,th.y-60)-leg*.95-hip.y;b.facing=nx>th.x?-1:1;}
       else nx=clamp(hip.x+f*170,XL+30,XR-30);
@@ -1936,7 +1957,7 @@ function aidThink(b,I){
 function setReactOn(v){reactOn=v;$('setReact').checked=v;try{localStorage.setItem('flopworksM.react',v?'1':'0');}catch(e){}}
 function tryGrip(b){
   const P=b.pts,neck=P[NECK],f=b.facing,reach=b.dim.uarm+b.dim.farm+26*b.sc;let best=null,bd=reach;
-  for(const o of bodies){if(o===b||o.remove||o.kind==='anchor'||o.kind==='saw')continue;
+  for(const o of bodies){if(o===b||o.remove||o.kind==='anchor'||o.kind==='saw'||warded(o))continue;   /* (nobody gets a grip on Infinity) */
     for(const q of o.pts){if(q.pin)continue;const dx=q.x-neck.x,dy=q.y-neck.y;if(dx*f<-12)continue;const d=hyp(dx,dy)-q.r;if(d<bd){bd=d;best=q;}}}
   if(!best){say(neck.x+f*34,neck.y-24,'nothing to grab','#9fb0d8',12);return;}
   const o=best.b,mk=hand=>{const l={p:hand,q:best,len:5,len0:5,stiff:.6,kind:'rod',w:0,cut:false,tear:0,grip:true};links.push(l);return l;};
@@ -2179,7 +2200,7 @@ function meanTurn(cv,sp,li,lv){cv.act=null;                                     
 const SHOVER=78;
 function meanThink(b,I){
   if(b.shoveT>frame){const o=b.shoveAt;if(!o||o.remove||o.dead){b.shoveT=0;return;}const h=b.pts[HIP],oh=o.pts[HIP],dir=oh.x>=h.x?1:-1;I.arms='hold';I.mv=0;b.facing=dir;                              // both hands out: the shove
-    if(b.shoveT-frame===7&&Math.abs(oh.x-h.x)<(SHOVER+16)*b.sc*b.C.scale&&Math.abs(oh.y-h.y)<70&&!(o.shield>0)&&!o.held){for(const p of o.pts)if(!p.pin){p.px-=dir*3.8;p.py+=1.2;}o.balance=Math.max(0,o.balance-.3);if(o.soc.partner)endChat(o);
+    if(b.shoveT-frame===7&&Math.abs(oh.x-h.x)<(SHOVER+16)*b.sc*b.C.scale&&Math.abs(oh.y-h.y)<70&&!(warded(o))&&!o.held){for(const p of o.pts)if(!p.pin){p.px-=dir*3.8;p.py+=1.2;}o.balance=Math.max(0,o.balance-.3);if(o.soc.partner)endChat(o);
       sfx('thud',.5);const q=o.pts[NECK];say(q.x,q.y-30,'SHOVE!','#ff8a5a',13);if(o!==possessed&&reactOn&&!o.zombie)o.sayLater={t:30,line:fillLine(pick(o.C.nice?OFFNICE:SHOVED),o,b),force:true};}
     return;}
   if(!reactOn||b.reactCd>0||b.bubble||(b.t+b.id*53)%300||b.soc.partner||!(b.mode==='stand'||isWalk(b))||b.grudge||b.fearOf||b.react||b.balance<.6||b.sleep>0||b.zombie||b.cuffT>frame||b.aid||b.cpr||b.held)return;
@@ -2432,7 +2453,7 @@ function effectsOf(b){
   if(b.sc>1.05)e.push(['Giant','#9cff9c']);else if(b.sc<.95)e.push(['Tiny','#ff9ecb']);
   if(b.burn<=0&&P.some(p=>p.smolder>0))e.push(['Smoldering','#b0b6c4']);if(P.some(p=>p.burnt>.5))e.push(['Charred','#8a8078']);if(b.toxSum>.15)e.push(['Acid in body '+Math.round(Math.min(1,b.toxSum/5)*100)+'%','#b6ff5a']);
   if(goreOn){if(P.some(p=>p.bruise>.35))e.push(isSkel(b)?['Cracked bones','#d9d2bb']:['Bruised','#b58ad6']);if(b.C.fluidCol&&!isSkel(b)&&P.some(p=>p.gore>.35))e.push(['Bloody','#ff6a6a']);}
-  if(b.brocShow>=frame-2&&!b.dead)e.push([b.broc&&b.broc.o?'Offering broccoli':'Eating broccoli','#9be56a']);if(b.shield>0)e.push(['Infinity: untouchable','#b9a8ff']);if(b.fat>0)e.push([FATNAME[b.fat]+(b.burn>0?' · burning off':''),'#ffb347']);if(b.rubberT>0)e.push(['Bouncy','#ffb347']);if(b.dizzy>0)e.push(['Dizzy','#ffd24a']);if(b.light)e.push(['Featherweight','#d9f4ff']);if(b.jam>0)e.push(['Partying','#ff8ac4']);if(b.fame>=1)e.push([(b.fame>=10000?'Famous · ':'')+fameTxt(b.fame)+' followers','#ff8ac4']);if(b.filmShow>=frame-2&&!b.dead)e.push(['Filming','#ffb3d1']);if(b.callT>0&&!b.dead)e.push(['Calling an ambulance','#ffd9a8']);if(b.medic&&!b.dead)e.push([b.medic.state==='work'?'Reviving':b.medic.state==='back'?'Heading back':'On a call','#bfe6ff']);if(b.rot>0)e.push(['Rotting '+Math.round(b.rot*100)+'%','#a6cf5a']);if(b.sadT>0&&!b.dead)e.push(['Grieving','#9fc0ff']);
+  if(b.brocShow>=frame-2&&!b.dead)e.push([b.broc&&b.broc.o?'Offering broccoli':'Eating broccoli','#9be56a']);if(b.shield>0)e.push(['Infinity: untouchable','#b9a8ff']);else if(infOn(b))e.push(['Infinity','#b9a8ff']);if(b.infHoldT>=frame-2&&!b.dead)e.push(['Caught in Infinity','#b9a8ff']);if(b.fat>0)e.push([FATNAME[b.fat]+(b.burn>0?' · burning off':''),'#ffb347']);if(b.rubberT>0)e.push(['Bouncy','#ffb347']);if(b.dizzy>0)e.push(['Dizzy','#ffd24a']);if(b.light)e.push(['Featherweight','#d9f4ff']);if(b.jam>0)e.push(['Partying','#ff8ac4']);if(b.fame>=1)e.push([(b.fame>=10000?'Famous · ':'')+fameTxt(b.fame)+' followers','#ff8ac4']);if(b.filmShow>=frame-2&&!b.dead)e.push(['Filming','#ffb3d1']);if(b.callT>0&&!b.dead)e.push(['Calling an ambulance','#ffd9a8']);if(b.medic&&!b.dead)e.push([b.medic.state==='work'?'Reviving':b.medic.state==='back'?'Heading back':'On a call','#bfe6ff']);if(b.rot>0)e.push(['Rotting '+Math.round(b.rot*100)+'%','#a6cf5a']);if(b.sadT>0&&!b.dead)e.push(['Grieving','#9fc0ff']);
   if(b.aidBy&&b.aidT>=frame-3&&b.aidBy.aidShow>=frame-3)e.push(['Being bandaged','#fff1c9']);if(b.pts.some(p=>p.band>.05&&p.att))e.push(['Bandaged','#f1e9d2']);if(b.tumble)e.push(['Tumbling','#cfd8f5']);
   if(b.deflate>0)e.push(['Deflating','#ffd9ec']);if(gravMode===2)e.push(['Weightless','#cfd8f5']);
   return e;
@@ -3337,7 +3358,7 @@ function honeyStick(){
 }
 function fluidStep(){
   if(LN){let d=false;for(let i=0;i<LN;i++)if(LDEAD[i]){d=true;break;}if(d)fluidCompact();}
-  if(LN){fluidForces();fluidStepCore();fluidVelocities();sandStep();fluidReact();honeyStick();if(bloodAt>frame-600||(liqCount[WATER]>0)+(liqCount[ACID]>0)+(liqCount[HONEY]>0)>=2)bloodMix();}
+  if(LN){fluidForces();fluidStepCore();fluidVelocities();infFluid();sandStep();fluidReact();honeyStick();if(bloodAt>frame-600||(liqCount[WATER]>0)+(liqCount[ACID]>0)+(liqCount[HONEY]>0)>=2)bloodMix();}
   else if(LSTATIC||lavaSrc.length){solidTop.fill(1e9);LSTATIC=0;lavaSrc.length=0;hazBins.fill(0);liqCount=[0,0,0,0,0,0,0,0];}
   fluidBodies();
 }
@@ -3681,7 +3702,7 @@ function gizmoStep(){
         if(G.y>=gy&&G.vy>0){if(G.vy>5){G.vy=-G.vy*.28;G.y=gy-1;sfx('thud',.25);if(G.vx)G.vx*=.6;if(G.spin)G.spin*=.5;}else{G.vy=0;G.y=gy;}}}
       else{G.y=gy;G.vy=0;if(G.vx){G.vx*=.78;if(Math.abs(G.vx)<.15)G.vx=0;}if(G.rot){G.spin=0;const a=((G.rot%6.2832)+9.4248)%6.2832-3.1416;G.rot=Math.abs(a)<.03?0:a*.75;}}}   /* on the ground it slides to a stop and sits upright again */
     if(G.type==='tesla'){if(G.cd>0)continue;const tx=G.x,ty=G.y-52;let best=null,bq=null,bd=175;                      // the coil: one arc at whatever is nearest
-      for(const b of bodies){if(b.kind==='anchor'||b.remove||(b.kind==='ragdoll'&&(b.dead||b.shield>0))||b.maxx<tx-180||b.minx>tx+180)continue;for(const p of b.pts){if(p.gone)continue;const d=hyp(p.x-tx,p.y-ty);if(d<bd){bd=d;best=b;bq=p;}}}
+      for(const b of bodies){if(b.kind==='anchor'||b.remove||(b.kind==='ragdoll'&&(b.dead||warded(b)))||b.maxx<tx-180||b.minx>tx+180)continue;for(const p of b.pts){if(p.gone)continue;const d=hyp(p.x-tx,p.y-ty);if(d<bd){bd=d;best=b;bq=p;}}}
       if(best){G.cd=110;fx.push({type:'bolt',pts:boltPath(tx,ty,bq.x,bq.y),life:11,max:11});zap(best);sparks(bq.x,bq.y,8,'#bfe6ff',5);sfx('zap',.5);}else G.cd=12;continue;}
     if(DESTROYG[G.type]){gizmoDestroy(G);if(G.dead)gizmos.splice(i,1);continue;}
     for(const b of bodies){if(b.kind==='anchor'||b.remove||b.maxx<x0-14||b.minx>x1+14||b.maxy<G.y-30||b.miny>G.y+12)continue;
@@ -3716,7 +3737,7 @@ function gizmoDestroy(G){
       else if(b){p.x+=(G.x-p.x)*.6;p.y+=(G.y-7-p.y)*.6;p.px=p.x;p.py=p.y;}
       if(G.shut<=0){G.hb=null;G.cd=150;}return;}
     if(G.cd>0)return;
-    for(const b of bodies){if(b.kind==='anchor'||b.remove||b.maxx<G.x-16||b.minx>G.x+16||b.maxy<G.y-14||b.miny>G.y+8||(b.kind==='ragdoll'&&b.shield>0))continue;
+    for(const b of bodies){if(b.kind==='anchor'||b.remove||b.maxx<G.x-16||b.minx>G.x+16||b.maxy<G.y-14||b.miny>G.y+8||(b.kind==='ragdoll'&&warded(b)))continue;
       let hit=null;for(const p of b.pts)if(!p.gone&&!p.pin&&Math.abs(p.x-G.x)<13+p.r*.3&&p.y+p.r>G.y-9&&p.y<G.y+6){hit=p;break;}if(!hit)continue;
       if(uiOn(b)){const d=b.pts[HIP].x>=G.x?1:-1;uiDodge(b,hit.x,hit.y,d,0,null);uiDash(b,d);G.shut=40;sfx('snip',1);sparks(G.x,G.y-8,6,'#c9d2e3',4);return;}   /* Ultra Instinct: it shuts on nothing */
       G.shut=40;sfx('snip',1);sfx('thud',.5);sparks(G.x,G.y-8,6,'#c9d2e3',4);
@@ -3732,7 +3753,7 @@ function gizmoDestroy(G){
         if(hp.x+dx>XR-30||hp.x+dx<XL+30){dir=-dir;dx=dir>0?c1+10-b.minx:c0-10-b.maxx;}uiDodge(b,nk.x,nk.y,dir,0,null);for(const p of b.pts){if(!p.att||p.pin)continue;p.x+=dx;p.px=p.x;p.lx=p.x;}b.planted=false;b.uiT=Math.max(b.uiT||0,frame+14);ring(nk.x+dx,nk.y,26,'#dfe8ff',12,3);}}
     if(t<90||t>=120)return;                                                          /* coming down, and while it is down: what is under it stays flat */
     const x0=G.x-G.w/2,x1=G.x+G.w/2,last=t===95;
-    for(const b of bodies){if(b.kind==='anchor'||b.remove||b.maxx<x0||b.minx>x1||b.maxy<up-BH||b.miny>G.y+8||(b.kind==='ragdoll'&&(b.shield>0||uiOn(b))))continue;
+    for(const b of bodies){if(b.kind==='anchor'||b.remove||b.maxx<x0||b.minx>x1||b.maxy<up-BH||b.miny>G.y+8||(b.kind==='ragdoll'&&(warded(b)||uiOn(b))))continue;
       let n=0,fp=null;for(const p of b.pts){if(p.gone||p.pin||p.x<x0-p.r*.4||p.x>x1+p.r*.4||p.y+p.r<py0-BH||p.y-p.r>=yb||p.y>G.y+8)continue;        /* in the way of the block as it comes down */
         const ny=Math.min(yb+p.r,G.y-Math.min(p.r,3));if(ny>p.y){p.y=ny;p.py=ny-(t<96?3:0);}n++;fp=fp||p;if(last&&b.kind==='ragdoll'){hurtPart(p,.5,.6);if(pasteOn)partHit(b,p,20);}}
       if(!n||!last)continue;
@@ -3743,12 +3764,12 @@ function gizmoDestroy(G){
   if(G.type==='burner'){const t=G.t=((G.t||0)+1)%190,fire=t>=110;if(t<96)return;                        /* from 96 it glows; the fire comes at 110 */
     if(fire)for(let i=0;i<2;i++)addFlame(G.x+rnd(-5,5),G.y-10,rnd(-.5,.5),-rnd(6,10),rnd(12,18),rnd(16,26));
     if(fire&&t%12===0)sfx('roar',.3);
-    for(const b of bodies){if(b.kind==='anchor'||b.remove||b.maxx<G.x-20||b.minx>G.x+20||b.maxy<G.y-160||b.miny>G.y+6||(b.kind==='ragdoll'&&b.shield>0))continue;
+    for(const b of bodies){if(b.kind==='anchor'||b.remove||b.maxx<G.x-20||b.minx>G.x+20||b.maxy<G.y-160||b.miny>G.y+6||(b.kind==='ragdoll'&&warded(b)))continue;
       if(uiOn(b)){let near=false;for(const p of b.pts)if(!p.gone&&Math.abs(p.x-G.x)<26+p.r&&p.y<G.y+6&&p.y>G.y-155){near=true;break;}if(near){const d=b.pts[HIP].x>=G.x?1:-1;uiDodge(b,b.pts[NECK].x,b.pts[NECK].y,d,0,null);uiDash(b,d);}continue;}   /* Ultra Instinct: it steps off the vent */
       if(fire)for(const p of b.pts){if(p.gone||Math.abs(p.x-G.x)>18+p.r*.3||p.y>G.y+6||p.y<G.y-155)continue;p.heat+=.13*(1-(G.y-p.y)/155*.6);}}
     return;}
   if(G.type==='turret'){const hx=G.x,hy=G.y-26;let best=null,bd=430;if(G.a===undefined)G.a=-PI/2;
-    for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||b.remove||b.shield>0||b.maxx<hx-430||b.minx>hx+430)continue;const q=b.pts[NECK].gone?b.pts[HIP]:b.pts[NECK],d=hyp(q.x-hx,q.y-hy);if(d<bd){bd=d;best=q;}}
+    for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||b.remove||warded(b)||b.maxx<hx-430||b.minx>hx+430)continue;const q=b.pts[NECK].gone?b.pts[HIP]:b.pts[NECK],d=hyp(q.x-hx,q.y-hy);if(d<bd){bd=d;best=q;}}
     if(!best){G.a+=(-PI/2+Math.sin(frame*.025+G.x)*.9-G.a)*.06;G.n=0;G.on=false;return;}                                      /* nobody about: it looks from side to side */
     let da=Math.atan2(best.y-hy,best.x-hx)-G.a;while(da>PI)da-=2*PI;while(da<-PI)da+=2*PI;G.a+=clamp(da,-.14,.14);if(G.a>PI)G.a-=2*PI;else if(G.a<-PI)G.a+=2*PI;G.on=true;
     if(G.cd>0||Math.abs(da)>.16)return;
@@ -3914,7 +3935,7 @@ function shiftCut(c,o){return{nx:c.nx,ny:c.ny,d:c.d-c.nx*o,x1:c.x1===undefined?u
 function stickPoly(s,L,raw){const h=s.w/2,x0=s.p.stub?0:-h*.8,x1=s.q.stub?L:L+h*.8;let P=[[x0,-h],[x1,-h],[x1,h],[x0,h]];if(!raw&&s.cuts)for(const c of s.cuts){P=polyKeep(P,c.nx,c.ny,c.d);if(P.length<3)return[];}return P;}
 function limbCol(b,root,s){return s.skel||isSkel(b)?(b.cid==='bolt'||b.C.base==='bolt'?METAL:BONE):root===SP||root===UAL||root===UAR?b.pal.shirt:root===SN||root===FAL||root===FAR?b.pal.skin:b.pal.pants;}
 function limbShave(b,s,root,x1,y1,x2,y2,dx,dy,pw){
-  if(b.shield>0||b.C.tear===0||s.cutSw===swipeN||s.w<6||(s.cuts&&s.cuts.length>=6))return false;
+  if(warded(b)||b.C.tear===0||s.cutSw===swipeN||s.w<6||(s.cuts&&s.cuts.length>=6))return false;
   const a=s.p,q=s.q,ex=q.x-a.x,ey=q.y-a.y,L=hyp(ex,ey)||1,ux=ex/L,uy=ey/L,h=s.w/2,mw=(x1+x2)/2-a.x,mh=(y1+y2)/2-a.y,mx=mw*ux+mh*uy,my=-mw*uy+mh*ux;
   if(mx<-h*.6||mx>L+h*.6||Math.abs(my)>=h*.94)return false;                                   /* the blade is not in the flesh of this part */
   const lx=dx*ux+dy*uy,ly=-dx*uy+dy*ux;let nx=-ly,ny=lx,d=nx*mx+ny*my;const sp=-d,sq=nx*L-d;
@@ -3947,7 +3968,7 @@ function headShot(b,nx,ny,D){const hd=b.pts[HEAD],r=hd.r,E=r*1.45,SS=3,n=Math.ce
 /* returns 1: a piece came off. 0: the blade missed the head or only grazed it. 2: not a slice (the blade is between the middle of the head and the chin): off at the neck, as before */
 function headSlice(b,x1,y1,x2,y2,dx,dy,pw,free){   /* free: the head is off its body, so there is no neck side to keep: any cut is a slice */
   const hd=b.pts[HEAD],r=hd.r;if(hd.gone||b.C.tear===0)return 2;
-  if(b.shield>0||distSeg(hd.x,hd.y,x1,y1,x2,y2)>=r*.96||hd.cutSw===swipeN)return 0;
+  if(warded(b)||distSeg(hd.x,hd.y,x1,y1,x2,y2)>=r*.96||hd.cutSw===swipeN)return 0;
   const ang=b.hang||0,co=Math.cos(ang),si=Math.sin(ang),mw=(x1+x2)/2-hd.x,mh=(y1+y2)/2-hd.y,mx=mw*co+mh*si,my=-mw*si+mh*co,ux=dx*co+dy*si,uy=-dx*si+dy*co;
   let nx=-uy,ny=ux,D=nx*mx+ny*my;if(D<0){nx=-nx;ny=-ny;D=-D;}                 /* n points at the side that comes off: the one the middle of the head is not on */
   if(!free&&ny*r>D)return 2;
@@ -3965,7 +3986,7 @@ function headSlice(b,x1,y1,x2,y2,dx,dy,pw,free){   /* free: the head is off its 
    comes away with a short stump left behind. A stub or a piece that is grabbed tears at whatever bone it is on. Both torn ends are marked to show bone
    and nerves every time (wfb, wfn), and b.sinew holds the nerves that still join them for a moment. */
 const BRUTEPULL=20,SINEWMAX=78,BRUTEIN=[SN,SP,SP,UAL,FAL,UAR,FAR,THL,SHL,THR,SHR];   /* by point: HEAD,NECK,HIP,EL,HL,ER,HR,KL,FL,KR,FR */
-function bruteRip(p,dx,dy){const b=p.b;if(b.kind!=='ragdoll'||b.shield>0||b.C.tear===0)return false;
+function bruteRip(p,dx,dy){const b=p.b;if(b.kind!=='ragdoll'||warded(b)||b.C.tear===0)return false;
   const d=hyp(dx,dy)||1;dx/=d;dy/=d;const want=BRUTEIN[b.pts.indexOf(p)];let s=null,sr=-1;
   for(let k=0;k<b.sticks.length;k++){const t=b.sticks[k];if(t.cut||t.kind!=='bone'||t.nocut||(t.p!==p&&t.q!==p))continue;const root=t.src===undefined?k:t.src;if(root>SHR)continue;if(root===want){s=t;sr=root;break;}if(!s){s=t;sr=root;}}
   if(!s)return false;
@@ -3977,7 +3998,7 @@ function bruteRip(p,dx,dy){const b=p.b;if(b.kind!=='ragdoll'||b.shield>0||b.C.te
   (b.sinew||(b.sinew=[])).push({a:A,b:B,t:frame,n:3+((Math.random()*3)|0)});if(b.sinew.length>8)b.sinew.shift();
   bleedFx(b,(A.x+B.x)/2,(A.y+B.y)/2,16,dx,dy,5);shake=Math.max(shake,3);sfx('thud',.7);mayhem+=12;
   return true;}
-function sliceLimb(b,s,x1,y1,x2,y2,dx,dy,pw,tf){if(b.shield>0)return;   // tf: cut at this point along the bone (0 to 1) instead of where the blade crosses it
+function sliceLimb(b,s,x1,y1,x2,y2,dx,dy,pw,tf){if(warded(b))return;   // tf: cut at this point along the bone (0 to 1) instead of where the blade crosses it
   const root=s.src===undefined?b.sticks.indexOf(s):s.src,sub=s.src!==undefined;
   if(root===SN||root>SHR||s.len<7||b.sticks.length>=SOFT+1+90){if(!sub)cutStick(b,s);return;}      /* necks, tiny limbs: cut at the joint as before */
   const ex=s.q.x-s.p.x,ey=s.q.y-s.p.y,L=hyp(ex,ey)||1,rx=x2-x1,ry=y2-y1,tm=Math.min(.45,1.5/L),t=clamp(tf!==undefined?tf:((s.p.x-x1)*ry-(s.p.y-y1)*rx)/((rx*ey-ry*ex)||1e-9),tm,1-tm);   /* exactly where the blade crosses, leaving only enough at each end (1.5px) to be a piece. (It used to be kept between 16% and 84% of the way along: a cut by the wrist landed well up the forearm) */
@@ -4003,7 +4024,7 @@ function bladeZ(b,root){const back=(turnOn&&b.fs!==undefined?b.fs:b.facing)>0?0:
 function bladeLeaf(b,p){const i=b.pts.indexOf(p);return i===HEAD||i===HL||i===HR||i===FL||i===FR;}   // a hand, a foot or the head: the round end of a limb
 /* the part of a dummy under the pointer, and of several the one drawn in front */
 function bladePick(x,y){let best=null,bz=-1;
-  for(const b of bodies){if(b.remove||b.kind!=='ragdoll'||b.shield>0||b.C.tear===0||x<b.minx-16||x>b.maxx+16||y<b.miny-16||y>b.maxy+16)continue;
+  for(const b of bodies){if(b.remove||b.kind!=='ragdoll'||warded(b)||b.C.tear===0||x<b.minx-16||x>b.maxx+16||y<b.miny-16||y>b.maxy+16)continue;
     for(let k=0;k<b.sticks.length;k++){const s=b.sticks[k];if(s.cut||s.kind!=='bone'||s.nocut||s.p.gone||s.q.gone)continue;const root=s.src===undefined?k:s.src;if(root>SHR)continue;
       const dl=distSeg(x,y,s.p.x,s.p.y,s.q.x,s.q.y);let d=dl-s.w*.5;for(const p of [s.p,s.q])if(bladeLeaf(b,p))d=Math.min(d,hyp(x-p.x,y-p.y)-p.r);
       if(d>2)continue;const z=bladeZ(b,root)*1000-Math.min(900,dl);if(z>bz){bz=z;best={b,s,root,x,y,done:false};}}}   // (the one in front; of two at the same depth, the one whose middle the pointer is nearer)
@@ -4206,7 +4227,7 @@ const TOOLS={
     move(){if(!mouse.down)return;const sx=mouse.x-this.px,sy=mouse.y-this.py,sl=hyp(sx,sy);if(sl<1.5)return;            /* measured from where the last cut ended (px,py), not from the last mouse event: a slow swipe arrives 1 or 2px at a time, and those were all thrown away, so a careful swipe cut nothing */
       let dx=mouse.x-this.ax,dy=mouse.y-this.ay,d=hyp(dx,dy);if(d>28){this.ax=mouse.x-dx/d*28;this.ay=mouse.y-dy/d*28;}
       if(d<8){dx=sx;dy=sy;d=sl;}slash(this.px,this.py,mouse.x,mouse.y,dx/d,dy/d,this.tg);this.len+=sl;this.px=mouse.x;this.py=mouse.y;},
-    up(){const T=this.tg;this.tg=null;if(!T||T.done||this.len<8||T.b.remove||T.s.cut||T.b.shield>0)return;                 // pressed on a part and swiped, but never across its middle: it is cut where it was pressed
+    up(){const T=this.tg;this.tg=null;if(!T||T.done||this.len<8||T.b.remove||T.s.cut||warded(T.b))return;                 // pressed on a part and swiped, but never across its middle: it is cut where it was pressed
       if(T.root===SN){const hd=T.b.pts[HEAD];if(!hd.gone&&hyp(T.x-hd.x,T.y-hd.y)<hd.r+2)return;}   /* pressed on the head and only grazed it: nothing comes off (this used to take the whole head) */
       const s=T.s,ex=s.q.x-s.p.x,ey=s.q.y-s.p.y,L2=ex*ex+ey*ey||1,t=clamp(((T.x-s.p.x)*ex+(T.y-s.p.y)*ey)/L2,0,1);let dx=mouse.x-T.x,dy=mouse.y-T.y;const d=hyp(dx,dy)||1;dx/=d;dy/=d;
       sliceLimb(T.b,s,T.x-dx*6,T.y-dy*6,T.x+dx*6,T.y+dy*6,dx,dy,1.2,t);}},
@@ -4487,7 +4508,7 @@ function headBurst(b,ux,uy){const hd=b.pts[HEAD],x=hd.x,y=hd.y,col=b.pal.skin;
 function gunShoot(G,mx,my,ax,ay,by){                           // one pull of the trigger from a muzzle at mx,my. by: the dummy holding the gun, or nothing when it is the player's
   const a=Math.atan2(ay,ax),zo=!!(by&&by.kind==='ragdoll'&&by.grudge&&isZombie(by.grudge)&&by.calmMode&&by!==possessed&&!(by.rage>0));   // zo: a bystander who has taken on a zombie. It is careful: only zombies are hit
   if(G.flame){for(let i=0;i<3;i++){const t=a+rnd(-.15,.15),sp=rnd(7,11);addFlame(mx,my,Math.cos(t)*sp,Math.sin(t)*sp,rnd(12,19),rnd(18,28));}
-    const R=155;for(const o of bodies){if(o===by||o.remove||o.kind==='anchor'||(o.kind==='ragdoll'&&(o.shield>0||(by&&sameTeam(by,o))||(zo&&!isZombie(o)))))continue;if(o.maxx<mx-R||o.minx>mx+R||o.maxy<my-R||o.miny>my+R)continue;let hit=false;
+    const R=155;for(const o of bodies){if(o===by||o.remove||o.kind==='anchor'||(o.kind==='ragdoll'&&(warded(o)||(by&&sameTeam(by,o))||(zo&&!isZombie(o)))))continue;if(o.maxx<mx-R||o.minx>mx+R||o.maxy<my-R||o.miny>my+R)continue;let hit=false;
       for(const p of o.pts){if(p.gone)continue;const dx=p.x-mx,dy=p.y-my,d=hyp(dx,dy);if(d>R||d<1||(dx*ax+dy*ay)/d<.92)continue;p.heat+=.11*(1-d/R*.6);hit=true;}
       if(hit&&by&&o.kind==='ragdoll'&&frame%15===0)provoke(o,by);}
     if(frame%9===0)sfx('roar',.45);return;}
@@ -4676,7 +4697,7 @@ function impaleStart(b,o,q){const P=o.pts,pi=P.indexOf(q),part=pi===HEAD||pi===N
 function impaleEnd(b,dir){const K=b.impale;b.impale=null;if(!K)return;const o=K.o;if(o.impaledBy===b)o.impaledBy=null;if(!K.pin)K.q.pin=false;K.q.imp=false;if(o.remove)return;
   const dx=dir?dir[0]:b.facing,dy=dir?dir[1]:0;for(const p of o.pts)if(!p.pin){p.px-=dx*3.6;p.py-=dy*3.6-1;}bleedFx(o,K.q.x,K.q.y,14,dx,dy,6);bleedFx(o,K.q.x,K.q.y,8,-dx,-dy,4);o.balance=0;o.stun=Math.max(o.stun,22);b.atkCd=Math.max(b.atkCd,36);sfx('snip',.7);}
 function impaleStep(b,I){const K=b.impale,o=K.o,P=b.pts,h=b.gun&&GUNS[b.gun.id]&&GUNS[b.gun.id].pierce?gunHand(b):null;
-  if(!h||b.dead||b.frozen>0||b.stun>4||b.held||b.balance<.3||o.remove||o.shield>0||o.held||K.q.gone){impaleEnd(b);return;}
+  if(!h||b.dead||b.frozen>0||b.stun>4||b.held||b.balance<.3||o.remove||warded(o)||o.held||K.q.gone){impaleEnd(b);return;}
   if(b.atk&&b.atk.thrust)b.atk=null;   /* the thrust has landed: the swing is over, the arm stays out */
   const e=h===P[HR]?P[ER]:P[EL],fx0=h.x-e.x,fy0=h.y-e.y,fl=hyp(fx0,fy0)||1,dx=fx0/fl,dy=fy0/fl,s=.8*b.sc,L=(GUNS[b.gun.id]._tip||36)*s,tx=h.x+dx*L*.36,ty=h.y+dy*L*.36,q=K.q,neck=P[NECK],bs=b.sc*b.C.scale;
   if(++K.t>IMPALET){impaleEnd(b,[dx,dy]);return;}
@@ -4750,18 +4771,18 @@ function bondPower(k,col,first,done,gone){return{a:null,
     const A=this.a;this.a=null;bondSet(A,b,k);for(const m of [A,b]){const q=m.pts[HEAD];say(q.x,q.y-36,done,col,18);ring(q.x,q.y,44,col,16,3);}sfx(k==='love'?'heal':'roar',.8);}};}
 Object.assign(POWERS,{
   launch:{name:'Launch',icon:'🚀',desc:'Click a ragdoll to shoot it straight up into the sky.',
-    down(){const b=ragAt(70);if(!b||b.shield>0)return;for(const p of b.pts)if(!p.pin){p.py=p.y+rnd(24,28);p.px=p.x+rnd(-1.5,1.5);}b.planted=false;b.airT=20;const h=b.pts[HIP];smoke(h.x,h.y+30,6);ring(h.x,h.y+20,60,'#ffd27a',14,3);sfx('whoosh',1.3);
+    down(){const b=ragAt(70);if(!b||warded(b))return;for(const p of b.pts)if(!p.pin){p.py=p.y+rnd(24,28);p.px=p.x+rnd(-1.5,1.5);}b.planted=false;b.airT=20;const h=b.pts[HIP];smoke(h.x,h.y+30,6);ring(h.x,h.y+20,60,'#ffd27a',14,3);sfx('whoosh',1.3);
       if(reactOn&&!b.dead&&b!==possessed)bubble(b,customLine(b,'thrown')||pick(['WHOAAA!','Not agaaain!','Wheeee!','Put me dooown!']),70);}},
   pillar:{name:'Rock pillar',short:'Pillar',icon:'🗿',desc:'Click the ground: a pillar of rock shoots up out of it and throws whatever was standing there. The rock stays.',
     down(){if(powerCd>0)return;powerCd=25;const x=clamp(mouse.x,XL+30,XR-30),gy=groundBelow(x,mouse.y-10,true);for(let j=0;j<13;j++)for(let i=-2;i<=2;i++)fluidAdd(ROCK,x+i*8,gy-5-j*8,0,0);
-      for(const b of bodies){if(b.kind==='anchor'||(b.kind==='ragdoll'&&b.shield>0))continue;let hit=false;for(const p of b.pts){if(p.pin||Math.abs(p.x-x)>34||p.y<gy-130||p.y>gy+10)continue;p.py=p.y+rnd(15,19);p.px=p.x-(p.x<x?-1:1)*rnd(1,3);hit=true;}if(hit&&b.kind==='ragdoll')b.planted=false;}
+      for(const b of bodies){if(b.kind==='anchor'||(b.kind==='ragdoll'&&warded(b)))continue;let hit=false;for(const p of b.pts){if(p.pin||Math.abs(p.x-x)>34||p.y<gy-130||p.y>gy+10)continue;p.py=p.y+rnd(15,19);p.px=p.x-(p.x<x?-1:1)*rnd(1,3);hit=true;}if(hit&&b.kind==='ragdoll')b.planted=false;}
       shake=Math.max(shake,5);sfx('boom',.6);for(let i=0;i<8;i++)smoke(x+rnd(-20,20),gy-4,1);witness(x,gy,'seeBoom',null,null,'','gasp',300);}},
   warp:{name:'Teleport',short:'Warp',icon:'✨',desc:'Click a ragdoll, then click anywhere: it is teleported there.',a:null,
     down(){if(!this.a||this.a.remove){const b=ragAt();if(!b)return;this.a=b;const h=b.pts[HIP];ring(h.x,h.y-20,54,'#c9a0ff',20,3);say(h.x,h.y-70,'Teleport to…','#c9a0ff',13);sfx('click');return;}
       const A=this.a;this.a=null;const h=A.pts[HIP],dx=clamp(mouse.x,XL+30,XR-30)-h.x,dy=clamp(mouse.y,CEIL+70,FLOOR-50)-h.y;for(const q of A.pts)smoke(q.x,q.y,1);
       for(const q of A.pts){q.x+=dx;q.y+=dy;q.px+=dx;q.py+=dy;q.lx=q.x;q.ly=q.y;}A.planted=false;A.hitGuard=30;for(const q of A.pts)smoke(q.x,q.y,1);ring(h.x,h.y-20,60,'#c9a0ff',16,3);sfx('whoosh',1.1);}},
   stun:{name:'Stun',icon:'💫',desc:'Click: everyone nearby is knocked off their feet and left dazed for a few seconds.',
-    down(){const x=mouse.x,y=mouse.y;ring(x,y,190,'#ffe066',20,5);sfx('zap',.6);for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||b.shield>0)continue;const h=b.pts[HIP];if(hyp(h.x-x,h.y-y)>200)continue;
+    down(){const x=mouse.x,y=mouse.y;ring(x,y,190,'#ffe066',20,5);sfx('zap',.6);for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||warded(b))continue;const h=b.pts[HIP];if(hyp(h.x-x,h.y-y)>200)continue;
         b.stun=Math.max(b.stun,150);b.balance=0;b.atk=null;const hd=b.pts[HEAD];say(hd.x,hd.y-30,'✦ ✦','#ffe066',15);}}},
   disarm:{name:'Disarm',icon:'🫳',desc:'Click: everyone nearby drops whatever weapon they are holding.',
     down(){const x=mouse.x,y=mouse.y;ring(x,y,210,'#9fe8ff',20,4);let k=0;for(const b of bodies){if(b.kind!=='ragdoll'||!b.gun)continue;const h=b.pts[HIP];if(hyp(h.x-x,h.y-y)>220)continue;dropGun(b);k++;}sfx(k?'click':'whoosh',.8);if(k)say(x,y-20,'DISARMED','#9fe8ff',16);}},
@@ -4866,7 +4887,7 @@ Object.assign(POWERS,{
         b.grudge=null;b.atk=null;b.crimeT=0;if(b.rage>0&&!potOn(b,'fury'))b.rage=0;if(b.mode==='fight'&&!potOn(b,'fury')){setMode(b,b.calmMode||'stand');if(selected===b)syncModeUI();}b.cheerT=frame+240;const hd=b.pts[HEAD];ring(hd.x,hd.y,26,'#bfe6ff',12,2);}}},
   slam:{name:'Slam',short:'Slam',icon:'👇',desc:'Click: everything nearby is slammed straight down into the floor.',
     down(){if(powerCd>0)return;powerCd=16;const x=mouse.x,y=mouse.y;ring(x,y,230,'#ffb37a',18,6);sfx('boom',.5);shake=Math.max(shake,5);
-      for(const b of bodies){if(b.remove||b.kind==='anchor'||(b.kind==='ragdoll'&&b.shield>0))continue;const c=b.pts[b.kind==='ragdoll'?HIP:b.pts.length-1];if(hyp(c.x-x,c.y-y)>240)continue;for(const p of b.pts)if(!p.pin){p.py-=19;p.px=p.x-(p.x-p.px)*.4;}if(b.kind==='ragdoll'){b.balance=0;b.hitGuard=0;b.planted=false;}}}},
+      for(const b of bodies){if(b.remove||b.kind==='anchor'||(b.kind==='ragdoll'&&warded(b)))continue;const c=b.pts[b.kind==='ragdoll'?HIP:b.pts.length-1];if(hyp(c.x-x,c.y-y)>240)continue;for(const p of b.pts)if(!p.pin){p.py-=19;p.px=p.x-(p.x-p.px)*.4;}if(b.kind==='ragdoll'){b.balance=0;b.hitGuard=0;b.planted=false;}}}},
 });
 Object.assign(TOOLS,{
   tnt:{name:'TNT crate',short:'TNT',icon:'🛢️',desc:'Spawn a crate of explosives. Smash it, shoot it or let it burn and it blows up. A clean cut with the blade makes it safe.',down(){const b=makeCrate(mouse.x,mouse.y);b.tnt=true;b.hp=20;sfx('click');}},
@@ -4874,7 +4895,7 @@ Object.assign(TOOLS,{
   wreck:{name:'Wrecking ball',short:'Wrecker',icon:'🏗️',desc:'Click to hang a wrecking ball on a chain from that spot. Pull it back with the hand and let it swing.',
     down(){const a=makeAnchor(mouse.x,mouse.y).pts[0],len=clamp(groundBelow(mouse.x,mouse.y)-mouse.y-34,50,170),b=makeBowl(mouse.x,mouse.y+len,21,22);links.push({p:a,q:b.pts[0],len,len0:len,stiff:1,kind:'rope',w:5,cut:false,tear:0});sfx('click');}},
 });
-function bowlHit(o,v){const p=o.pts[0],now=hyp(p.x-p.px,p.y-p.py),was=hyp(p.vx0,p.vy0),vx=was>now?p.vx0:p.x-p.px,vy=was>now?p.vy0:p.y-p.py,sp=Math.max(now,was);if(sp<3.5||v.kind!=='ragdoll'||v.shield>0||frame<(v.bowlT||0))return;v.bowlT=frame+26;   // a heavy ball going at any speed takes a dummy off its feet
+function bowlHit(o,v){const p=o.pts[0],now=hyp(p.x-p.px,p.y-p.py),was=hyp(p.vx0,p.vy0),vx=was>now?p.vx0:p.x-p.px,vy=was>now?p.vy0:p.y-p.py,sp=Math.max(now,was);if(sp<3.5||v.kind!=='ragdoll'||warded(v)||frame<(v.bowlT||0))return;v.bowlT=frame+26;   // a heavy ball going at any speed takes a dummy off its feet
   damage(v,Math.min(45,(sp-2)*2.1*Math.sqrt(p.m/9))*v.C.res.impact);v.balance=0;v.stun=Math.max(v.stun,18+sp);v.planted=false;for(const q of v.pts)if(!q.pin){q.px-=vx*.55;q.py-=vy*.55-2.5;}
   if(o.spiky&&!(v.uiT>=frame)&&!infOn(v)){let q=null,qd=1e9;for(const u of v.pts){if(u.gone)continue;const e=hyp(u.x-p.x,u.y-p.y);if(e<qd){qd=e;q=u;}}if(q){damage(v,10*v.C.res.impact);hurtPart(q,.5,.6);bleedFx(v,q.x,q.y,10,vx/(sp||1),vy/(sp||1),5);partHit(v,q,16);}}   /* a mace: its spikes tear open the part they strike */
   const c=v.pts[HIP];sfx('thud',1);if(sp>9){say(c.x,c.y-50,'STRIKE!','#ffe066',16);shake=Math.max(shake,3);}}
@@ -4911,7 +4932,7 @@ function step(){
   for(let it=0;it<ITER;it++){
     for(const b of bodies){for(const s of b.sticks)solveStick(s);if(b.ice)for(const s of b.ice)solveStick(s);}
     for(const l of links)solveStick(l);
-    collideBodies();solidPaints();infFields();
+    collideBodies();solidPaints();infFields(it===ITER-1);
     for(const b of bodies)for(const p of b.pts)collideWorld(p);
   }
   for(const b of bodies){contactResponse(b);postBody(b);}
@@ -5599,7 +5620,7 @@ let SPEC=null;function specialList(){if(!SPEC){SPEC={};for(const id in CHARS){co
   SPEC.rush={name:'Vanishing Rush',cd:260,from:'anime',desc:'the Vanishing Rush: it flickers round whoever it is fighting, striking from each side in turn, and finishes with a kick that launches them.'};
   SPEC.orb={name:'Star Orb',cd:330,from:'anime',desc:'the Star Orb: it raises its arms, gathers a great ball of light overhead and throws it. The ball bursts where it lands.'};
   SPEC.realm={name:'Void Realm',cd:600,from:'anime',desc:'the Void Realm: it makes a hand sign, and a great dark dome opens around it for five seconds. Its wall is solid: everyone else caught inside is cut again and again, and nothing gets them out.'};
-  SPEC.inf={name:'Infinity',cd:320,from:'anime',desc:'Infinity: an invisible barrier that nothing gets through. Whatever comes at it slows more and more the nearer it gets and never arrives: fists, weapons, bullets, thrown things, other bodies. Blasts, blades and shocks stop short of it too. It is down while the character is itself attacking, stunned, frozen, asleep or in your hand, and a Void Realm cuts through it. Used as a move, it throws back everything round it.'};
+  SPEC.inf={name:'Infinity',cd:320,from:'anime',desc:'Infinity: an invisible barrier that nothing gets through. Whatever comes at it slows more and more the nearer it gets and never arrives: fists, weapons, bullets, thrown things, liquids, other bodies. Anyone who walks into it is caught: slowed right down and stuck there for a moment before they can pull away. Nothing can hurt, cut, burn, freeze, shock or grab the character while it is up, and it stays up while the character attacks (its own blows reach out through it). Only your hand, sleep and a Void Realm take it down. Used as a move, it throws back everything round it.'};
   SPEC.spark={name:'Crimson Spark',cd:170,from:'anime',desc:'the Crimson Spark: one punch, three times as hard. Black lightning edged in red bursts out where it lands, the world stops for an instant, and whoever it hit is thrown.'};}return SPEC;}   /* every special move in the game, with the character it comes from */
 function customRegister(d){
   const B=CHARS[d.base]&&!CHARS[d.base].custom?CHARS[d.base]:CHARS.human,H=d.head!=='blank'&&CHARS[d.head]&&!CHARS[d.head].custom?CHARS[d.head]:null,C=CHARS[d.id]||{};
