@@ -3676,6 +3676,7 @@ function gizmoDestroy(G){
     if(G.cd>0)return;
     for(const b of bodies){if(b.kind==='anchor'||b.remove||b.maxx<G.x-16||b.minx>G.x+16||b.maxy<G.y-14||b.miny>G.y+8||(b.kind==='ragdoll'&&b.shield>0))continue;
       let hit=null;for(const p of b.pts)if(!p.gone&&!p.pin&&Math.abs(p.x-G.x)<13+p.r*.3&&p.y+p.r>G.y-9&&p.y<G.y+6){hit=p;break;}if(!hit)continue;
+      if(uiOn(b)){const d=b.pts[HIP].x>=G.x?1:-1;uiDodge(b,hit.x,hit.y,d,0,null);uiDash(b,d);G.shut=40;sfx('snip',1);sparks(G.x,G.y-8,6,'#c9d2e3',4);return;}   /* Ultra Instinct: it shuts on nothing */
       G.shut=40;sfx('snip',1);sfx('thud',.5);sparks(G.x,G.y-8,6,'#c9d2e3',4);
       if(b.kind==='balloon')popBalloon(b);else if(b.kind==='crate')crateHit(b,14);
       else if(b.kind==='ragdoll'){G.shut=260;G.hb=b;G.hq=hit;if(!b.dead){damage(b,20);b.stun=Math.max(b.stun,40);react(b,'hit');}hurtPart(hit,.5,.6);bleedFx(b,hit.x,hit.y,9,0,-1,4);if(pasteOn)partHit(b,hit,12);const h=b.pts[HEAD];say(h.x,h.y-34,'SNAP!','#ffe066',16);}
@@ -3683,9 +3684,12 @@ function gizmoDestroy(G){
     return;}
   if(G.type==='press'){const BH=24,up=G.y-G.h+12+BH,py0=G.yb===undefined?up:G.yb,t=G.t=((G.t||0)+1)%170;
     const yb=t<90?up:t<96?up+(G.y-up)*((t-89)/6)*((t-89)/6):t<120?G.y:G.y-(G.y-up)*((t-120)/50);G.yb=yb;
+    if(t===88){const c0=G.x-G.w/2-8,c1=G.x+G.w/2+8;                                    /* Ultra Instinct: by the time the block comes down it is standing beside the crusher */
+      for(const b of bodies){if(b.kind!=='ragdoll'||b.remove||b.maxx<c0||b.minx>c1||b.maxy<up-BH||b.miny>G.y+8||!uiOn(b))continue;const hp=b.pts[HIP],nk=b.pts[NECK];let dir=hp.x>=G.x?1:-1,dx=dir>0?c1+10-b.minx:c0-10-b.maxx;
+        if(hp.x+dx>XR-30||hp.x+dx<XL+30){dir=-dir;dx=dir>0?c1+10-b.minx:c0-10-b.maxx;}uiDodge(b,nk.x,nk.y,dir,0,null);for(const p of b.pts){if(!p.att||p.pin)continue;p.x+=dx;p.px=p.x;p.lx=p.x;}b.planted=false;b.uiT=Math.max(b.uiT||0,frame+14);ring(nk.x+dx,nk.y,26,'#dfe8ff',12,3);}}
     if(t<90||t>=120)return;                                                          /* coming down, and while it is down: what is under it stays flat */
     const x0=G.x-G.w/2,x1=G.x+G.w/2,last=t===95;
-    for(const b of bodies){if(b.kind==='anchor'||b.remove||b.maxx<x0||b.minx>x1||b.maxy<up-BH||b.miny>G.y+8||(b.kind==='ragdoll'&&b.shield>0))continue;
+    for(const b of bodies){if(b.kind==='anchor'||b.remove||b.maxx<x0||b.minx>x1||b.maxy<up-BH||b.miny>G.y+8||(b.kind==='ragdoll'&&(b.shield>0||uiOn(b))))continue;
       let n=0,fp=null;for(const p of b.pts){if(p.gone||p.pin||p.x<x0-p.r*.4||p.x>x1+p.r*.4||p.y+p.r<py0-BH||p.y-p.r>=yb||p.y>G.y+8)continue;        /* in the way of the block as it comes down */
         const ny=Math.min(yb+p.r,G.y-Math.min(p.r,3));if(ny>p.y){p.y=ny;p.py=ny-(t<96?3:0);}n++;fp=fp||p;if(last&&b.kind==='ragdoll'){hurtPart(p,.5,.6);if(pasteOn)partHit(b,p,20);}}
       if(!n||!last)continue;
@@ -3693,11 +3697,12 @@ function gizmoDestroy(G){
       else if(b.kind==='ragdoll'){if(!b.dead){damage(b,24+n*7);b.stun=Math.max(b.stun,70);tumbleStart(b);react(b,'hit');}bleedFx(b,fp.x,fp.y,8+n*2,0,-1,6);}}
     if(last){shake=Math.max(shake,6);sfx('thud',1.4);sparks(x0,G.y-2,6,'#ffe9a8',5);sparks(x1,G.y-2,6,'#ffe9a8',5);smoke(G.x,G.y-4,3);}
     return;}
-  if(G.type==='burner'){const t=G.t=((G.t||0)+1)%190;if(t<110)return;
-    for(let i=0;i<2;i++)addFlame(G.x+rnd(-5,5),G.y-10,rnd(-.5,.5),-rnd(6,10),rnd(12,18),rnd(16,26));
-    if(t%12===0)sfx('roar',.3);
+  if(G.type==='burner'){const t=G.t=((G.t||0)+1)%190,fire=t>=110;if(t<96)return;                        /* from 96 it glows; the fire comes at 110 */
+    if(fire)for(let i=0;i<2;i++)addFlame(G.x+rnd(-5,5),G.y-10,rnd(-.5,.5),-rnd(6,10),rnd(12,18),rnd(16,26));
+    if(fire&&t%12===0)sfx('roar',.3);
     for(const b of bodies){if(b.kind==='anchor'||b.remove||b.maxx<G.x-20||b.minx>G.x+20||b.maxy<G.y-160||b.miny>G.y+6||(b.kind==='ragdoll'&&b.shield>0))continue;
-      for(const p of b.pts){if(p.gone||Math.abs(p.x-G.x)>18+p.r*.3||p.y>G.y+6||p.y<G.y-155)continue;p.heat+=.13*(1-(G.y-p.y)/155*.6);}}
+      if(uiOn(b)){let near=false;for(const p of b.pts)if(!p.gone&&Math.abs(p.x-G.x)<26+p.r&&p.y<G.y+6&&p.y>G.y-155){near=true;break;}if(near){const d=b.pts[HIP].x>=G.x?1:-1;uiDodge(b,b.pts[NECK].x,b.pts[NECK].y,d,0,null);uiDash(b,d);}continue;}   /* Ultra Instinct: it steps off the vent */
+      if(fire)for(const p of b.pts){if(p.gone||Math.abs(p.x-G.x)>18+p.r*.3||p.y>G.y+6||p.y<G.y-155)continue;p.heat+=.13*(1-(G.y-p.y)/155*.6);}}
     return;}
   if(G.type==='turret'){const hx=G.x,hy=G.y-26;let best=null,bd=430;if(G.a===undefined)G.a=-PI/2;
     for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||b.remove||b.shield>0||b.maxx<hx-430||b.minx>hx+430)continue;const q=b.pts[NECK].gone?b.pts[HIP]:b.pts[NECK],d=hyp(q.x-hx,q.y-hy);if(d<bd){bd=d;best=q;}}
