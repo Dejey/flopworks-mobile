@@ -1389,6 +1389,8 @@ function spinStep(b){if(b.xk==='c4')return;const p=b.pts[0];if(b.rot===undefined
   else if(p.hit)b.spin*=.9;else b.spin*=p.in?.92:.997;
   b.rot+=b.spin;}
 function spinTip(b,p){const o=b.xk==='dyn'?[4,-p.r-14]:b.xk?[0,-p.r-4]:[1.15*p.r,-1.31*p.r],a=b.rot||0,c=Math.cos(a),s=Math.sin(a);return [p.x+o[0]*c-o[1]*s,p.y+o[0]*s+o[1]*c];}
+/* the same for food (a gizmo, not a body): dragged, it is thrown that way and turns as it flies */
+function gizThrow(G){if(!aim)return;const dx=mouse.x-aim.x,dy=mouse.y-aim.y,d=hyp(dx,dy);aim=null;if(d<8)return;const sp=clamp(d*.11,4,22);G.vx=dx/d*sp;G.vy=dy/d*sp;G.rot=0;G.spin=clamp(G.vx*.02,-.3,.3)+rnd(-.03,.03);}
 function throwGo(b){if(!aim)return false;const dx=mouse.x-aim.x,dy=mouse.y-aim.y,d=hyp(dx,dy);aim=null;if(d<8)return false;const sp=clamp(d*.11,4,24);for(const p of b.pts){p.px=p.x-dx/d*sp;p.py=p.y-dy/d*sp;}b.rot=b.rot||0;b.spin=clamp(dx/d*sp*.018,-.3,.3)+rnd(-.04,.04);return true;}   /* and it leaves the hand spinning */
 function bombGo(b,x,y){const k=b.xk,by=b.owner;
   if(k==='dyn'){boom(x,y,by);explode(x,y,340,24,30,{quiet:true,tear:true});ring(x,y,330,'#ffb347',28,7);shake=Math.max(shake,16);flash=Math.max(flash,.8);
@@ -3672,7 +3674,10 @@ function gizmoStep(){
   if(sawDoomed.length)sawDoomStep();
   for(let i=gizmos.length-1;i>=0;i--){const G=gizmos[i];if(G.cd>0)G.cd--;const x0=G.x-G.w/2,x1=G.x+G.w/2;let used=false;
     if(G.vy!==undefined&&gravity>0){const gy=groundBelow(G.x,G.y-10);                                             // dropped things fall until something is under them, with one small bounce
-      if(G.y<gy-.5){G.vy=Math.min(16,G.vy+gravity);G.y+=G.vy;if(G.y>=gy){if(G.vy>5){G.vy=-G.vy*.28;G.y=gy-1;sfx('thud',.25);}else{G.vy=0;G.y=gy;}}}else{G.y=gy;G.vy=0;}}
+      if(G.vx){G.x+=G.vx;if(G.x<XL+12){G.x=XL+12;G.vx=-G.vx*.4;}else if(G.x>XR-12){G.x=XR-12;G.vx=-G.vx*.4;}}                                    /* thrown: it travels, and comes off the side walls */
+      if(G.y<gy-.5||G.vy<0){G.vy=Math.min(16,G.vy+gravity);G.y+=G.vy;if(G.y<CEIL+12){G.y=CEIL+12;G.vy=Math.abs(G.vy)*.3;}if(G.spin)G.rot+=G.spin;
+        if(G.y>=gy&&G.vy>0){if(G.vy>5){G.vy=-G.vy*.28;G.y=gy-1;sfx('thud',.25);if(G.vx)G.vx*=.6;if(G.spin)G.spin*=.5;}else{G.vy=0;G.y=gy;}}}
+      else{G.y=gy;G.vy=0;if(G.vx){G.vx*=.78;if(Math.abs(G.vx)<.15)G.vx=0;}if(G.rot){G.spin=0;const a=((G.rot%6.2832)+9.4248)%6.2832-3.1416;G.rot=Math.abs(a)<.03?0:a*.75;}}}   /* on the ground it slides to a stop and sits upright again */
     if(G.type==='tesla'){if(G.cd>0)continue;const tx=G.x,ty=G.y-52;let best=null,bq=null,bd=175;                      // the coil: one arc at whatever is nearest
       for(const b of bodies){if(b.kind==='anchor'||b.remove||(b.kind==='ragdoll'&&(b.dead||b.shield>0))||b.maxx<tx-180||b.minx>tx+180)continue;for(const p of b.pts){if(p.gone)continue;const d=hyp(p.x-tx,p.y-ty);if(d<bd){bd=d;best=b;bq=p;}}}
       if(best){G.cd=110;fx.push({type:'bolt',pts:boltPath(tx,ty,bq.x,bq.y),life:11,max:11});zap(best);sparks(bq.x,bq.y,8,'#bfe6ff',5);sfx('zap',.5);}else G.cd=12;continue;}
@@ -3803,6 +3808,8 @@ function drawDestroyFx(g){
 }
 function drawMace(g,p){const r=p.r;g.fillStyle='#c9d2e3';for(let i=0;i<8;i++){const a=i*.7854,ca=Math.cos(a),sa=Math.sin(a);g.beginPath();g.moveTo(ca*r*1.5,sa*r*1.5);g.lineTo(ca*r*.8-sa*r*.3,sa*r*.8+ca*r*.3);g.lineTo(ca*r*.8+sa*r*.3,sa*r*.8-ca*r*.3);g.closePath();g.fill();}
   g.fillStyle='#5b6788';g.beginPath();g.arc(0,0,r,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.22)';g.beginPath();g.arc(-r*.3,-r*.35,r*.3,0,6.3);g.fill();}
+function gizRot(g,G){if(G.rot){g.save();g.translate(G.x,G.y-10);g.rotate(G.rot);g.translate(-G.x,-(G.y-10));}}
+function gizRotEnd(g,G){if(G.rot)g.restore();}
 function drawGizmos(g){
   drawDestroyFx(g);
   for(const G of gizmos){const x0=G.x-G.w/2;
@@ -3812,10 +3819,10 @@ function drawGizmos(g){
     else if(G.type==='tesla'){const hot=G.cd>96;g.fillStyle='#4a5468';g.fillRect(G.x-9,G.y-6,18,6);g.fillStyle='#8a94a8';g.fillRect(G.x-2.5,G.y-46,5,40);g.strokeStyle='#c9833a';g.lineWidth=2;for(let k=0;k<5;k++){g.beginPath();g.moveTo(G.x-6,G.y-12-k*7);g.lineTo(G.x+6,G.y-15-k*7);g.stroke();}
       g.fillStyle=hot?'#ffffff':'#bfe6ff';g.beginPath();g.arc(G.x,G.y-52,7,0,6.3);g.fill();g.fillStyle='rgba(150,210,255,'+(hot?.5:.14+.08*Math.sin(frame*.3))+')';g.beginPath();g.arc(G.x,G.y-52,hot?22:13,0,6.3);g.fill();}
     else if(G.type==='glue'){g.fillStyle='rgba(244,236,190,.9)';g.beginPath();g.ellipse(G.x,G.y-2,G.w/2,5,0,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.5)';for(let k=0;k<3;k++){g.beginPath();g.ellipse(x0+G.w*(.25+k*.25),G.y-3.5,7,1.6,0,0,6.3);g.fill();}}
-    else if(G.type==='pizza'){g.fillStyle='#e8a23c';g.beginPath();g.moveTo(G.x-13,G.y-3);g.lineTo(G.x+13,G.y-3);g.lineTo(G.x,G.y-24);g.closePath();g.fill();g.fillStyle='#ffd86a';g.beginPath();g.moveTo(G.x-9,G.y-6);g.lineTo(G.x+9,G.y-6);g.lineTo(G.x,G.y-20.5);g.closePath();g.fill();g.fillStyle='#d8343a';for(const [px,py] of [[-3,-8.5],[3.5,-9.5],[0,-14.5]]){g.beginPath();g.arc(G.x+px,G.y+py,2.1,0,6.3);g.fill();}}
-    else if(G.type==='burger'&&G.food){icoDraw(g,foodOf(G).e,G.x,G.y-2,27);}   /* the other foods: their picture, sitting on the floor */
-    else if(G.type==='burger'){g.fillStyle='#c9833a';g.beginPath();g.ellipse(G.x,G.y-3,13,4,0,0,6.3);g.fill();g.fillStyle='#6a3d1c';rr(g,G.x-13,G.y-10,26,5.5,2.5);g.fill();g.fillStyle='#ffd24a';g.fillRect(G.x-12,G.y-11.5,24,2);g.fillStyle='#5fc46a';g.beginPath();for(let k=0;k<5;k++)g.arc(G.x-10+k*5,G.y-12.5,2.8,0,6.3);g.fill();
-      g.fillStyle='#d9954a';g.beginPath();g.arc(G.x,G.y-13,13,PI,2*PI);g.closePath();g.fill();g.fillStyle='#fff3cf';for(const [px,py] of [[-6,-19],[0,-22],[6,-19],[-2,-17]]){g.beginPath();g.ellipse(G.x+px,G.y+py,1.3,.8,.5,0,6.3);g.fill();}}
+    else if(G.type==='pizza'){gizRot(g,G);g.fillStyle='#e8a23c';g.beginPath();g.moveTo(G.x-13,G.y-3);g.lineTo(G.x+13,G.y-3);g.lineTo(G.x,G.y-24);g.closePath();g.fill();g.fillStyle='#ffd86a';g.beginPath();g.moveTo(G.x-9,G.y-6);g.lineTo(G.x+9,G.y-6);g.lineTo(G.x,G.y-20.5);g.closePath();g.fill();g.fillStyle='#d8343a';for(const [px,py] of [[-3,-8.5],[3.5,-9.5],[0,-14.5]]){g.beginPath();g.arc(G.x+px,G.y+py,2.1,0,6.3);g.fill();}gizRotEnd(g,G);}
+    else if(G.type==='burger'&&G.food){gizRot(g,G);icoDraw(g,foodOf(G).e,G.x,G.y-2,27);gizRotEnd(g,G);}   /* the other foods: their picture, sitting on the floor */
+    else if(G.type==='burger'){gizRot(g,G);g.fillStyle='#c9833a';g.beginPath();g.ellipse(G.x,G.y-3,13,4,0,0,6.3);g.fill();g.fillStyle='#6a3d1c';rr(g,G.x-13,G.y-10,26,5.5,2.5);g.fill();g.fillStyle='#ffd24a';g.fillRect(G.x-12,G.y-11.5,24,2);g.fillStyle='#5fc46a';g.beginPath();for(let k=0;k<5;k++)g.arc(G.x-10+k*5,G.y-12.5,2.8,0,6.3);g.fill();
+      g.fillStyle='#d9954a';g.beginPath();g.arc(G.x,G.y-13,13,PI,2*PI);g.closePath();g.fill();g.fillStyle='#fff3cf';for(const [px,py] of [[-6,-19],[0,-22],[6,-19],[-2,-17]]){g.beginPath();g.ellipse(G.x+px,G.y+py,1.3,.8,.5,0,6.3);g.fill();}gizRotEnd(g,G);}
     else if(G.type==='kit'){icoDraw(g,gizIco('kit'),G.x,G.y+1,32);}
     else if(G.type==='peel'){icoDraw(g,gizIco('peel'),G.x,G.y-1,26);}}
   for(const G of geysers){g.fillStyle=G.lava?'rgba(255,120,40,.35)':'rgba(120,190,255,.25)';g.beginPath();g.ellipse(G.x,G.y-2,26,5,0,0,6.3);g.fill();}
@@ -4260,11 +4267,11 @@ const TOOLS={
       if(frame%3===0){const a=rnd(0,6.3),r=rnd(40,150);part(mouse.x+Math.cos(a)*r,mouse.y+Math.sin(a)*r,-Math.cos(a)*5,-Math.sin(a)*5,18,2,frame%6?'#ff5a5a':'#5a9cff',{type:1,g:0,drag:1});}}},
   tesla:{name:'Tesla coil',short:'Tesla',icon:'🗼',desc:'Plant a coil that zaps the nearest thing within reach every couple of seconds. Dummies keep their distance.',
     down(){gizmos.push({type:'tesla',x:mouse.x,y:groundBelow(mouse.x,mouse.y-10,true),w:26,cd:60});if(gizmos.length>40)gizmos.shift();sfx('click');}},
-  pizza:{name:'Pizza',icon:'🍕',desc:'Drop a pizza. Calm dummies nearby come over for it; the first to get there eats it and feels better.',
-    down(){gizmos.push({type:'pizza',x:mouse.x,y:mouse.y,vy:0,w:26,cd:0});if(gizmos.length>40)gizmos.shift();sfx('click');}},
-  burger:{name:'Food',icon:'🍔',desc:'Click to drop some food: a burger, chicken, cheese, a hot dog, fries, a donut, a taco or cake, a different one each time. Right-click switches which food you drop: one kind every time, or back to a different one each time. It falls from the cursor. Drop it on a dummy and it is eaten on the spot; otherwise dummies nearby come over and eat it, and each helping makes the eater fatter: a bigger belly, more weight, slower on their feet, and worse in a fight. Five helpings is the limit. Heal slims them down again, and so does fire: a burning dummy\'s fat burns off.',
-    down(){if(mouse.alt){foodPick=foodPick+1>=FOODS.length?-1:foodPick+1;setInfo('<b>🍔 Food</b> — now dropping: <b>'+(foodPick<0?'a different food each time':FOODS[foodPick].e+' '+FOODS[foodPick].n+' every time')+'</b>.');sfx('click');return;}
-      gizmos.push({type:'burger',food:foodPick<0?(Math.random()*FOODS.length)|0:foodPick,x:mouse.x,y:mouse.y,vy:0,w:26,cd:0});if(gizmos.length>40)gizmos.shift();sfx('click');}},
+  pizza:{name:'Pizza',icon:'🍕',desc:'Click to drop a pizza, or drag to aim and let go to throw it. Calm dummies nearby come over for it; the first to get there eats it and feels better.',
+    down(){aim={x:mouse.x,y:mouse.y};},up(){if(!aim)return;const G={type:'pizza',x:aim.x,y:aim.y,vy:0,w:26,cd:0};gizmos.push(G);if(gizmos.length>40)gizmos.shift();sfx('click');gizThrow(G);}},
+  burger:{name:'Food',icon:'🍔',desc:'Click to drop some food, or drag to aim and let go to throw it: a burger, chicken, cheese, a hot dog, fries, a donut, a taco or cake, a different one each time. Right-click switches which food you drop: one kind every time, or back to a different one each time. It falls from the cursor. Drop it on a dummy and it is eaten on the spot; otherwise dummies nearby come over and eat it, and each helping makes the eater fatter: a bigger belly, more weight, slower on their feet, and worse in a fight. Five helpings is the limit. Heal slims them down again, and so does fire: a burning dummy\'s fat burns off.',
+    down(){if(mouse.alt){foodPick=foodPick+1>=FOODS.length?-1:foodPick+1;setInfo('<b>🍔 Food</b> — now dropping: <b>'+(foodPick<0?'a different food each time':FOODS[foodPick].e+' '+FOODS[foodPick].n+' every time')+'</b>.');sfx('click');return;}aim={x:mouse.x,y:mouse.y};},
+    up(){if(!aim)return;const G={type:'burger',food:foodPick<0?(Math.random()*FOODS.length)|0:foodPick,x:aim.x,y:aim.y,vy:0,w:26,cd:0};gizmos.push(G);if(gizmos.length>40)gizmos.shift();sfx('click');gizThrow(G);}},
   confetti:{name:'Confetti',icon:'🎉',desc:'Click for a burst of confetti. Dummies nearby cheer.',
     down(){const x=mouse.x,y=mouse.y;for(const c of ['#ff5a7a','#ffd24a','#7dff9a','#5ad1ff','#c79bff'])confetti(x,y,9,c);sfx('pop',.9);
       for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||b.zombie||b.sleep>0||b.frozen>0||b.grudge||b===possessed)continue;const h=b.pts[HIP];if(hyp(h.x-x,h.y-y)>240)continue;b.fanT=frame+150;if(b.reactCd<=0&&Math.random()<.7){bubble(b,customLine(b,'party')||pick(['Woo!','Yay!','Surprise!','Party!','Hooray!']),90);b.reactCd=100;}}}},
