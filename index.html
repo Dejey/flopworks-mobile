@@ -234,6 +234,11 @@ canvas#c{touch-action:none}
 #bottom{height:128px;z-index:8;touch-action:pan-x;transform:translateY(106%);transition:transform .18s ease;padding:7px max(10px,env(safe-area-inset-right)) 9px max(10px,env(safe-area-inset-left));box-shadow:0 0 30px rgba(0,0,0,.55);scrollbar-width:none}
 #bottom::-webkit-scrollbar{display:none}
 #bottom.open{transform:none}
+/* the sheet shows the characters (👥) or the modes and teams (🎭), never both: the modes used to be off to the right of twenty characters */
+#bottom.mchars .sec:not(:first-child){display:none}
+#bottom.mmodes .sec:first-child{display:none}
+#bottom.mmodes{height:auto;max-height:calc(var(--mh,100vh) - 60px);flex-wrap:wrap;align-content:flex-start;overflow-y:auto;touch-action:pan-x pan-y;gap:10px 18px}
+#bottom.mmodes #modes{grid-template-columns:repeat(auto-fill,minmax(88px,1fr));width:min(470px,calc(var(--mw,100vw) - 24px))}
 .cc{width:50px;height:92px;flex:none}
 .cc canvas{width:44px;height:46px;margin-top:20px}
 .cc.new{justify-content:center}
@@ -5938,7 +5943,7 @@ window.__flop={get bodies(){return bodies;},get links(){return links;},get walls
 (()=>{
 const top=$('top'),DR={tools:$('tools'),powers:$('powers'),bottom:$('bottom')};
 function tbtn(id,txt,title,before){const b=document.createElement('button');b.className='tb mtb';b.id=id;b.tabIndex=-1;b.textContent=txt;b.title=title;top.insertBefore(b,before||null);return b;}
-const bTools=tbtn('mTools','🧰','Tools',top.firstChild),bChars=tbtn('mChars','🧍','Characters, modes and teams',$('info')),bPow=tbtn('mPowers','✨','Powers',$('mapBtn'));
+const bTools=tbtn('mTools','🧰','Tools',top.firstChild),bChars=tbtn('mChars','👥','Characters',$('info')),bModes=tbtn('mModes','🎭','Character modes and teams',$('info')),bPow=tbtn('mPowers','✨','Powers',$('mapBtn'));
 const bFit=tbtn('mFit','🔍','Zoom: the whole map, or close up',$('bSet')),bFull=tbtn('mFull','⛶','Full screen',$('bSet'));
 $('mapBtn').textContent='🗺';$('bClear').textContent='🧹';$('bReset').textContent='↺';$('bPause').textContent='⏸';
 {const tp=window.togglePause;window.togglePause=function(){const r=tp.apply(this,arguments);$('bPause').textContent=paused?'▶':'⏸';return r;};$('bPause').onclick=()=>{audioKick();togglePause();};}
@@ -5946,8 +5951,12 @@ $('mapBtn').textContent='🗺';$('bClear').textContent='🧹';$('bReset').textCo
 /* ---- drawers ---- */
 function anyOpen(){return DR.tools.classList.contains('open')||DR.powers.classList.contains('open')||DR.bottom.classList.contains('open');}
 function drawer(name,on){for(const k in DR){const o=k===name?(on===undefined?!DR[k].classList.contains('open'):on):false;DR[k].classList.toggle('open',o);}
-  bTools.classList.toggle('on',DR.tools.classList.contains('open'));bPow.classList.toggle('on',DR.powers.classList.contains('open'));bChars.classList.toggle('on',DR.bottom.classList.contains('open'));}
-bTools.onclick=()=>{audioKick();drawer('tools');};bPow.onclick=()=>{audioKick();drawer('powers');};bChars.onclick=()=>{audioKick();drawer('bottom');};
+  bTools.classList.toggle('on',DR.tools.classList.contains('open'));bPow.classList.toggle('on',DR.powers.classList.contains('open'));const bo=DR.bottom.classList.contains('open');bChars.classList.toggle('on',bo&&sheet==='chars');bModes.classList.toggle('on',bo&&sheet==='modes');}
+/* the bottom sheet shows one of two things: the characters (the 👥 button), or the modes and teams (the 🎭 button; they used to sit off to the right of the characters, where nobody found them) */
+let sheet='chars';DR.bottom.classList.add('mchars');
+function sheetOpen(which){if(DR.bottom.classList.contains('open')&&sheet===which){drawer(null);return;}sheet=which;DR.bottom.classList.toggle('mchars',which==='chars');DR.bottom.classList.toggle('mmodes',which==='modes');DR.bottom.scrollLeft=0;DR.bottom.scrollTop=0;drawer('bottom',true);}
+bTools.onclick=()=>{audioKick();drawer('tools');};bPow.onclick=()=>{audioKick();drawer('powers');};bChars.onclick=()=>{audioKick();sheetOpen('chars');};bModes.onclick=()=>{audioKick();sheetOpen('modes');};
+{const sm=window.syncModeUI;window.syncModeUI=function(){const r=sm.apply(this,arguments),m=selected?selected.mode:curMode;bModes.textContent=(MODES[m]&&MODES[m].icon)||'🎭';return r;};}   /* the 🎭 button shows the mode that is on (the selected dummy's, or everyone's) */
 function syncCur(){const isP=!!POWERS[curId]&&cur===POWERS[curId];bTools.innerHTML=isP?'🧰':(cur.icon||'🧰');bPow.innerHTML=isP?(cur.icon||'✨'):'✨';   /* the drawer buttons show what is in your hand. As a picture, not as text: a gun's icon is a small drawing (svg), and written out as text it filled the bar with its numbers */
   let alt=LIQT[curId]!==undefined;if(!alt)for(const k of ['down','step','paint','move'])if(typeof cur[k]==='function'&&/mouse\.alt/.test(String(cur[k]))){alt=true;break;}
   if(curId==='c4')alt=false;$('mDet').classList.toggle('mhide',curId!=='c4');   /* C4: its right click is the Detonate chip, not Alt */
@@ -5955,7 +5964,7 @@ function syncCur(){const isP=!!POWERS[curId]&&cur===POWERS[curId];bTools.innerHT
 function setAlt(v){MOBV.alt=!!v;$('mAlt').classList.toggle('on',MOBV.alt);$('mAlt').textContent='⇄ Alt: '+(MOBV.alt?'on':'off');}
 $('mAlt').onclick=()=>{setAlt(!MOBV.alt);setInfo(MOBV.alt?'<b>Alt is on</b> — this tool now does its other job (erase, shrink, the other way).':'<b>Alt is off.</b>');};
 {const pt=window.pickTool;window.pickTool=function(id){const r=pt.apply(this,arguments),t=TOOLS[id]||POWERS[id];if(t&&!t.toggle){drawer(null);setAlt(false);}syncCur();return r;};}
-{const am=window.applyMode;window.applyMode=function(m){const r=am.apply(this,arguments);if(m==='possess')drawer(null);return r;};}
+{const am=window.applyMode;window.applyMode=function(m){const r=am.apply(this,arguments);drawer(null);return r;};}   /* picking a mode shuts the sheet, as picking a tool shuts its drawer */
 $('mGive').onclick=()=>{audioKick();giveGun();};$('mDet').onclick=()=>{audioKick();c4Detonate();};
 {const si=window.setInfo;window.setInfo=function(h){return si.call(this,String(h).replace(/Right-click switches which food you drop/g,'Switch ⇄ Alt on and tap to change which food you drop').replace(/Right-click to set off every charge/g,'Tap 💥 Detonate to set off every charge').replace(/Left-click/g,'Tap').replace(/left-click/g,'tap').replace(/(^|[^-\w])Click\b/g,'$1Tap').replace(/(^|[^-\w])click\b/g,'$1tap').replace(/Press Backspace on it again/g,'Tap 🤲 Give again').replace(/press <b>Backspace<\/b>/g,'tap <b>🤲 Give</b>').replace(/Backspace/g,'The 🤲 Give button'));};}   /* the top line talks about the button, not the key */
 $('mCancel').onclick=()=>{ropeA=null;wallA=null;aim=null;fanA=null;};
@@ -6037,7 +6046,7 @@ function setPerf(v){MOBV.perf=!!v;MOBV.dpr=v?1.5:2;try{localStorage.setItem('flo
   if(ul)ul.innerHTML='<li><b>One finger</b> uses the tool in your hand: drag a ragdoll, cut, pour, place.</li>'+
     '<li><b>Two fingers</b>: pinch to zoom, drag to move the view. <b>🔍</b> jumps between the whole map and a close-up.</li>'+
     '<li><b>🧰 Tools</b> and <b>✨ Powers</b> open from the top bar. Pick one and the drawer closes; the button shows what you are holding.</li>'+
-    '<li><b>🧍</b> opens characters, modes and teams. Tap a character to drop it in. Your own characters have ✏️ and 🗑️ on their cards.</li>'+
+    '<li><b>👥</b> opens the characters: tap one to drop it in. Your own characters have ✏️ and 🗑️ on their cards. <b>🎭</b> opens the modes (stand, walk, fight, possess…) and the teams.</li>'+
     '<li><b>Possess</b> (in modes) gives you a stick and buttons: punch or shoot, kick, grab and throw, special, limp. Tap the arena to aim a gun.</li>'+
     '<li><b>⇄ Alt</b> appears for tools with a second job (erase liquid, shrink, reverse a belt). <b>✕ Cancel</b> appears while a rope or wall is half made.</li>'+
     '<li><b>⛶</b> full screen · <b>⚙</b> settings, with <b>Phone performance mode</b> at the top · best played sideways.</li>';}
