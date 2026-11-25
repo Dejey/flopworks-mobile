@@ -1619,7 +1619,7 @@ function spReach(b){const s=curSp(b);return s==='uppercut'||s==='whip'||s==='sla
 /* ---- anime-style special moves (customs): the ones that take time ----
    animeStep runs a move in progress, every frame, after the dummy has done its own thinking (it overrides where it goes and what its arms do).
    A move is broken off if the dummy is killed, frozen, stunned hard, knocked over or picked up. */
-const WAVECHARGE=34,ORBCHARGE=58,SIGNT=24,FLURRYT=84,FLURRYPOW=.4;   // SIGNT: frames the hand sign is held before the realm opens
+const WAVESPD=58,WAVEDUR=38,WAVECHARGE=34,ORBCHARGE=58,SIGNT=24,FLURRYT=84,FLURRYPOW=.4;   // SIGNT: frames the hand sign is held before the realm opens
 /* the hand sign itself, drawn over the joined hands: two fingers raised, in a purple glow (also drawn on the big figure in the cut-scene) */
 function drawSign(g,b){const A=b.anime;if(!A||(A.k!=='sign'&&A.k!=='clash')||b.dead)return;const P=b.pts,hl=P[HL],hr=P[HR];if(hl.gone&&hr.gone)return;
   const s=b.sc*b.C.scale,f=b.facing<0?-1:1,h=f>0?(hr.gone?hl:hr):(hl.gone?hr:hl),x=h.rx,y=h.ry,k=A.k==='clash'?1:Math.min(1,A.t/10);
@@ -1639,18 +1639,20 @@ function animeStep(b,I){const A=b.anime,P=b.pts,hip=P[HIP],neck=P[NECK],head=P[H
       const h=P[f>0?HR:HL];if(frame%2===0){const a=rnd(0,6.283),d=rnd(16,30);part(h.x+Math.cos(a)*d,h.y+Math.sin(a)*d,-Math.cos(a)*2.2,-Math.sin(a)*2.2,10,rnd(1.5,3),pick(['#bfe9ff','#ffffff','#7dd0ff']),{type:1,g:0});}return;}
     I.arms='five';I.fx=neck.x+f*30*s;I.fy=neck.y+8*s;I.fmv=10;                                                  /* and thrust out in front */
     if(A.t===WAVECHARGE){let ax=f,ay=0;if(o){const q=o.pts[NECK],dx=q.x-neck.x,dy=q.y-(neck.y+8*s),d=hyp(dx,dy)||1;ax=dx/d;ay=clamp(dy/d,-.6,.6);const m=hyp(ax,ay)||1;ax/=m;ay/=m;}A.ax=ax;A.ay=ay;sfx('laser',1);shake=Math.max(shake,6);flash=Math.max(flash,.25);say(head.x,head.y-34,'HAAAA!','#bfe9ff',18);}
-    const x1=neck.x+f*34*s,y1=neck.y+8*s,x2=x1+A.ax*900,y2=y1+A.ay*900,w=17*s;fx.push({type:'wave',x1,y1,x2,y2,w,life:2,max:2});
-    {const te=Math.min(900,rayExit(x1,y1,A.ax,A.ay)),ex=x1+A.ax*te,ey=y1+A.ay*te;A.bx1=x1;A.by1=y1;A.bx2=ex;A.by2=ey;                              /* burn marks: where it meets the edge of the arena, */
-      if(te<900){burnAt(ex,ey,ex<=XL+1||ex>=XR-1?0:1.5708,w*1.7);if(frame%2===0)part(ex,ey,-A.ax*rnd(1,4)+rnd(-2,2),-A.ay*rnd(1,4)+rnd(-2,2),rnd(12,22),rnd(1.5,3),pick(['#ffb347','#ffe9a8','#ff7a2a']),{type:1,g:.1});}
+    const x1=neck.x+f*34*s,y1=neck.y+8*s,w=17*s,te0=Math.min(900,rayExit(x1,y1,A.ax,A.ay)),len=Math.min(te0,(A.t-WAVECHARGE+1)*WAVESPD),front=len<te0,x2=x1+A.ax*len,y2=y1+A.ay*len;   /* len: how far the front has surged; front: it is still travelling */
+    fx.push({type:'wave',x1,y1,x2,y2,ax:A.ax,ay:A.ay,len,w,front,t:A.t-WAVECHARGE,life:2,max:2});if(front&&frame%2===0)for(let i=0;i<3;i++)part(x2+rnd(-8,8),y2+rnd(-14,14)*s,A.ax*rnd(2,6)+rnd(-1.5,1.5),A.ay*rnd(2,6)+rnd(-2.5,2.5),rnd(10,18),rnd(1.6,3.2),pick(['#bfe9ff','#ffffff','#7dd0ff']),{type:1,g:0});   /* spray thrown off the front */
+    {const te=len,ex=x2,ey=y2;A.bx1=x1;A.by1=y1;A.bx2=ex;A.by2=ey;                              /* burn marks: where it meets the edge of the arena, */
+      if(!front&&te0<900){burnAt(ex,ey,ex<=XL+1||ex>=XR-1?0:1.5708,w*1.7);if(frame%2===0)part(ex,ey,-A.ax*rnd(1,4)+rnd(-2,2),-A.ay*rnd(1,4)+rnd(-2,2),rnd(12,22),rnd(1.5,3),pick(['#ffb347','#ffe9a8','#ff7a2a']),{type:1,g:.1});}
       if(A.t%2===0)for(let d=30;d<te;d+=26)if(FLOOR-(y1+A.ay*d)<w+12)addScorch(x1+A.ax*d,.05);                                                  /* the floor under any stretch that runs low along it, */
       for(const wl of walls)if(segInt(x1,y1,ex,ey,wl.x1,wl.y1,wl.x2,wl.y2)){const rx=ex-x1,ry=ey-y1,qx=wl.x2-wl.x1,qy=wl.y2-wl.y1,tt=((wl.x1-x1)*qy-(wl.y1-y1)*qx)/((rx*qy-ry*qx)||1e-9);burnAt(x1+rx*tt,y1+ry*tt,Math.atan2(qy,qx)+1.5708,w*1.4);}}   /* and every wall it passes through */
     for(const p of P)if(!p.pin&&p.att)p.px+=A.ax*.45;                                                           /* it is pushed back by its own beam */
     if(A.t%3===0)for(const v of bodies){if(v===b||v.remove||v.kind==='anchor'||(v.kind==='ragdoll'&&allies(b,v)))continue;
       if(v.kind==='ragdoll'&&uiOn(v)){let near=false;for(const p of v.pts)if(!p.gone&&distSeg(p.x,p.y,x1,y1,x2,y2)<w+p.r+6){near=true;break;}if(near){const q=v.pts[NECK];uiDodge(v,q.x,q.y,A.ax>=0?1:-1,0,b);v.uiPose=frame+9;v.uiDuck=true;v.uiT=Math.max(v.uiT||0,frame+6);}continue;}   /* Ultra Instinct: it drops under the beam, and the beam does nothing to it */
+      if(v.kind==='ragdoll'&&warded(v))continue;   /* Infinity: the wave breaks round it */
       let hit=false;const k=3.2/Math.sqrt(Math.max(.3,v.ms||1));
-      const char=v.kind==='ragdoll'&&!(warded(v))&&!v.C.fireProof&&!uiOn(v);for(const p of v.pts){if(p.gone||distSeg(p.x,p.y,x1,y1,x2,y2)>w+p.r)continue;hit=true;if(!p.pin){p.px-=A.ax*k;p.py-=A.ay*k;}if(char)p.burnt=Math.min(.72,(p.burnt||0)+.06);}   /* (charred where the beam touched) */
+      const char=v.kind==='ragdoll'&&!(warded(v))&&!v.C.fireProof&&!uiOn(v);for(const p of v.pts){if(p.gone||distSeg(p.x,p.y,x1,y1,x2,y2)>w+p.r)continue;hit=true;if(!p.pin){const kk=front&&hyp(p.x-x2,p.y-y2)<70*s?k*2.4:k;p.px-=A.ax*kk;p.py-=A.ay*kk;}if(char)p.burnt=Math.min(.72,(p.burnt||0)+.06);}   /* (charred where the beam touched) */
       if(hit&&v.kind==='ragdoll'&&!(warded(v))){provoke(v,b);damage(v,3.4);v.balance=Math.max(0,v.balance-.2);}}
-    if(A.t>WAVECHARGE+28){if(A.bx1!==undefined)fx.push({type:'burnline',x1:A.bx1,y1:A.by1,x2:A.bx2,y2:A.by2,life:130,max:130});b.anime=null;}return;}   /* the smoke and embers left hanging where it went */
+    if(A.t>WAVECHARGE+WAVEDUR){if(A.bx1!==undefined)fx.push({type:'burnline',x1:A.bx1,y1:A.by1,x2:A.bx2,y2:A.by2,life:130,max:130});b.anime=null;}return;}   /* the smoke and embers left hanging where it went */
   if(A.k==='flurry'){if(!o){b.anime=null;return;}   /* Rapid Punches: for FLURRYT frames both fists fly at whoever it is, in turn, a light punch landing every fourth frame. It steps in to stay in reach, and the last one is a proper punch. */
     const th=o.pts[HIP],dx=th.x-hip.x,reach=b.dim.uarm+b.dim.farm+14*o.sc*o.C.scale,want=[NECK,HEAD,NECK,HIP][(A.n+(A.miss||0))%4];let q=o.pts[want];if(q.gone||!q.att||hyp(q.x-neck.x,q.y-neck.y)>reach+12*s){let bd=1e9;for(const k of [HEAD,NECK,HIP]){const u=o.pts[k];if(u.gone||(!u.att&&k!==HIP))continue;const d=hyp(u.x-neck.x,u.y-neck.y);if(d<bd){bd=d;q=u;}}}   /* head, chest, head, belly in turn; if that one is out of reach (or gone), whichever is nearest */
     b.facing=dx>=0?1:-1;I.jump=false;I.mv=Math.abs(dx)>reach*.78?b.facing*.9:0;I.arms='flurry';I.fx=q.x;I.fy=q.y;const inReach=hyp(q.x-neck.x,q.y-neck.y)<reach+12*s,last=A.t>=FLURRYT;
@@ -1754,6 +1756,16 @@ function stillThink(b){b.atk=null;b.anime=null;b.planted=false;b.cpr=null;b.aid=
   if(b===possessed&&pressed.KeyE&&b.spCd<=0&&frame-(b.stillAt||0)<=ANSWERWIN){const k=domainOf(b);if(k)domainAnswer(b,k);}}
 function stillHold(){for(const b of bodies){if(b.kind!=='ragdoll'||!(b.stillT>=frame)||b.dead||b.held)continue;for(const p of b.pts){if(p.pin||!p.att||p.gone||p.stX===undefined)continue;p.x=p.px=p.stX;p.y=p.py=p.stY;}}}   /* held exactly where it was caught, in mid-air if need be */
 function stillBullet(bl){if(!bl.by)return false;for(const e of stillDomes){if(bl.by===e.by||allies(e.by,bl.by))continue;if(hyp(bl.x-e.x,bl.y-e.y)<e.r)return true;}return false;}   /* an enemy's shot inside the dome hangs where it is */
+/* the Energy Wave: a body whose two sides ripple (a travelling sine, so the swells run outward), swelling into a rounded front while it is still surging out,
+   in three layers (glow, light, white core), with bright crests carried along it and a flare at the hands */
+function drawWave(g,e){const ax=e.ax===undefined?1:e.ax,ay=e.ay||0,nx=-ay,ny=ax,L=e.len===undefined?hyp(e.x2-e.x1,e.y2-e.y1):e.len,w=e.w,N=Math.max(4,Math.ceil(L/14)),ph=frame*.6;g.globalAlpha=1;
+  const hw=d=>{const u=d/L,swell=1+.3*Math.sin(d*.05-ph)+.12*Math.sin(d*.021-ph*.6),tip=e.front?1+1.15*Math.max(0,1-(L-d)/(w*3.2)):1,root=.55+.45*Math.min(1,d/(w*1.6));return w*.8*swell*tip*root*(u>=0?1:1);};   /* half its width at distance d from the hands */
+  for(const [k,col] of [[2.3,'rgba(90,170,255,.26)'],[1.35,'rgba(140,210,255,.62)'],[.62,'#f2fbff']]){g.fillStyle=col;g.beginPath();
+    for(let i=0;i<=N;i++){const d=L*i/N,h=hw(d)*k,x=e.x1+ax*d+nx*h,y=e.y1+ay*d+ny*h;if(i)g.lineTo(x,y);else g.moveTo(x,y);}
+    {const h=hw(L)*k,cx=e.x1+ax*L,cy=e.y1+ay*L,a0=Math.atan2(ny,nx);g.arc(cx,cy,h,a0,a0-Math.PI,true);}   /* the front: round */
+    for(let i=N;i>=0;i--){const d=L*i/N,h=hw(d)*k;g.lineTo(e.x1+ax*d-nx*h,e.y1+ay*d-ny*h);}g.closePath();g.fill();}
+  g.strokeStyle='rgba(255,255,255,.55)';g.lineCap='round';g.lineWidth=2.2;for(let i=0;i<5;i++){const d=((frame*17+i*L/5)%Math.max(40,L));if(d>L-6)continue;const h=hw(d)*1.25,cx=e.x1+ax*d,cy=e.y1+ay*d,bow=h*.5;g.beginPath();g.moveTo(cx+nx*h-ax*bow,cy+ny*h-ay*bow);g.quadraticCurveTo(cx+ax*bow,cy+ay*bow,cx-nx*h-ax*bow,cy-ny*h-ay*bow);g.stroke();}   /* crests riding out along it */
+  g.fillStyle='rgba(200,235,255,.8)';g.beginPath();g.arc(e.x1,e.y1,w*(1.35+.15*Math.sin(frame*.9)),0,6.3);g.fill();g.lineCap='butt';}
 function drawStillDome(g,e){const al=Math.min(1,e.life/20);g.save();g.globalCompositeOperation='source-over';g.globalAlpha=al;g.fillStyle='rgba(6,22,34,.58)';g.beginPath();g.arc(e.x,e.y,e.r,0,6.3);g.fill();g.strokeStyle='rgba(60,170,230,.35)';g.lineWidth=11;g.stroke();g.strokeStyle='rgba(170,235,255,.95)';g.lineWidth=3;g.stroke();
   g.strokeStyle='rgba(190,240,255,.5)';g.lineWidth=1.6;g.beginPath();for(let i=0;i<60;i++){const a=i/60*6.2832,r0=e.r*(i%5?.955:.91),c=Math.cos(a),s=Math.sin(a);g.moveTo(e.x+c*r0,e.y+s*r0);g.lineTo(e.x+c*e.r*.985,e.y+s*e.r*.985);}g.stroke();   /* a dial round the rim, and its marks do not move */
   g.strokeStyle='rgba(170,235,255,.26)';g.lineWidth=1.2;for(let i=1;i<=3;i++){g.beginPath();g.arc(e.x,e.y,e.r*i*.24,0,6.3);g.stroke();}
@@ -5760,7 +5772,7 @@ function render(a){
   for(const e of fx){const t=e.life/e.max;
     if(e.type==='ring'){g.strokeStyle=e.col;g.globalAlpha=t;g.lineWidth=e.lw*t+1;g.beginPath();g.arc(e.x,e.y,e.r1*(1-t*t),0,6.3);g.stroke();}
     else if(e.type==='bolt'){g.globalAlpha=t;g.lineJoin='round';for(const [lw,col] of [[9,'rgba(120,180,255,.5)'],[3,'#fff']]){g.strokeStyle=col;g.lineWidth=lw;g.beginPath();e.pts.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.stroke();}}
-    else if(e.type==='wave'){g.globalAlpha=1;g.lineCap='round';const fl=1+.12*Math.sin(frame*.9);for(const [k,col] of [[2.5,'rgba(90,170,255,.28)'],[1.5,'rgba(140,210,255,.6)'],[.7,'#f2fbff']]){g.strokeStyle=col;g.lineWidth=e.w*k*fl;g.beginPath();g.moveTo(e.x1,e.y1);g.lineTo(e.x2,e.y2);g.stroke();}g.fillStyle='rgba(200,235,255,.8)';g.beginPath();g.arc(e.x1,e.y1,e.w*1.5,0,6.3);g.fill();g.lineCap='butt';}
+    else if(e.type==='wave')drawWave(g,e);
     else if(e.type==='orb'){g.globalAlpha=1;const gr=g.createRadialGradient(e.x,e.y,e.r*.1,e.x,e.y,e.r*1.5);gr.addColorStop(0,'#ffffff');gr.addColorStop(.45,'rgba(150,215,255,.95)');gr.addColorStop(1,'rgba(90,170,255,0)');g.fillStyle=gr;g.beginPath();g.arc(e.x,e.y,e.r*1.5,0,6.3);g.fill();}
     else if(e.type==='still')drawStillDome(g,e);
     else if(e.type==='clash')drawClash(g,e);
@@ -5823,7 +5835,7 @@ function loop(now){
    picture laid over the head. They are kept in localStorage ('flopworks.customs'). */
 const PAINTK=1.7,PAINTPX=256;let customs=[];                 // PAINTK: the painting covers this many head radii each way, so there is room for hair and hats
 let SPEC=null;function specialList(){if(!SPEC){SPEC={};for(const id in CHARS){const c=CHARS[id];if(c.custom||id==='__mk'||!c.special||SPEC[c.special])continue;SPEC[c.special]={name:c.spName,cd:c.spCd,from:c.name};}SPEC.fly={name:'Flight',cd:90,from:'wings'};SPEC.tk={name:'Telekinesis',cd:130,from:'mind power'};SPEC.ui={name:'Ultra Instinct',cd:170,from:'pure reflex'};
-  SPEC.wave={name:'Energy Wave',cd:230,from:'anime',desc:'the Energy Wave: it cups its hands, gathers light, and fires a wide beam that drives back and burns everything in its path.'};
+  SPEC.wave={name:'Energy Wave',cd:230,from:'anime',desc:'the Energy Wave: it cups its hands, gathers light, and lets it go as a wave that surges out across the arena, its front throwing back whatever it reaches and the rest of it driving back and burning everything in its path.'};
   SPEC.aura={name:'Power Surge',cd:560,from:'anime',desc:'the Power Surge: it bursts into a golden aura, and for ten seconds hits twice as hard and moves much faster.'};
   SPEC.rush={name:'Vanishing Rush',cd:260,from:'anime',desc:'the Vanishing Rush: it flickers round whoever it is fighting, striking from each side in turn, and finishes with a kick that launches them.'};
   SPEC.orb={name:'Star Orb',cd:330,from:'anime',desc:'the Star Orb: it raises its arms, gathers a great ball of light overhead and throws it. The ball bursts where it lands.'};
