@@ -3002,10 +3002,15 @@ function bloodyAt(x,y,R){if(!LN)return false;const R2=R*R;let n=0,sum=0;
   let cx0=(((x-R-XL)/FCELL)|0)+1,cx1=(((x+R-XL)/FCELL)|0)+1,cy0=(((y-R-CEIL)/FCELL)|0)+1,cy1=(((y+R-CEIL)/FCELL)|0)+1;if(cx0<0)cx0=0;if(cy0<0)cy0=0;if(cx1>=gW)cx1=gW-1;if(cy1>=gH)cy1=gH-1;
   for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const c=cx+cy*gW;for(let k=cellStart[c],e=cellStart[c+1];k<e;k++){const j=cellItems[k];if(j>=LN||LDEAD[j]||LTYPE[j]!==WATER)continue;const dx=LX[j]-x,dy=LY[j]-y;if(dx*dx+dy*dy<R2){n++;sum+=LBL[j];}}}
   return n>0&&sum>n*.5;}
+/* mixing: the colour a drop gives to a different liquid it touches (-1: none; poured blood gives its blood the usual way). MIXMAX: how far the tint goes (a little shows a lot), kept well under the level that counts as blood */
+const MIXMAX=.12,MIXC=[61|(141<<8)|(240<<16),-1,111|(226<<8)|(60<<16),242|(178<<8)|(58<<16)],MIXGLUE=238|(236<<8)|(226<<16);
+function mixCol(t,k){return t===HONEY&&LTM[k]===1?MIXGLUE:t===WATER&&LTM[k]===2?-1:MIXC[t];}
 function bloodMix(){let any=false;
   for(let i=0;i<LN;i++){const ti=LTYPE[i];if(ti>=PASTE||ti===LAVA){if(ti===LAVA)LBL[i]=0;continue;}let bi=LBL[i];
     for(let k=NBS[i],e=NBS[i+1];k<e;k++){const j=NB[k];if(j<=i||j>=LN)continue;const tj=LTYPE[j];if(tj>=PASTE||tj===LAVA)continue;const bj=LBL[j],d=(bj-bi)*.04;
-      if(d>.00002){bloodTint(i,d,LBC[j]);LBL[j]=bj-d;bi=LBL[i];}else if(d<-.00002){bloodTint(j,-d,LBC[i]);bi+=d;LBL[i]=bi;}}
+      if(d>.00002){bloodTint(i,d,LBC[j]);LBL[j]=bj-d;bi=LBL[i];}else if(d<-.00002){bloodTint(j,-d,LBC[i]);bi+=d;LBL[i]=bi;}
+      if(ti!==tj||(ti===HONEY&&(LTM[i]===1)!==(LTM[j]===1))){const ci=mixCol(ti,i),cj=mixCol(tj,j);   /* two different liquids touching: each takes on a little of the other's colour, up to MIXMAX */
+        if(cj>=0&&bi<MIXMAX){bloodTint(i,(MIXMAX-bi)*.03,cj);bi=LBL[i];}if(ci>=0&&LBL[j]<MIXMAX)bloodTint(j,(MIXMAX-LBL[j])*.03,ci);}}
     if(bi>.0002){if(bi>.004)any=true;LBL[i]=LTM[i]===2&&ti===WATER?bi:bi*.99985;}   /* poured blood does not fade by itself; it only thins into the water round it */else if(bi>0)LBL[i]=0;}
   if(any)bloodAt=frame;}
 function fluidClear(){solidTop.fill(1e9);LN=0;LSTATIC=0;liqCount=[0,0,0,0,0,0,0,0];NBS[0]=0;cellStart.fill(0);lavaSrc.length=0;hazBins.fill(0);liqBins.fill(0);}
@@ -3174,13 +3179,13 @@ function fluidBodies(){
     if(b.kind==='anchor'||b.remove)continue;const RG=b.kind==='ragdoll';let sub=0,cw=0,cl=0,ca=0,ch=0,douse=false,hs=0,hsUp=0;
     const near=any&&!(b.maxx<liqBox[0]-24||b.minx>liqBox[2]+24||b.maxy<liqBox[1]-24||b.miny>liqBox[3]+24);
     const fl=RG?b.float:(KFLOAT[b.kind]||1),gb=gravity*Math.max(0,b.grav),hd=RG?b.pts[HEAD]:null,nk=RG?b.pts[NECK]:null,tread=RG&&!b.dead&&b.balance>.3?1.9:1.35;
-    for(const p of b.pts){const was=p.in;p.in=null;p.deep=false;p.dense=false;if(p.honey>0){p.honey-=.0012;if(p.honey<0){p.honey=0;p.glue=0;}else if(!p.glue&&RG&&p.honey>.3&&!p.gone&&Math.random()<.012)part(p.x+rnd(-3,3),p.y+p.r*.6,0,.4,rnd(30,50),rnd(1.6,2.6),'#f2b23a',{type:7,g:.12,drag:.97});}   /* a coat of honey wears off slowly, dripping */if(!near)continue;
+    for(const p of b.pts){const was=p.in;p.in=null;p.deep=false;p.dense=false;if(p.bl>0)p.bl=p.bl<.0008?0:p.bl-.0008;   /* a coat of blood dries off in twenty seconds or so */if(p.honey>0){p.honey-=.0012;if(p.honey<0){p.honey=0;p.glue=0;}else if(!p.glue&&RG&&p.honey>.3&&!p.gone&&Math.random()<.012)part(p.x+rnd(-3,3),p.y+p.r*.6,0,.4,rnd(30,50),rnd(1.6,2.6),'#f2b23a',{type:7,g:.12,drag:.97});}   /* a coat of honey wears off slowly, dripping */if(!near)continue;
       const R=p.r+9,R2=R*R,px=p.x,py=p.y;let n=0,nw=0,nl=0,na=0,nh=0,ng=0,up=0,sx=0,sy=0,bs=0;
       let cx0=(((px-R-XL)/FCELL)|0)+1,cx1=(((px+R-XL)/FCELL)|0)+1,cy0=(((py-R-CEIL)/FCELL)|0)+1,cy1=(((py+R-CEIL)/FCELL)|0)+1;
       if(cx0<0)cx0=0;if(cy0<0)cy0=0;if(cx1>=gW)cx1=gW-1;if(cy1>=gH)cy1=gH-1;
       for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const c=cx+cy*gW;for(let k=cellStart[c],e=cellStart[c+1];k<e;k++){const j=cellItems[k];if(j>=LN||LDEAD[j]||LATO[j])continue;/* honey stuck to someone is not a pool they are standing in */const t=LTYPE[j];if(t>=PASTE){if(t===SAND&&p===hd){const dx=LX[j]-px,dy=LY[j]-py;if(dx*dx+dy*dy<R2){hs++;if(dy<-4)hsUp++;}}continue;}   /* sand is not a liquid, but how much of it is packed round the head (and over it) is counted: that is being buried */
         const dx=LX[j]-px,dy=LY[j]-py;if(dx*dx+dy*dy>=R2)continue;n++;if(t===WATER){nw++;bs+=LBL[j];}else if(t===LAVA)nl++;else if(t===HONEY){nh++;if(LTM[j]===1)ng++;}else na++;if(dy<-6)up++;sx+=LVX[j];sy+=LVY[j];}}
-      if(nw>0&&bs>nw*.5&&b.kind==='ragdoll')p.gore=Math.max(p.gore||0,.6);   /* in blood: covered in it */
+      if(nw>0&&bs>nw*.5&&b.kind==='ragdoll'){p.gore=Math.max(p.gore||0,.6);p.bl=Math.min(1,(p.bl||0)+.06);p.bF=frame;}   /* in blood: covered in it */
       if(nw>0){douse=true;if(p.fire>0){p.fire=0;p.smolder=0;wisp(p.x,p.y-p.r);wisp(p.x,p.y-p.r-6);if(frame-hissT>8){hissT=frame;sfx('hiss',.6);}}if(b.cid!=='frost')p.heat=0;/* a melting snowman stands in his own meltwater: it must not stop the melting */}
       if(n<2&&!ng)continue;   /* (one drop of glue is enough to be stuck in) */
       const t=nl>=nw&&nl>=na&&nl>=nh?LAVA:na>nw&&na>=nh?ACID:nh>nw?HONEY:WATER;p.in=LNAME[t];if(t===HONEY){p.honey=Math.min(1,(p.honey||0)+.04);p.glue=ng*2>nh?1:0;if(p.glue){b.glueT=frame;if(!p.pin&&!b.held&&!(b.unstick>=frame)){if(p.gf!==frame-1){p.gx=p.x;p.gy=p.y;}p.gf=frame;p.x+=(p.gx-p.x)*GLUEHOLD;p.y+=(p.gy-p.y)*GLUEHOLD;p.px=p.x;p.py=p.y;}}}   /* in glue: held where it is, unless the hand has hold of it */
@@ -3197,7 +3202,7 @@ function fluidBodies(){
       else if(b.air<100&&!buried&&!(b.chokeT>=frame-1))b.air=Math.min(100,b.air+1.5);}
     if(cw){
       b.wet=Math.min(900,(b.wet||0)+8);
-      for(const p of b.pts)if(p.in==='water'){p.gore*=.96;if(p.honey>0)p.honey*=.95;
+      for(const p of b.pts)if(p.in==='water'){if(p.bF!==frame){p.gore*=.96;if(p.bl>0)p.bl*=.94;}/* (blood does not wash blood off) */if(p.honey>0)p.honey*=.95;
         if(p.tox>0||p.acid>0){if(p.tox>.04){b.washAt=frame;if(Math.random()<.2)part(p.x+rnd(-4,4),p.y+rnd(-4,4),rnd(-.7,.7),-rnd(.2,.9),rnd(20,36),rnd(2,4.5),pick(['#b6ff5a','#d8ffb0']),{type:1,g:-.02});}p.tox=p.tox<.01?0:p.tox*.93;if(p.acid>0)p.acid=Math.max(0,p.acid-4);}   /* water washes acid off: the green drains away in a second or so, it stops eating at that part, and the poisoning stops with it */
         if(p.fire>0){for(let i=0;i<3;i++)wisp(p.x,p.y-p.r);if(frame-hissT>8){hissT=frame;sfx('hiss',.6);}}p.fire=0;p.heat=0;p.smolder=0;}
       if(RG&&b.dead&&cw>=3&&!b.washed){b.washed=true;const dirty=b.rot>0||b.deadFor>600;b.deadFor=0;b.deadT=0;if(b.rot>0){b.rot=0;b.rotShown=0;repal(b);}
@@ -3309,7 +3314,7 @@ function honeyStick(){
 }
 function fluidStep(){
   if(LN){let d=false;for(let i=0;i<LN;i++)if(LDEAD[i]){d=true;break;}if(d)fluidCompact();}
-  if(LN){fluidForces();fluidStepCore();fluidVelocities();sandStep();fluidReact();honeyStick();if(bloodAt>frame-600)bloodMix();}
+  if(LN){fluidForces();fluidStepCore();fluidVelocities();sandStep();fluidReact();honeyStick();if(bloodAt>frame-600||(liqCount[WATER]>0)+(liqCount[ACID]>0)+(liqCount[HONEY]>0)>=2)bloodMix();}
   else if(LSTATIC||lavaSrc.length){solidTop.fill(1e9);LSTATIC=0;lavaSrc.length=0;hazBins.fill(0);liqCount=[0,0,0,0,0,0,0,0];}
   fluidBodies();
 }
@@ -3652,7 +3657,7 @@ function gizmoStep(){
     if(G.type==='tesla'){if(G.cd>0)continue;const tx=G.x,ty=G.y-52;let best=null,bq=null,bd=175;                      // the coil: one arc at whatever is nearest
       for(const b of bodies){if(b.kind==='anchor'||b.remove||(b.kind==='ragdoll'&&(b.dead||b.shield>0))||b.maxx<tx-180||b.minx>tx+180)continue;for(const p of b.pts){if(p.gone)continue;const d=hyp(p.x-tx,p.y-ty);if(d<bd){bd=d;best=b;bq=p;}}}
       if(best){G.cd=110;fx.push({type:'bolt',pts:boltPath(tx,ty,bq.x,bq.y),life:11,max:11});zap(best);sparks(bq.x,bq.y,8,'#bfe6ff',5);sfx('zap',.5);}else G.cd=12;continue;}
-    if(DESTROYG[G.type]){gizmoDestroy(G);continue;}
+    if(DESTROYG[G.type]){gizmoDestroy(G);if(G.dead)gizmos.splice(i,1);continue;}
     for(const b of bodies){if(b.kind==='anchor'||b.remove||b.maxx<x0-14||b.minx>x1+14||b.maxy<G.y-30||b.miny>G.y+12)continue;
       if(G.type==='belt'){for(const p of b.pts)if(!p.pin&&p.x>x0&&p.x<x1&&p.y+p.r>G.y-5&&p.y<G.y+8){const v=p.x-p.px;p.px=p.x-(v+(G.dir*3.2-v)*.25);}}
       else if(G.type==='spikes'){let hit=null;for(const p of b.pts)if(!p.gone&&p.x>x0&&p.x<x1&&p.y+p.r>G.y-13&&p.y<G.y+6){hit=p;break;}if(!hit)continue;
@@ -3695,6 +3700,7 @@ function gizmoDestroy(G){
     return;}
   if(G.type==='press'){const BH=24,up=G.y-G.h+12+BH,py0=G.yb===undefined?up:G.yb,t=G.t=((G.t||0)+1)%170;
     const yb=t<90?up:t<96?up+(G.y-up)*((t-89)/6)*((t-89)/6):t<120?G.y:G.y-(G.y-up)*((t-120)/50);G.yb=yb;
+    if(G.once&&t>=168){G.dead=true;return;}
     if(t===88){const c0=G.x-G.w/2-8,c1=G.x+G.w/2+8;                                    /* Ultra Instinct: by the time the block comes down it is standing beside the crusher */
       for(const b of bodies){if(b.kind!=='ragdoll'||b.remove||b.maxx<c0||b.minx>c1||b.maxy<up-BH||b.miny>G.y+8||!uiOn(b))continue;const hp=b.pts[HIP],nk=b.pts[NECK];let dir=hp.x>=G.x?1:-1,dx=dir>0?c1+10-b.minx:c0-10-b.maxx;
         if(hp.x+dx>XR-30||hp.x+dx<XL+30){dir=-dir;dx=dir>0?c1+10-b.minx:c0-10-b.maxx;}uiDodge(b,nk.x,nk.y,dir,0,null);for(const p of b.pts){if(!p.att||p.pin)continue;p.x+=dx;p.px=p.x;p.lx=p.x;}b.planted=false;b.uiT=Math.max(b.uiT||0,frame+14);ring(nk.x+dx,nk.y,26,'#dfe8ff',12,3);}}
@@ -3728,6 +3734,10 @@ function drawDestroyGizmo(g,G){const x=G.x,y=G.y;
     if(G.shut>0){g.fillStyle='#c9d2e3';g.beginPath();g.moveTo(x-13,y-3);g.lineTo(x-3,y-19);g.lineTo(x+3,y-19);g.lineTo(x+13,y-3);g.closePath();g.fill();g.strokeStyle='#59606e';g.lineWidth=1.6;g.beginPath();g.moveTo(x,y-19);for(let k=0;k<4;k++)g.lineTo(x+(k%2?-3:3),y-16+k*3.4);g.lineTo(x,y-3);g.stroke();}
     else{g.fillStyle=G.cd>0?'#8a94a8':'#c9d2e3';for(const d of [-1,1])for(let k=0;k<3;k++){const tx=x+d*(4+k*4.6);g.beginPath();g.moveTo(tx-2.3,y-3);g.lineTo(tx,y-9);g.lineTo(tx+2.3,y-3);g.closePath();g.fill();}g.fillStyle=G.cd>0?'#6a3a3a':'#e5484d';g.beginPath();g.ellipse(x,y-3.5,3.2,1.8,0,0,6.3);g.fill();}
     return;}
+  if(G.type==='press'&&G.boot){const yb=G.yb===undefined?y-G.h+36:G.yb,w=G.w,t=G.t||0;                                   /* the giant boot of the Stomp tool */
+    if(t<96){g.fillStyle='rgba(0,0,0,'+(.12+.2*Math.min(1,t/90))+')';g.beginPath();g.ellipse(x,y-1,w*.55,5,0,0,6.3);g.fill();}
+    g.fillStyle='#3f5a8a';g.fillRect(x-w/2+6,yb-G.h-40,w-26,G.h+12);g.fillStyle='#6f4a2a';rr(g,x-w/2+2,yb-34,w-18,30,6);g.fill();g.beginPath();g.moveTo(x-w/2+10,yb-18);g.lineTo(x+w/2-14,yb-18);g.quadraticCurveTo(x+w/2+2,yb-17,x+w/2+2,yb-6);g.lineTo(x-w/2+10,yb-6);g.closePath();g.fill();
+    g.fillStyle='#8a5f38';g.fillRect(x-w/2+2,yb-36,w-18,6);g.fillStyle='#1b2238';rr(g,x-w/2,yb-7,w+4,7,3);g.fill();g.strokeStyle='#e8d7b8';g.lineWidth=1.6;g.lineCap='round';g.beginPath();for(let k=0;k<3;k++){g.moveTo(x+w/2-34,yb-27+k*5);g.lineTo(x+w/2-22,yb-25+k*5);}g.stroke();return;}
   if(G.type==='press'){const y0=y-G.h,BH=24,w=G.w,yb=G.yb===undefined?y0+12+BH:G.yb,t=G.t||0,warn=t>=66&&t<96,j=t>=66&&t<90?Math.sin(frame*1.9)*1.2:0,bx=x-w/2+j;
     g.fillStyle='#2c3344';g.fillRect(x-w/2-6,y0,4,G.h);g.fillRect(x+w/2+2,y0,4,G.h);                                  /* the two posts */
     g.fillStyle='#8a94a8';g.fillRect(x-4+j,y0+8,8,Math.max(0,yb-BH-y0-8));                                               /* the rod */
@@ -3745,7 +3755,38 @@ function drawDestroyGizmo(g,G){const x=G.x,y=G.y;
 function drawBoulder(g,p){const r=p.r,K=[1,.9,1.04,.86,1,.92,1.05,.88,.98];g.fillStyle='#8b93a5';g.beginPath();for(let i=0;i<9;i++){const a=i*6.2832/9,R=r*K[i];if(i)g.lineTo(Math.cos(a)*R,Math.sin(a)*R);else g.moveTo(R,0);}g.closePath();g.fill();
   g.fillStyle='rgba(255,255,255,.2)';g.beginPath();g.moveTo(-r*.55,-r*.5);g.lineTo(-r*.05,-r*.72);g.lineTo(r*.2,-r*.3);g.lineTo(-r*.35,-r*.1);g.closePath();g.fill();
   g.strokeStyle='rgba(27,34,56,.5)';g.lineWidth=2;g.lineCap='round';g.beginPath();g.moveTo(r*.1,r*.05);g.lineTo(r*.4,r*.3);g.lineTo(r*.3,r*.62);g.moveTo(-r*.5,r*.3);g.lineTo(-r*.2,r*.5);g.stroke();}
+/* ===== more Destroy tools =====
+   chainsawAt: the Chainsaw tool, held down at x,y. Every part of a dummy within reach is ground away as a saw grinds it; Infinity and Ultra Instinct are not touched.
+   gloveGo: the Boxing glove. Everything along a line from x,y in the direction ux,uy is punched that way. gloveFx: the gloves being drawn (each for a quarter of a second).
+   drawDestroyFx: the chainsaw at the cursor while that tool is held, and the gloves. drawMace: the spiked ball. */
+let gloveFx=[];
+function chainsawAt(x,y){const R=20;let hit=false;
+  for(const o of bodies){if(o.remove||o.kind==='anchor'||o.kind==='saw'||o.maxx<x-R-24||o.minx>x+R+24||o.maxy<y-R-24||o.miny>y+R+24)continue;
+    if(o.kind==='ragdoll'){if(o.shield>0)continue;let on=false;for(let i=0;i<=SHR;i++){const st=o.sticks[i];if(!st.gone&&distSeg(x,y,st.p.x,st.p.y,st.q.x,st.q.y)<R+st.w){on=true;break;}}if(!on)continue;
+      if(infOn(o)){infRipple(o,x,y);continue;}if(uiOn(o)){const d=o.pts[HIP].x>=x?1:-1;uiDodge(o,o.pts[NECK].x,o.pts[NECK].y,d,0,null);uiDash(o,d);continue;}
+      hit=true;damage(o,1.6);o.stun=Math.max(o.stun,8);
+      for(let i=0;i<=SHR;i++){const st=o.sticks[i];if(st.gone||distSeg(x,y,st.p.x,st.p.y,st.q.x,st.q.y)>R+st.w)continue;const full=PART_HP[i]*o.C.hp/100*o.sc*o.sc;if(st.hp===undefined||st.hp>full)st.hp=full;st.hp-=Math.max(4,full/25);hurtPart(st.p,.04,.05);hurtPart(st.q,.04,.05);if(st.hp<=0){destroyPart(o,i);if(o.remove)break;}}
+      if(!o.remove&&frame%2===0){if(canBleed(o))bleedFx(o,x+rnd(-10,10),y+rnd(-10,10),1,rnd(-1,1),-1,5);else part(x+rnd(-10,10),y+rnd(-10,10),rnd(-4,4),rnd(-5,-1),rnd(15,30),rnd(2,3),'#f2eedf',{g:.25});}}
+    else{let on=false;for(const p of o.pts)if(hyp(p.x-x,p.y-y)<R+(p.r||0)){on=true;break;}if(!on)continue;hit=true;if(o.kind==='balloon')popBalloon(o);else if(o.kind==='crate')crateHit(o,3);else if(o.kind==='bomb')ignite(o);}}
+  if(frame%3===0)sparks(x+rnd(-8,8),y+rnd(-8,8),hit?3:1,'#ffd27a',hit?5:2);if(hit&&frame-sawSfx>6){sawSfx=frame;sfx('snip',.5);}}
+function gloveGo(x,y,ux,uy){const L=170,R=30;let any=false;gloveFx.push({x,y,ux,uy,f:frame});if(gloveFx.length>8)gloveFx.shift();sfx('whoosh',.9);
+  for(const o of bodies){if(o.remove||o.kind==='anchor'||o.kind==='saw')continue;let on=false;for(const p of o.pts){if(p.gone)continue;const t=clamp((p.x-x)*ux+(p.y-y)*uy,0,L);if(hyp(p.x-(x+ux*t),p.y-(y+uy*t))<R+(p.r||0)){on=true;break;}}if(!on)continue;
+    if(o.kind==='ragdoll'){if(o.shield>0)continue;const q=o.pts[NECK];if(infOn(o)){infRipple(o,q.x,q.y);continue;}if(uiOn(o)){uiDodge(o,q.x,q.y,ux>=0?1:-1,uy,null);continue;}
+      damage(o,24*o.C.res.impact);o.stun=Math.max(o.stun,40);tumbleStart(o);react(o,'hit');hurtPart(q,.3,0);say(q.x,q.y-40,'POW!','#ffe066',20);}
+    else if(o.kind==='balloon'){popBalloon(o);continue;}else if(o.kind==='crate')crateHit(o,18);
+    for(const p of o.pts)if(!p.pin){p.px-=ux*17;p.py-=uy*17-3;}any=true;}
+  if(any){shake=Math.max(shake,5);sfx('thud',1.3);}}
+function drawDestroyFx(g){
+  for(let k=gloveFx.length-1;k>=0;k--){const P=gloveFx[k],age=frame-P.f;if(age>15||age<0){gloveFx.splice(k,1);continue;}const e=age<4?age/4:age<8?1:1-(age-8)/7,L=150*e,gx=P.x+P.ux*L,gy=P.y+P.uy*L,nx=-P.uy,ny=P.ux;
+    g.strokeStyle='#9aa6c0';g.lineWidth=3;g.lineCap='round';g.lineJoin='round';g.beginPath();g.moveTo(P.x,P.y);for(let i=1;i<=10;i++){const t=i/10,o=i===10?0:(i%2?7:-7);g.lineTo(P.x+P.ux*L*t+nx*o,P.y+P.uy*L*t+ny*o);}g.stroke();
+    g.save();g.translate(gx,gy);g.rotate(Math.atan2(P.uy,P.ux));g.fillStyle='#f2f5ff';rr(g,-10,-9,8,18,3);g.fill();g.fillStyle='#e5484d';rr(g,-4,-13,30,26,12);g.fill();rr(g,-2,-19,16,12,6);g.fill();g.fillStyle='rgba(255,255,255,.3)';rr(g,6,-8,14,4,2);g.fill();g.restore();}
+  if(curId==='chainsaw'&&(mouse.down||mouse.inside)){const on=mouse.down,j=on?rnd(-1.2,1.2):0;g.save();g.translate(mouse.x+j,mouse.y+j);g.rotate(-.5);g.fillStyle='#3a4670';rr(g,-4,-6,34,12,6);g.fill();g.fillStyle='#c9d2e3';rr(g,-1,-3.5,28,7,3.5);g.fill();
+    g.fillStyle='#1b2238';const off=on?(frame*2)%6:0;for(let k=0;k<6;k++){g.fillRect(-2+k*6-off+6,-7.5,2.4,2.4);g.fillRect(-2+k*6+off,5.2,2.4,2.4);}g.fillStyle='#ff9a3c';rr(g,-30,-10,28,20,5);g.fill();g.strokeStyle='#3a4670';g.lineWidth=4;g.lineCap='round';g.beginPath();g.moveTo(-26,-10);g.lineTo(-26,-17);g.lineTo(-10,-17);g.lineTo(-10,-10);g.stroke();g.fillStyle='#1b2238';g.beginPath();g.arc(-16,0,3.4,0,6.3);g.fill();g.restore();}
+}
+function drawMace(g,p){const r=p.r;g.fillStyle='#c9d2e3';for(let i=0;i<8;i++){const a=i*.7854,ca=Math.cos(a),sa=Math.sin(a);g.beginPath();g.moveTo(ca*r*1.5,sa*r*1.5);g.lineTo(ca*r*.8-sa*r*.3,sa*r*.8+ca*r*.3);g.lineTo(ca*r*.8+sa*r*.3,sa*r*.8-ca*r*.3);g.closePath();g.fill();}
+  g.fillStyle='#5b6788';g.beginPath();g.arc(0,0,r,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.22)';g.beginPath();g.arc(-r*.3,-r*.35,r*.3,0,6.3);g.fill();}
 function drawGizmos(g){
+  drawDestroyFx(g);
   for(const G of gizmos){const x0=G.x-G.w/2;
     if(DESTROYG[G.type]){drawDestroyGizmo(g,G);}else if(G.type==='spikes'){g.fillStyle='#3a4254';g.fillRect(x0,G.y-3,G.w,4);g.fillStyle='#c9d2e3';const nS=Math.round(G.w/10),sw=G.w/nS;for(let k=0;k<nS;k++){g.beginPath();g.moveTo(x0+k*sw,G.y-3);g.lineTo(x0+(k+.5)*sw,G.y-16);g.lineTo(x0+(k+1)*sw,G.y-3);g.closePath();g.fill();}}
     else if(G.type==='belt'){g.fillStyle='#232a3b';rr(g,x0,G.y-7,G.w,9,4.5);g.fill();g.strokeStyle='#ffd24a';g.lineWidth=1.6;g.lineCap='round';const off=((frame*G.dir*1.3)%16+16)%16;g.beginPath();for(let x=x0+6+off-16;x<x0+G.w-6;x+=16){if(x<x0+6)continue;g.moveTo(x-G.dir*3,G.y-5.5);g.lineTo(x+G.dir*2,G.y-2.5);g.lineTo(x-G.dir*3,G.y+.5);}g.stroke();
@@ -4222,6 +4263,13 @@ const TOOLS={
   spikes:{name:'Spikes',icon:'📍',desc:'Place a strip of spikes on the ground. Landing or lying on it hurts; it pops balloons. Dummies walk round it.',
     down(){gizmos.push({type:'spikes',x:mouse.x,y:groundBelow(mouse.x,mouse.y-10,true),w:70,cd:0});if(gizmos.length>40)gizmos.shift();sfx('click');}},
   boulder:{name:'Boulder',icon:'',desc:'Drop a huge boulder. It is far heavier than a bowling ball and rolls over whatever is in its way. Throw it with the hand.',down(){const b=makeBowl(mouse.x,mouse.y,27,34);b.rock=true;sfx('click');}},
+  chainsaw:{name:'Chainsaw',icon:'',desc:'Hold and move it over a dummy: the chain grinds away every part it touches, just as a saw does, whatever the settings. It bursts balloons, chews through crates and sets bombs off.',step(){if(mouse.down)chainsawAt(mouse.x,mouse.y);}},
+  mace:{name:'Mace',icon:'',desc:'Click to hang a spiked ball on a chain from that spot. Pull it back with the hand and let it swing: whatever it strikes is knocked flying and torn open.',
+    down(){const a=makeAnchor(mouse.x,mouse.y).pts[0],len=clamp(groundBelow(mouse.x,mouse.y)-mouse.y-30,50,150),b=makeBowl(mouse.x,mouse.y+len,16,15);b.spiky=true;links.push({p:a,q:b.pts[0],len,len0:len,stiff:1,kind:'rope',w:4,cut:false,tear:0});sfx('click');}},
+  glove:{name:'Boxing glove',short:'Glove',icon:'',desc:'Drag to aim and let go: a boxing glove on a spring shoots out and punches whatever is in front of it clean across the room. A quick click punches towards the nearest dummy.',
+    down(){aim={x:mouse.x,y:mouse.y};},up(){if(!aim)return;let dx=mouse.x-aim.x,dy=mouse.y-aim.y,d=hyp(dx,dy);if(d<8){const p=findPoint(aim.x,aim.y,1e4,b=>b.kind==='ragdoll');dx=p?p.x-aim.x:1;dy=p?p.y-aim.y:0;d=hyp(dx,dy)||1;}gloveGo(aim.x,aim.y,dx/d,dy/d);aim=null;}},
+  stomp:{name:'Stomp',icon:'',desc:'Click: a giant boot comes down on that spot and flattens whatever is under it.',
+    down(){const gy=groundBelow(mouse.x,mouse.y-10,true);gizmos.push({type:'press',boot:true,once:true,x:mouse.x,y:gy,w:70,h:Math.max(200,gy-CEIL+60),t:78,cd:0});if(gizmos.length>40)gizmos.shift();sfx('click');}},
   trap:{name:'Bear trap',short:'Trap',icon:'',desc:'Set a bear trap on the ground. It snaps shut on the first thing that steps on it and holds a dummy by that leg or arm for a few seconds; pull the dummy free with the hand. Then it opens again.',
     down(){gizmos.push({type:'trap',x:mouse.x,y:groundBelow(mouse.x,mouse.y-10,true),w:34,cd:30,shut:0});if(gizmos.length>40)gizmos.shift();sfx('click');}},
   press:{name:'Crusher',icon:'',desc:'Put up a crusher: click where its top should be. Every few seconds the block slams down and flattens whatever is under it. Its lamp turns red just before.',
@@ -4801,10 +4849,11 @@ Object.assign(TOOLS,{
 });
 function bowlHit(o,v){const p=o.pts[0],now=hyp(p.x-p.px,p.y-p.py),was=hyp(p.vx0,p.vy0),vx=was>now?p.vx0:p.x-p.px,vy=was>now?p.vy0:p.y-p.py,sp=Math.max(now,was);if(sp<3.5||v.kind!=='ragdoll'||v.shield>0||frame<(v.bowlT||0))return;v.bowlT=frame+26;   // a heavy ball going at any speed takes a dummy off its feet
   damage(v,Math.min(45,(sp-2)*2.1*Math.sqrt(p.m/9))*v.C.res.impact);v.balance=0;v.stun=Math.max(v.stun,18+sp);v.planted=false;for(const q of v.pts)if(!q.pin){q.px-=vx*.55;q.py-=vy*.55-2.5;}
+  if(o.spiky&&!(v.uiT>=frame)&&!infOn(v)){let q=null,qd=1e9;for(const u of v.pts){if(u.gone)continue;const e=hyp(u.x-p.x,u.y-p.y);if(e<qd){qd=e;q=u;}}if(q){damage(v,10*v.C.res.impact);hurtPart(q,.5,.6);bleedFx(v,q.x,q.y,10,vx/(sp||1),vy/(sp||1),5);partHit(v,q,16);}}   /* a mace: its spikes tear open the part they strike */
   const c=v.pts[HIP];sfx('thud',1);if(sp>9){say(c.x,c.y-50,'STRIKE!','#ffe066',16);shake=Math.max(shake,3);}}
 function makeBowl(x,y,r,m){const b=makeBall(x,y),p=b.pts[0];b.bowl=true;b.ms=m*.7;b.bounce=.16;b.fric=.012;p.r=r;p.m=m;p.im=1/m;return b;}   // a ball with real weight: a bowling ball, or the ball of a wrecking ball
 const SECTIONS={
-  toolGrid:[['Hands',['grab','brute','pin','rope','weld','blade','eraser','magnet']],['Destroy',['cannon','rocket','hammer','wreck','boulder']],['Traps',['spikes','trap','press','burner','turret','tesla','saw','peel']],['Explosives',['bomb','grenade','dynamite','cluster','c4','mine','tnt','firework']],['Guns',['pistol','uzi','smg','rifle','shotgun','sniper','minigun','flamer','launcher']],['Build',['spawn','crate','ball','balloon','wall','bouncer','fan','portal','sand','concrete','belt','kit','pizza','burger','confetti','bowl']],['Liquids',['water','blood','lava','acid','honey','gluel']]],
+  toolGrid:[['Hands',['grab','brute','pin','rope','weld','blade','eraser','magnet']],['Destroy',['cannon','rocket','hammer','wreck','boulder','chainsaw','mace','glove','stomp']],['Traps',['spikes','trap','press','burner','turret','tesla','saw','peel']],['Explosives',['bomb','grenade','dynamite','cluster','c4','mine','tnt','firework']],['Guns',['pistol','uzi','smg','rifle','shotgun','sniper','minigun','flamer','launcher']],['Build',['spawn','crate','ball','balloon','wall','bouncer','fan','portal','sand','concrete','belt','kit','pizza','burger','confetti','bowl']],['Liquids',['water','blood','lava','acid','honey','gluel']]],
   powerGrid:[['Forces',['blast','hole','tele','lift','twister','quake','gust','swap','launch','pillar','warp','stun','disarm','anvil','slam']],['Elements',['bolt','fire','ice','rain','meteor','skylaser','geyser','wave','erupt','shower','acidrain','evap','blizzard','storm','honeyrain']],['Bodies',['size','heal','sleep','rage','clone','party','shield','rubber','dizzy','feather','floaty','heavy','haste','bomb','cupid','feud','zombie','scare','peace']],['Potions',['potRegen','potImmortal','potStrong','potSwift','potInvis','potFire','potGiant','potPoison','potSkel','potTiny','potFury','potJump','potDoze','potCure']],['Time',['slow','fast']]]};
 let cur=TOOLS.grab,curId='grab';
 function pickTool(id){const t=TOOLS[id]||POWERS[id];if(!t)return;
@@ -5201,13 +5250,14 @@ function drawRag(g,b){
       for(const [on,t0,t1] of [[a.band>.05,.05,.36],[q.band>.05,.64,.95]]){if(!on)continue;const x0=lerp(a.rx,q.rx,t0),y0=lerp(a.ry,q.ry,t0),x1=lerp(a.rx,q.rx,t1),y1=lerp(a.ry,q.ry,t1);
         g.lineCap='butt';g.strokeStyle='#f1e9d2';g.lineWidth=s.w*1.06;g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.stroke();
         g.strokeStyle='rgba(140,120,85,.6)';g.lineWidth=1;g.beginPath();for(const t of [.3,.68]){const mx=lerp(x0,x1,t),my=lerp(y0,y1,t),ox=(x1-x0)*.12,oy=(y1-y0)*.12;g.moveTo(mx+nx-ox,my+ny-oy);g.lineTo(mx-nx+ox,my-ny+oy);}g.stroke();g.lineCap='round';}}
+    {const ba=s.p.bl||0,bq=s.q.bl||0;if(goreOn&&(ba>.03||bq>.03)){const x1=s.p.rx,y1=s.p.ry,x2=s.q.rx,y2=s.q.ry,gr=g.createLinearGradient(x1,y1,x2,y2);gr.addColorStop(0,'rgba(179,18,31,'+Math.min(.6,ba*.6)+')');gr.addColorStop(1,'rgba(179,18,31,'+Math.min(.6,bq*.6)+')');g.strokeStyle=gr;g.lineWidth=s.w*wk;g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();}}   /* covered in blood */
     {const ha=s.p.honey||0,hq=s.q.honey||0;if(ha>.03||hq>.03){const x1=s.p.rx,y1=s.p.ry,x2=s.q.rx,y2=s.q.ry,gr=g.createLinearGradient(x1,y1,x2,y2);gr.addColorStop(0,'rgba('+(s.p.glue?GLUERGB:'255,186,40')+','+Math.min(.62,ha*.62)+')');gr.addColorStop(1,'rgba('+(s.q.glue?GLUERGB:'255,186,40')+','+Math.min(.62,hq*.62)+')');g.strokeStyle=gr;g.lineWidth=s.w*wk;g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();}}   /* coated in honey */
     {const ta=s.p.tox,tq=s.q.tox;if(ta>.03||tq>.03){const x1=s.p.rx,y1=s.p.ry,x2=s.q.rx,y2=s.q.ry,gr=g.createLinearGradient(x1,y1,x2,y2);
       gr.addColorStop(0,'rgba(140,255,60,'+Math.min(.82,ta*.82)+')');gr.addColorStop(1,'rgba(140,255,60,'+Math.min(.82,tq*.82)+')');g.strokeStyle=gr;g.lineWidth=s.w*wk+5;g.globalAlpha*=.35;g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();g.globalAlpha=GA;g.lineWidth=s.w*wk*.9;g.stroke();
       const fromP=ta>=tq,mx=fromP?ta:tq;if(mx>.12)for(let k=0;k<2;k++){const t=(frame*.022+k*.5+i*.13)%1,u=fromP?t:1-t;g.fillStyle='rgba(228,255,150,'+(.9*(1-t)*Math.min(1,mx*1.6))+')';g.beginPath();g.arc(x1+(x2-x1)*u,y1+(y2-y1)*u,Math.max(1.3,s.w*.17),0,6.3);g.fill();}}}if(kc){stickRims(g,b,s);g.restore();}};
   const dot=(p,r,col)=>{if(p.gone)return;g.fillStyle=col;g.beginPath();g.arc(p.rx,p.ry,r,0,6.3);g.fill();if(p.burnt>.02){g.fillStyle=CH+p.burnt*.9+')';g.fill();}
     if(goreOn&&!SKB){if(p.bruise>.05){g.fillStyle=BR+p.bruise*.6+')';g.fill();}if(FC&&p.gore>.05){g.globalAlpha*=p.gore*.9;g.fillStyle=FC;g.fill();g.globalAlpha=GA;}}
-    if(p.tox>.03){g.fillStyle='rgba(140,255,60,'+Math.min(.82,p.tox*.82)+')';g.fill();}if(p.honey>.03){g.fillStyle='rgba('+(p.glue?GLUERGB:'255,186,40')+','+Math.min(.62,p.honey*.62)+')';g.fill();}};
+    if(p.tox>.03){g.fillStyle='rgba(140,255,60,'+Math.min(.82,p.tox*.82)+')';g.fill();}if(p.honey>.03){g.fillStyle='rgba('+(p.glue?GLUERGB:'255,186,40')+','+Math.min(.62,p.honey*.62)+')';g.fill();}if(goreOn&&p.bl>.03){g.fillStyle='rgba(179,18,31,'+Math.min(.6,p.bl*.6)+')';g.fill();}};
   const ARM=[[UAL,FAL,EL,HL],[UAR,FAR,ER,HR]],LEG=[[THL,SHL,KL,FL],[THR,SHR,KR,FR]];
   const arm=(i,d)=>{const a=ARM[i];ln(a[0],d?pal.shirtD:pal.shirt);ln(a[1],d?pal.skinD:pal.skin);const sk=S[a[1]].skel;if(C.joint&&!S[a[0]].skel)dot(P[a[2]],S[a[0]].w*.45,C.joint);dot(P[a[3]],P[a[3]].r*(sk?.68:1),sk?BN:d?pal.skinD:pal.skin);};
   const leg=(i,d)=>{const a=LEG[i];ln(a[0],d?pal.pantsD:pal.pants);ln(a[1],d?pal.pantsD:pal.pants);const sk=S[a[1]].skel;if(C.joint&&!S[a[0]].skel)dot(P[a[2]],S[a[0]].w*.45,C.joint);dot(P[a[3]],P[a[3]].r*(sk?.68:1.08),sk?BN:pal.shoe);if(C.paintB&&!sk&&!SKB&&!P[a[3]].gone&&!S[a[1]].cut)shoeTex(g,b,P[a[3]],P[a[2]],i);};
@@ -5246,6 +5296,7 @@ function drawRag(g,b){
   if(hd.burnt>.02&&!hd.gone){g.fillStyle=CH+hd.burnt*.72+')';headPath(g,b,hd);g.fill();}
   if(hd.tox>.03&&!hd.gone){g.fillStyle='rgba(140,255,60,'+Math.min(.72,hd.tox*.72)+')';headPath(g,b,hd);g.fill();}
   if(hd.honey>.03&&!hd.gone){g.fillStyle='rgba('+(hd.glue?GLUERGB:'255,186,40')+','+Math.min(.55,hd.honey*.55)+')';headPath(g,b,hd);g.fill();}
+  if(goreOn&&hd.bl>.03&&!hd.gone){g.fillStyle='rgba(179,18,31,'+Math.min(.62,hd.bl*.62)+')';headPath(g,b,hd);g.fill();}   /* a head that has been in blood is red with it */
   if(C.paintC&&!CLOTHBACK[C.clothAt||'neck'])drawCloth(g,b);   /* cloth held in a hand: over the body */
   if(C.paintB&&!S[SN].cut&&!S[SN].skel&&!SKB&&!hd.gone)bodyTex(g,b,S[SN],SN);   /* a painted collar: over the neck and the lower edge of the head */
   if(brutalOn&&(goreOn||isSkel(b)))drawWounds(g,b);
@@ -5316,7 +5367,7 @@ function drawProp(g,b){
       if(b.tnt){g.fillStyle='rgba(206,44,36,.82)';rr(g,-h,-h,sz,sz,4);g.fill();g.fillStyle='#fff';g.font='bold '+(sz*.34)+'px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText('TNT',0,1);g.textBaseline='alphabetic';}   // explosives: red, and it says so
       if(b.burn>0){g.fillStyle='rgba(255,110,25,'+(.18+.1*Math.sin(frame*.6+b.id))+')';rr(g,-h,-h,sz,sz,4);g.fill();}g.restore();break;}
     case 'ball':g.save();g.translate(p.rx,p.ry);g.rotate(b.rot);
-      if(b.rock){drawBoulder(g,p);g.restore();break;}if(b.bowl){g.fillStyle='#3d4460';g.beginPath();g.arc(0,0,p.r,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.16)';g.beginPath();g.arc(-p.r*.3,-p.r*.35,p.r*.3,0,6.3);g.fill();g.fillStyle='#07080c';for(const q of [[.1,-.45],[.42,-.2],[.12,-.08]]){g.beginPath();g.arc(q[0]*p.r,q[1]*p.r,p.r*.12,0,6.3);g.fill();}g.restore();break;}   /* a bowling ball: dark, with three finger holes */ g.fillStyle='#f4f4f6';g.beginPath();g.arc(0,0,p.r,0,6.3);g.fill();
+      if(b.spiky){drawMace(g,p);g.restore();break;}if(b.rock){drawBoulder(g,p);g.restore();break;}if(b.bowl){g.fillStyle='#3d4460';g.beginPath();g.arc(0,0,p.r,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.16)';g.beginPath();g.arc(-p.r*.3,-p.r*.35,p.r*.3,0,6.3);g.fill();g.fillStyle='#07080c';for(const q of [[.1,-.45],[.42,-.2],[.12,-.08]]){g.beginPath();g.arc(q[0]*p.r,q[1]*p.r,p.r*.12,0,6.3);g.fill();}g.restore();break;}   /* a bowling ball: dark, with three finger holes */ g.fillStyle='#f4f4f6';g.beginPath();g.arc(0,0,p.r,0,6.3);g.fill();
       for(let i=0;i<3;i++){g.fillStyle=['#ff5a6e','#3fa7ff','#ffd24a'][i];g.beginPath();g.moveTo(0,0);g.arc(0,0,p.r,i*2.094,i*2.094+1.047);g.closePath();g.fill();}g.fillStyle='#fff';g.beginPath();g.arc(0,0,p.r*.22,0,6.3);g.fill();g.restore();break;
     case 'bomb':{if(b.xk&&drawBombKind(g,b,p))break;const bl=b.fuse<60?(b.fuse>>2)&1:(b.fuse>>4)&1;g.fillStyle=bl?'#5a1a1a':'#1b1d24';g.beginPath();g.arc(p.rx,p.ry,p.r,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.25)';g.beginPath();g.arc(p.rx-4,p.ry-4,3,0,6.3);g.fill();
       g.strokeStyle='#a98a55';g.lineWidth=2.5;g.beginPath();g.moveTo(p.rx+2,p.ry-p.r);g.quadraticCurveTo(p.rx+7,p.ry-p.r-7,p.rx+4,p.ry-p.r-9);g.stroke();g.fillStyle='#fff';g.font='bold 10px system-ui';g.textAlign='center';g.fillText(Math.ceil(b.fuse/60),p.rx,p.ry+4);break;}
@@ -6060,6 +6111,10 @@ const ICO=(()=>{
     tesla:s('M7.2 5 L4.4 3.6 L5.4 6.4 L2.6 5.8',YE,1.5)+s('M16.8 5 L19.6 3.6 L18.6 6.4 L21.4 5.8',YE,1.5)+r(6.4,19.2,11.2,2.8,DK,1.2)+p('M9.2 19.4 L10.6 9 H13.4 L14.8 19.4Z',GY)+r(9.2,15.4,5.6,1.7,OR,.8)+r(9.8,11.8,4.4,1.7,OR,.8)+c(12,6,4.2,LB)+c(10.6,4.6,1.2,WH),
     wreck:s('M12 1.4 V8.6',GY,2.4)+s('M10.6 3.4 H13.4 M10.6 6.2 H13.4',ST,1.2)+c(12,15.2,7.2,SL)+c(9.4,12.6,2,GY),
     boulder:s('M1.6 20.8 H4.6 M19.6 21.2 H22.4',GY,1.4)+p('M5 16.6 L3.4 11 L7 5.4 L13 3.4 L18.8 6.2 L21 12 L18.4 18.6 L11 20.8Z',GY)+p('M7 5.4 L13 3.4 L12.2 9 L6.2 11Z',ST)+s('M13 12 L15.6 14.4 L14.8 17.2',SL,1.3),
+    chainsaw:g(-25,r(11.4,10.8,10.8,5,DK,2.5)+r(12.2,11.8,9.2,3,ST,1.5)+s('M4 9.8 V7.4 Q4 6 5.6 6 H9.4 Q11 6 11 7.4 V9.8',DK,1.9)+r(2.6,9.6,9.6,7.6,OR,1.9)+c(6.4,13.4,1.5,BK)),
+    mace:s('M12 1.4 V8',GY,2.3)+s('M10.6 3.2 H13.4 M10.6 5.8 H13.4',ST,1.2)+p(star(12,15,8.8,5.4,8),ST)+c(12,15,5.8,SL)+c(10.2,13.2,1.5,GY),
+    glove:s('M1.4 12.4 L3 9.8 L4.8 14.6 L6.4 10.6',GY,1.6)+r(6.6,8.6,3.8,7.4,WH,1.3)+r(10.6,3.4,6.4,6,RD,3)+r(9.8,5.8,12,12.2,RD,5.6)+r(13,7.8,5.4,1.7,'#ff8f93',.85),
+    stomp:s('M2.8 21.4 L1.4 20 M21.2 21.6 L22.6 20.2',YE,1.5)+r(7,1.4,7.2,8.4,BL,1.2)+p('M6.4 9.6 H14.8 V13.6 Q20.8 13.8 20.8 18.2 V19.6 H6.4Z',BR)+r(6,8.6,9.2,2.6,'#c98f4e',1.1)+r(5.6,19,16,2.8,BK,1.3),
     trap:r(3,18.6,18,2.8,DK,1.4)+p('M7 18.6 L8.8 14.8 L10.6 18.6Z',ST)+p('M12 18.6 L13.8 14.8 L15.6 18.6Z',ST)+p('M17 18.6 L18.8 14.8 L20.6 18.6Z',ST)+g(-42,r(3,15.2,18,2.8,SL,1.4)+p('M6 18 L7.8 21.6 L9.6 18Z',WH)+p('M10.6 18 L12.4 21.6 L14.2 18Z',WH)+p('M15.2 18 L17 21.6 L18.8 18Z',WH),3.6,17.8)+c(4,18.4,2.2,RD),
     press:r(3,20.6,18,1.8,DK,.9)+r(4,2,16,3.8,SL,1.4)+r(10.6,5.8,2.8,5.4,ST)+r(5,11,14,7,GY,1.6)+r(5,15.4,14,2.6,YE,1.2)+s('M3.4 18.8 L2 17.4 M20.6 18.8 L22 17.4',YE,1.4),
     burner:p('M12 1.6 Q17.6 7.4 15.4 11.6 Q14.2 13.8 12 13.8 Q9.8 13.8 8.6 11.6 Q6.4 7.4 12 1.6Z',OR)+p('M12 6.4 Q14.8 9.6 13.7 11.6 Q13 12.8 12 12.8 Q11 12.8 10.3 11.6 Q9.2 9.6 12 6.4Z',YE)+r(8.8,13.4,6.4,3,ST,1)+p('M4.6 21.4 L7.4 16 H16.6 L19.4 21.4Z',SL),
