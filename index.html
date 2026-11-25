@@ -636,8 +636,12 @@ function refreshAttach(b){const P=b.pts;for(const p of P)p.att=false;P[HIP].att=
 const h2c=h=>{const n=parseInt(h.slice(1),16);return[(n>>16)&255,(n>>8)&255,n&255];};
 const mixc=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
 const css=c=>'rgb('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+')';
+/* poisoned: b.pois creeps from 0 to 1 over about twelve seconds while the Poison potion is in it, and the body turns purple with it (repal, and paintTints for drawings). An antidote or the Heal power lets it fade again; a body that died of it stays purple. */
+const POISRATE=1/720,POISRGB=[140,60,210];
+function poisonTint(b){const on=potOn(b,'poison');let v=b.pois||0;if(on){if(!b.dead)v=Math.min(1,v+POISRATE);}else if(v>0)v=Math.max(0,v-.004);if(v===(b.pois||0))return;b.pois=v;
+  if(Math.abs(v-(b.poisShown||0))>.03||(v===1&&b.poisShown!==1)||(v===0&&b.poisShown)){b.poisShown=v;repal(b);}}   /* (the colours are worked out again only when it has changed enough to see) */
 function repal(b){const c=b.C.col,ch=b.charr*.8,pal={};
-  for(const k of ['skin','shirt','pants','shoe']){let v=h2c(c[k]);{const zk=b.zombie?1:b.zt||0;if(zk>0)v=mixc(v,[110,170,70],(k==='skin'?.75:.3)*zk);}if(b.rot>0)v=mixc(v,[96,124,46],b.rot*(k==='skin'?.82:.55));if(b.cid==='ember'&&b.dead)v=mixc(v,[62,58,62],.74);v=mixc(v,[22,20,20],ch);pal[k]=css(v);pal[k+'D']=css(mixc(v,[0,0,0],.3));}
+  for(const k of ['skin','shirt','pants','shoe']){let v=h2c(c[k]);{const zk=b.zombie?1:b.zt||0;if(zk>0)v=mixc(v,[110,170,70],(k==='skin'?.75:.3)*zk);}if(b.rot>0)v=mixc(v,[96,124,46],b.rot*(k==='skin'?.82:.55));if(b.pois>0)v=mixc(v,POISRGB,b.pois*(k==='skin'?.85:.72));if(b.cid==='ember'&&b.dead)v=mixc(v,[62,58,62],.74);v=mixc(v,[22,20,20],ch);pal[k]=css(v);pal[k+'D']=css(mixc(v,[0,0,0],.3));}
   b.pal=pal;}
 
 /* ============================== particles & fx ============================== */
@@ -1302,9 +1306,10 @@ function infNear(b,x,y,core){let q=null,qd=1e9;const P=b.pts;for(let i=0;i<P.len
    Caught: inside INFZONE a thing loses its speed, the more the nearer it is (down to INFDRAG of it a frame at the barrier), and may leave no faster than
    INFOUT+INFOUTK*gap a frame: people who walk into it slow right down and are stuck there for a few seconds before they can pull away. Something knocked
    away faster than INFKNOCK (a punch from the user, a blast) breaks free, and its whole body is let go for a while (o.infFreeT). */
+function infTied(b){let T=null;for(const l of links){if(l.cut||l.grip)continue;const o=l.p.b===b?l.q.b:l.q.b===b?l.p.b:null;if(o&&o!==b)(T||(T=new Set())).add(o);}return T;}   /* the bodies fastened to b by a rod, a weld or a rope (a C4 charge stuck on it, say): its Infinity leaves those alone. Pushing one away while its link pulls b after it sent b flying */
 function infFields(last){infList.length=0;for(const b of bodies)if(infOn(b)||(b.kind==='ragdoll'&&b.shield>0&&!b.dead&&!b.remove))infList.push(b);if(!infList.length)return;   /* (the Infinity power as well: besides its own capsule, things are now held off every part of the body, so nothing comes to rest against a hand or a foot that sticks out of it) */
-  for(const b of infList){const reach=INFPAD+INFZONE+14,core=!!b.atk;
-    for(const o of bodies){if(o===b||o.remove||o.kind==='anchor'||o.owner===b||(b.grip&&b.grip.o===o)||o.maxx<b.minx-reach||o.minx>b.maxx+reach||o.maxy<b.miny-reach||o.miny>b.maxy+reach)continue;
+  for(const b of infList){const reach=INFPAD+INFZONE+14,core=!!b.atk,tied=links.length?infTied(b):null;
+    for(const o of bodies){if(o===b||o.remove||o.kind==='anchor'||o.owner===b||(tied&&tied.has(o))||(b.grip&&b.grip.o===o)||o.maxx<b.minx-reach||o.minx>b.maxx+reach||o.maxy<b.miny-reach||o.miny>b.maxy+reach)continue;
       const free=o.infFreeT>frame;let caught=false,knock=false;
       for(const p of o.pts){if(p.gone||p.pin)continue;const q=infNear(b,p.x,p.y,core);if(!q)continue;const dx=p.x-q.x,dy=p.y-q.y,d=hyp(dx,dy)||1e-6,gap=d-p.r-q.r-INFPAD;if(gap>INFZONE)continue;
         const nx=dx/d,ny=dy/d;if(gap<0){const e=-gap*.8;p.x+=nx*e;p.y+=ny*e;p.px+=nx*e;p.py+=ny*e;}                                              /* inside the barrier already: put back out */
@@ -2792,7 +2797,7 @@ function emberFlame(b){const hd=b.pts[HEAD],was=b.flame===undefined?1:b.flame,up
   b.flame=f;
   if(f>.6&&!b.dead&&frame%5===0&&!hd.in&&!hd.gone&&hd.att)addFlame(hd.x+rnd(-5,5)*b.sc,hd.y-hd.r*.8,rnd(-.3,.3),-rnd(.6,1.4)*up,rnd(6,10)*b.sc,rnd(10,18));}
 function ragThink(b){
-  if(b.demote){demote(b);if(b.remove)return;}if(b.pot)potionStep(b);
+  if(b.demote){demote(b);if(b.remove)return;}if(b.pot)potionStep(b);if(b.pot||b.pois>0)poisonTint(b);
   b.fs=b.fs===undefined?b.facing:Math.abs(b.facing-b.fs)<.03?b.facing:b.fs+(b.facing-b.fs)*.2;                            // which way it is facing, eased: -1 to 1 through 0 as it turns (used when Smooth turning is on)
   const P=b.pts,C=b.C;b.t++;vitals(b);b.balloons=b.balloonN||0;b.balloonN=0;if(b.balloons>=5){if(!b.floatSaid&&!b.dead){b.floatSaid=true;react(b,'floating',null,true);}}else b.floatSaid=false;if(b.grip)gripCheck(b);if(b.reactCd>0)b.reactCd--;if(b.sayLater&&--b.sayLater.t<=0){if(!b.dead&&(b.balance>.5||b.sayLater.force)&&b!==possessed&&b.frozen<=0&&!(b.sleep>0)){bubble(b,b.sayLater.line,100);b.reactCd=Math.max(b.reactCd,60);}b.sayLater=null;}if(b.hitGuard>0)b.hitGuard--;if(b.bubble&&--b.bubble.life<=0)b.bubble=null;
   if(b.fat>0)bellyStep(b);if(b.fat>0&&b.burn>0)fatBurn(b);
@@ -3765,8 +3770,8 @@ const INFIN=.62,INFSTOP=.66,INFCREEP=.1;let shList=[];
 function infinityStep(){shList.length=0;
   for(const b of bodies){if(b.kind!=='ragdoll'||!(b.shield>0)||b.remove)continue;if(b.dead){b.shield=0;continue;}shList.push(b);
     const S=infShape(b),ax=S[0],ay=S[1],ex=S[2]-ax,ey=S[3]-ay,l2=ex*ex+ey*ey||1e-6,R=S[4],R0=R*INFSTOP,Rb=R*(INFIN+INFSTOP)/2,ux=b.pts[HIP].x-b.pts[HIP].px,uy=b.pts[HIP].y-b.pts[HIP].py,x0=Math.min(ax,S[2])-R,x1=Math.max(ax,S[2])+R,y0=Math.min(ay,S[3])-R,y1=Math.max(ay,S[3])+R;
-    const near=(x,y)=>{let t=((x-ax)*ex+(y-ay)*ey)/l2;t=t<0?0:t>1?1:t;const dx=x-(ax+ex*t),dy=y-(ay+ey*t),d=Math.sqrt(dx*dx+dy*dy)||1e-3;return [d,dx/d,dy/d];};
-    for(const o of bodies){if(o===b||o.kind==='anchor'||o.remove||o.maxx<x0||o.minx>x1||o.maxy<y0||o.miny>y1)continue;
+    const near=(x,y)=>{let t=((x-ax)*ex+(y-ay)*ey)/l2;t=t<0?0:t>1?1:t;const dx=x-(ax+ex*t),dy=y-(ay+ey*t),d=Math.sqrt(dx*dx+dy*dy)||1e-3;return [d,dx/d,dy/d];},tied=links.length?infTied(b):null;
+    for(const o of bodies){if(o===b||o.kind==='anchor'||o.remove||(tied&&tied.has(o))||o.maxx<x0||o.minx>x1||o.maxy<y0||o.miny>y1)continue;
       for(const p of o.pts){if(p.pin||p.x<x0||p.x>x1||p.y<y0||p.y>y1)continue;const q=near(p.x,p.y),nx=q[1],ny=q[2];let d=q[0];if(d>=R)continue;
         {const was=p.infB===b.id&&p.infF>=frame-2?p.infD:R,ok=Math.min(R-.5,was-Math.max(0,was-R0)*INFCREEP);if(d<ok){const e=ok-d;p.x+=nx*e;p.y+=ny*e;p.px+=nx*e;p.py+=ny*e;d=ok;}p.infD=d;p.infF=frame;p.infB=b.id;}   /* no nearer than a tenth of the way left since the frame before (p.infD); just crossed the line: held at it */
         const vr=-((p.x-p.px-ux)*nx+(p.y-p.py-uy)*ny),lim=Math.max(0,d-R0)*INFCREEP;   /* (its speed toward the barrier, against the dummy's own movement) */
@@ -4794,7 +4799,7 @@ function paintFx(src,sx,sy,sw,sh,M){if(!PFXC){PFXC=document.createElement('canva
   const c=PFXG;c.globalCompositeOperation='source-over';c.globalAlpha=1;c.clearRect(0,0,PFXC.width,PFXC.height);c.drawImage(src,sx,sy,sw,sh,0,0,w,h);c.globalCompositeOperation='source-atop';
   for(const m of M){if(typeof m[1]!=='object')c.fillStyle='rgba('+m[0]+','+m[1]+')';else{const gr=c.createLinearGradient(0,0,0,h);for(let k=1;k<m.length;k++)gr.addColorStop(m[k][0],'rgba('+m[0]+','+m[k][1]+')');c.fillStyle=gr;}c.fillRect(0,0,w,h);}
   c.globalCompositeOperation='source-over';return PFXC;}
-function paintTints(b,skin,M){const ro=b.rot>0?b.rot*(skin?.82:.55):0,ch=(b.charr||0)*.8;if(ro>.02)M.push(['96,124,46',ro.toFixed(3)]);if(ch>.02)M.push(['22,20,20',ch.toFixed(3)]);return M;}   /* what happens to the whole body: rotting, and charring from a fire (as repal does to the plain colours) */
+function paintTints(b,skin,M){const ro=b.rot>0?b.rot*(skin?.82:.55):0,ch=(b.charr||0)*.8,po=b.pois>0?b.pois*(skin?.85:.72):0;if(ro>.02)M.push(['96,124,46',ro.toFixed(3)]);if(po>.02)M.push([POISRGB.join(','),po.toFixed(3)]);if(ch>.02)M.push(['22,20,20',ch.toFixed(3)]);return M;}   /* what happens to the whole body: rotting, and charring from a fire (as repal does to the plain colours) */
 function paintMarks(b,a,q,skin){const M=paintTints(b,skin,[]),two=(col,va,vq,k,mx)=>{va=Math.min(mx,(va||0)*k);vq=Math.min(mx,(vq||0)*k);if(va>.02||vq>.02)M.push(Math.abs(va-vq)<.01?[col,va.toFixed(3)]:[col,[0,va.toFixed(3)],[1,vq.toFixed(3)]]);};
   const cb=((a.burnt||0)+(q.burnt||0))*.5;if(cb>.02)M.push(['20,15,13',Math.min(.9,cb*.9).toFixed(3)]);
   if(goreOn){two('179,18,31',a.bl,q.bl,.6,.6);const FC=b.C.fluid==='Air'?null:b.C.fluidCol,ga=a.gore>.05?Math.min(.9,a.gore*.9):0,gq=q.gore>.05?Math.min(.9,q.gore*.9):0;
@@ -5395,7 +5400,7 @@ function fatBurn(b){
 function drawBelly(g,b){
   const st=b.sticks[SP];if(st.cut)return;const q=b.pts[NECK],h=b.pts[HIP],f=b.facing,k=b.fat/FATMAX,pal=b.pal,w=st.w,L=st.len0,C=b.C;
   if(C.paintB&&C.texOf!==C.paintB)bodyTexBuild(C);   /* a character with painted clothes: the belly is the colour of the painted top, not of the plain shirt under it (it used not to match), and it rots and chars as the painting does */
-  const tn=v=>css(mixc(b.rot>0?mixc(v,[96,124,46],b.rot*.55):v,[22,20,20],(b.charr||0)*.8)),TS=C.paintB&&!isSkel(b)?C.texTop:null,TP=C.paintB&&!isSkel(b)?C.texPants:null,shirt=TS?tn(TS):pal.shirt,shirtD=TS?tn(mixc(TS,[0,0,0],.3)):pal.shirtD,pants=TP?tn(TP):pal.pants;
+  const tn=v=>{if(b.rot>0)v=mixc(v,[96,124,46],b.rot*.55);if(b.pois>0)v=mixc(v,POISRGB,b.pois*.72);return css(mixc(v,[22,20,20],(b.charr||0)*.8));},TS=C.paintB&&!isSkel(b)?C.texTop:null,TP=C.paintB&&!isSkel(b)?C.texPants:null,shirt=TS?tn(TS):pal.shirt,shirtD=TS?tn(mixc(TS,[0,0,0],.3)):pal.shirtD,pants=TP?tn(TP):pal.pants;
   const kk=(.45+.55*k)*b.sc,jig=(b.js||0)*1.5*kk+Math.sin(b.t*.07)*.5*k,D=(w*(.16+.4*k)+L*.05*k)*(1+(b.jf||0)*.045*(.5+.5*k))-(b.js||0)*.35*kk;   // jig: the bounce up and down the body; D: how far it stands out, which pulses as it bounces
   g.save();g.translate(h.rx,h.ry);g.rotate(Math.atan2(q.ry-h.ry,q.rx-h.rx));                                              // x runs up the spine from the hips, +y*f is the front
   g.fillStyle=pants;g.beginPath();g.ellipse(L*.04+jig*.45,-f*w*.34,L*(.15+.05*k),w*(.24+.16*k)*(1-(b.jf||0)*.02),0,0,6.3);g.fill();             // a bigger seat behind (it wobbles too)
