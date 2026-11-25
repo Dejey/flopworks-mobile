@@ -1087,7 +1087,7 @@ function fireballFly(F){const p=F.pts[0];if(p.in){for(let i=0;i<4;i++)wisp(p.x,p
 /* ---- Ultra Instinct (a special move for custom characters) ----
    uiOn: this dummy has it and is able to move, so nothing aimed at it lands. uiDodge: what a miss looks like (it sways away from the blow, silver motes,
    a glow), and for a few frames after it nothing hurts it at all (b.uiT, checked in damage). Whoever attacked it is someone it now has a quarrel with. */
-function uiOn(b){return b.kind==='ragdoll'&&hasSp(b.C,'ui')&&!b.dead&&!(b.frozen>0)&&!(b.sleep>0)&&!(b.stun>0)&&!b.held&&b.mode!=='limp'&&!(b.cuffT>frame)&&b.balance>.3;}
+function uiOn(b){return b.kind==='ragdoll'&&hasSp(b.C,'ui')&&!b.dead&&!(b.stillT>=frame)&&!(b.frozen>0)&&!(b.sleep>0)&&!(b.stun>0)&&!b.held&&b.mode!=='limp'&&!(b.cuffT>frame)&&b.balance>.3;}
 /* How a dodge looks. uiGhost: an afterimage, a copy of where every joint is now (drawUiGhosts draws them, fading, behind the dummy). uiDash: a step aside,
    a few frames of sliding the whole body (uiThink does the sliding), with afterimages. The pose for the next few frames (uiPose): it leans back the way
    the blow is going (uiLean, for I.lean), or every third time it ducks (uiDuck). */
@@ -1143,7 +1143,7 @@ function uiThink(b,I){if(b.dead){b.uiFlip=null;return;}
   if(b.uiPose>frame&&uiOn(b)){if(b.uiDuck)I.crouch=true;else I.lean=(I.lean||0)+b.uiLean;}
   uiSense(b);}
 function strike(b,o,q,A){
-  if(o.kind==='ragdoll'&&o.shield>0){ring(q.x,q.y,20,'#b9a8ff',10,2);return;}
+  if(o.kind==='ragdoll'&&o.shield>0)return;   /* (no ring where the blow is stopped: Infinity is invisible) */
   if(o.kind==='ragdoll'&&infOn(o)){infRipple(o,q.x,q.y);return;}                                    /* Infinity: the blow never arrives */
   if(uiOn(o)){uiDodge(o,q.x,q.y,A.dx||b.facing,A.dy||0,b);return;}                                  /* Ultra Instinct: it is not there any more */                    // the blow never lands
   const C=b.C,f=b.facing;let dx=A.dx,dy=A.dy-.18;if(A.upper){dx=f*.3;dy=-1;}const d=hyp(dx,dy)||1;dx/=d;dy/=d;
@@ -1287,7 +1287,7 @@ function paintHull(cv){const W=PAINTPX,D=cv.getContext('2d').getImageData(0,0,W,
    the user's own movement, so walking into something pushes it along ahead); anything already inside is eased back out. infBullet does the same to a
    bullet's speed. infRipple: the little ring where something is being held off. */
 const INFPAD=11,INFZONE=40,INFK=.1,INFOUT=.03,INFOUTK=.012,INFDRAG=.5,INFKNOCK=5;let infList=[];
-function infOn(b){return b.kind==='ragdoll'&&hasSp(b.C,'inf')&&!b.dead&&!(b.frozen>0)&&!(b.sleep>0)&&!b.held&&!(b.infOffT>=frame);}   /* up all the time, also while it attacks or is knocked about: only your hand, sleep, ice it was already in and a Void Realm take it down */
+function infOn(b){return b.kind==='ragdoll'&&hasSp(b.C,'inf')&&!b.dead&&!(b.stillT>=frame)&&!(b.frozen>0)&&!(b.sleep>0)&&!b.held&&!(b.infOffT>=frame);}   /* up all the time, also while it attacks or is knocked about: only your hand, sleep, ice it was already in and a Void Realm take it down */
 function warded(b){return b.shield>0||infOn(b);}   /* nothing can harm it: the Infinity power, or the Infinity special while its barrier is up */
 function infRipple(o,x,y){o.infT=frame;}   /* (the barrier is invisible: nothing is drawn where it holds something off) */
 function infNear(b,x,y,core){let q=null,qd=1e9;const P=b.pts;for(let i=0;i<P.length;i++){const p=P[i];if(p.gone||!p.att||(core&&i>HIP))continue;const d=hyp(x-p.x,y-p.y)-p.r;if(d<qd){qd=d;q=p;}}return q;}   /* the part of the user nearest to a spot (core: its head and trunk only) */
@@ -1596,7 +1596,7 @@ function tkEnd(b,thrown){const K=b.tk,o=K.o;b.tk=null;if(o.tkBy===b)o.tkBy=null;
   for(const p of o.pts)if(!p.pin){p.px=p.x-dx;p.py=p.y-dy;}
   if(o.kind==='ragdoll'){tumbleStart(o);o.tumbleDmg=0;o.hitGuard=0;o.tkT=frame+110;damage(o,6);if(!o.dead)react(o,'thrown',null,true);}else o.tkShot={by:b,t:frame+34};   // (o.tkT: thrown by telekinesis. What it hits in the next couple of seconds hurts in full, not as a tumble's knocks do)
   sfx('whoosh',1.1);ring(c[0],c[1],60,TKCOL,14,5);const h=b.pts[HEAD];say(h.x,h.y-34,'THROW!','#7df0ff',15);}
-function specialRange(b){const a=(b.dim.uarm+b.dim.farm);return{uppercut:a+26,slam:150*b.sc,whip:a*2.1,laser:480,blink:520,gust:170,bone:460,pounce:330,frost:185,fireball:460,needles:140,spook:210,jet:340,broccoli:130,tk:TKRANGE,ui:400,wave:520,aura:380,rush:420,orb:520,realm:200,spark:a+30,inf:150}[curSp(b)]||(b.C.specials&&(spNext(b,true),0))||undefined;}   /* (several moves, and the one that is up has no reach of its own: another one is brought up, so the dummy is never left waiting on it) */
+function specialRange(b){const a=(b.dim.uarm+b.dim.farm);return{uppercut:a+26,slam:150*b.sc,whip:a*2.1,laser:480,blink:520,gust:170,bone:460,pounce:330,frost:185,fireball:460,needles:140,spook:210,jet:340,broccoli:130,tk:TKRANGE,ui:400,wave:520,aura:380,rush:420,orb:520,realm:200,still:200,spark:a+30,inf:150}[curSp(b)]||(b.C.specials&&(spNext(b,true),0))||undefined;}   /* (several moves, and the one that is up has no reach of its own: another one is brought up, so the dummy is never left waiting on it) */
 /* ---- several special moves on one character (customs) ----
    C.specials: the list, when a custom has more than one (C.special is then the first). hasSp: does it have this one (for the always-on ones: Flight,
    Ultra Instinct). curSp: the move a dummy has up next (b.spSel, an index into the list). spNext: move on to the next (in Possess), or to any (in a fight). */
@@ -1611,16 +1611,18 @@ function spReach(b){const s=curSp(b);return s==='uppercut'||s==='whip'||s==='sla
    A move is broken off if the dummy is killed, frozen, stunned hard, knocked over or picked up. */
 const WAVECHARGE=34,ORBCHARGE=58,SIGNT=24;   // SIGNT: frames the hand sign is held before the realm opens
 /* the hand sign itself, drawn over the joined hands: two fingers raised, in a purple glow (also drawn on the big figure in the cut-scene) */
-function drawSign(g,b){const A=b.anime;if(!A||A.k!=='sign'||b.dead)return;const P=b.pts,hl=P[HL],hr=P[HR];if(hl.gone&&hr.gone)return;
-  const s=b.sc*b.C.scale,f=b.facing<0?-1:1,h=f>0?(hr.gone?hl:hr):(hl.gone?hr:hl),x=h.rx,y=h.ry,k=Math.min(1,A.t/10);
-  g.save();g.globalCompositeOperation='lighter';const gr=g.createRadialGradient(x,y,1,x,y,20*s);gr.addColorStop(0,'rgba(170,90,255,'+(.7*k).toFixed(3)+')');gr.addColorStop(1,'rgba(120,50,220,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,20*s,0,6.3);g.fill();g.restore();
+function drawSign(g,b){const A=b.anime;if(!A||(A.k!=='sign'&&A.k!=='clash')||b.dead)return;const P=b.pts,hl=P[HL],hr=P[HR];if(hl.gone&&hr.gone)return;
+  const s=b.sc*b.C.scale,f=b.facing<0?-1:1,h=f>0?(hr.gone?hl:hr):(hl.gone?hr:hl),x=h.rx,y=h.ry,k=A.k==='clash'?1:Math.min(1,A.t/10);
+  g.save();g.globalCompositeOperation='lighter';const gr=g.createRadialGradient(x,y,1,x,y,20*s);gr.addColorStop(0,(A.dom==='still'?'rgba(90,210,255,':'rgba(170,90,255,')+(.7*k).toFixed(3)+')');gr.addColorStop(1,A.dom==='still'?'rgba(60,170,230,0)':'rgba(120,50,220,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,20*s,0,6.3);g.fill();g.restore();
   g.strokeStyle=b.pal.skin;g.lineCap='round';g.lineWidth=2.3*s;g.beginPath();g.moveTo(x,y-2*s);g.lineTo(x+f*.6*s,y-2*s-9*s*k);g.moveTo(x+f*2.7*s,y-2*s);g.lineTo(x+f*3.6*s,y-2*s-8*s*k);g.stroke();}
 function animeStep(b,I){const A=b.anime,P=b.pts,hip=P[HIP],neck=P[NECK],head=P[HEAD],s=b.sc*b.C.scale;
   if(b.dead||b.frozen>0||b.stun>8||b.held||b.balance<.3||b.sleep>0){b.anime=null;return;}
   A.t++;b.atkCd=Math.max(b.atkCd,6);const o=A.o&&!A.o.remove&&!A.o.dead?A.o:null;
+  if(A.k==='clash'){if(!inClash(b)){b.anime=null;return;}I.mv=0;I.jump=false;I.arms='cpr';I.fx=neck.x+b.facing*8*s;I.fy=neck.y+13*s;I.fmv=9;if(b===possessed&&pressed.KeyE)clashPush(b);   /* a domain clash: the sign is held to the end; driving it, every press of the special key pushes */
+    if(frame%2===0){const hx=(P[HL].x+P[HR].x)/2,hy=(P[HL].y+P[HR].y)/2,a=rnd(0,6.2832);part(hx,hy,Math.cos(a)*2.4,Math.sin(a)*2.4,12,rnd(1.4,2.6),A.dom==='still'?'#9fe8ff':'#c08aff',{type:1,g:0});}return;}
   if(A.k==='sign'){I.mv=0;I.jump=false;I.arms='cpr';I.fx=neck.x+b.facing*8*s;I.fy=neck.y+13*s;I.fmv=9;                                  /* the hand sign for a Void Realm: both hands brought together in front of the chest, and held */
-    if(frame%2===0){const hx=(P[HL].x+P[HR].x)/2,hy=(P[HL].y+P[HR].y)/2,a=rnd(0,6.2832),d=rnd(10,22);part(hx+Math.cos(a)*d,hy+Math.sin(a)*d,-Math.cos(a)*1.8,-Math.sin(a)*1.8,10,rnd(1.4,2.6),pick(['#c08aff','#8a4dff','#e9d8ff']),{type:1,g:0});}
-    if(A.t===SIGNT){const x=hip.x,y=hip.y-20*b.sc;if(cineOn&&!cine){cine={by:b,t:0,x,y,name:'VOID REALM'};sfx('spook',.9);}else{realmOpen(b,x,y);sfx('spook',.9);say(head.x,head.y-34,'VOID REALM','#7df0ff',16);}}   /* made: the realm opens (after the cut-scene, if that is on) */
+    if(frame%2===0){const hx=(P[HL].x+P[HR].x)/2,hy=(P[HL].y+P[HR].y)/2,a=rnd(0,6.2832),d=rnd(10,22);part(hx+Math.cos(a)*d,hy+Math.sin(a)*d,-Math.cos(a)*1.8,-Math.sin(a)*1.8,10,rnd(1.4,2.6),pick(A.dom==='still'?['#9fe8ff','#5ad1ff','#e6fbff']:['#c08aff','#8a4dff','#e9d8ff']),{type:1,g:0});}
+    if(A.t===SIGNT){const x=hip.x,y=hip.y-20*b.sc;const dk=A.dom||'realm';if(cineOn&&!cine&&!domainRival(b,x,y,REALMR)){cine={by:b,t:0,x,y,name:domainName(dk),kind:dk};sfx('spook',.9);}else{domainOpen(dk,b,x,y);sfx('spook',.9);say(head.x,head.y-34,domainName(dk),'#7df0ff',16);}   /* (no cut-scene when a rival domain is already there: the clash starts at once) */}   /* made: the realm opens (after the cut-scene, if that is on) */
     if(A.t>SIGNT+22)b.anime=null;return;}
   if(A.k==='wave'){I.mv=0;I.jump=false;if(o&&A.t<WAVECHARGE)b.facing=o.pts[HIP].x>=hip.x?1:-1;const f=b.facing;
     if(A.t<WAVECHARGE){I.arms='five';I.fx=hip.x-f*12*s;I.fy=hip.y-12*s;I.fmv=7;                                  /* hands cupped back at the hip, the light gathering in them */
@@ -1668,24 +1670,98 @@ const SPARKDMG=58;
 let cine=null,cineOn=true;const CINEDUR=100;
 function setCineOn(v){cineOn=v;$('setCine').checked=v;try{localStorage.setItem('flopworksM.cine',v?'1':'0');}catch(e){}}
 const REALMR=340,REALMCUT=.4;
-function realmOpen(b,x,y){fx.push({type:'realm',x,y,r:0,R:REALMR,life:320,max:320,by:b,in:new Set()});shake=Math.max(shake,6);flash=Math.max(flash,.3);}
+/* ---- Domains: the Void Realm, the Still Realm, and what happens when two meet ----
+   domainOpen makes the dome (an fx of type 'realm' or 'still') and then domainMeet looks for a rival: a hostile domain already open and touching it, or
+   someone hostile inside it who can answer with a domain of their own (caught in the middle of the hand sign, or, if you are not driving it, with one
+   ready). Either way the two domains CLASH (fx type 'clash'): while it lasts neither does anything, both casters hold the sign, and c.bal drifts toward
+   whoever is stronger (health, a little luck, and for the one you drive every press of the special key). At the end the weaker dome shatters and its
+   caster is left stunned; the winner's domain starts afresh. Too close to call, and both break.
+   Still Realm: every enemy inside is stilled (b.stillT): held exactly where it is (stillHold), unable to act or use any technique. Ultra Instinct and
+   Infinity are off for it (uiOn, infOn), and its shots hang in the air (stillBullet). It can still be hurt. */
+const STILLR=340,STILLLIFE=300,CLASHDUR=190,ANSWERWIN=50,CINEPAL={realm:{bg:'rgba(6,2,14,',ln:'rgba(190,130,255,.85)',gl:'rgba(150,70,255,',tx:'#d9c2ff',sh:'rgba(170,90,255,.95)',ln2:'rgba(190,130,255,.9)'},still:{bg:'rgba(2,10,18,',ln:'rgba(150,230,255,.85)',gl:'rgba(60,180,255,',tx:'#c9f2ff',sh:'rgba(90,210,255,.95)',ln2:'rgba(150,230,255,.9)'}};
+let stillDomes=[];
+function isDomain(k){return k==='realm'||k==='still';}
+function isDome(e){return e.type==='realm'||e.type==='still';}
+function domainName(k){return k==='still'?'STILL REALM':'VOID REALM';}
+function domainOf(b){const L=b.C.specials||(b.C.special?[b.C.special]:[]);return L.find(isDomain)||null;}   /* the domain this character has, if any */
+function domCol(d){return d.type==='still'?[120,220,255]:[170,90,255];}
+function inClash(b){const c=b.clash;if(!c)return false;if(c.life<=0||frame-c.seen>3){b.clash=null;return false;}return true;}   /* (a clash that was wiped with the scene does not hold anyone) */
+function realmOpen(b,x,y){return domainOpen('realm',b,x,y);}
+function domainOpen(kind,b,x,y){const e=kind==='still'?{type:'still',x,y,r:0,R:STILLR,life:STILLLIFE,max:STILLLIFE,by:b,in:new Set()}:{type:'realm',x,y,r:0,R:REALMR,life:320,max:320,by:b,in:new Set()};
+  fx.push(e);shake=Math.max(shake,6);flash=Math.max(flash,.3);domainMeet(e);return e;}
+function domainRival(b,x,y,R){for(const o of fx){if(!isDome(o)||inClash(o)||o.life<30||!o.by||o.by.remove||o.by.dead||o.by===b||allies(b,o.by))continue;if(hyp(o.x-x,o.y-y)<o.R+R-40)return o;}return null;}
+function domainMeet(e){const by=e.by,o=domainRival(by,e.x,e.y,e.R);if(o){clashStart(o,e);return;}
+  for(const v of bodies){if(v===by||v.kind!=='ragdoll'||v.dead||v.remove||v.held||v.frozen>0||v.sleep>0||allies(by,v))continue;const c=v.pts[HIP];if(hyp(c.x-e.x,c.y-e.y)>e.R)continue;
+    const signing=v.anime&&v.anime.k==='sign',k=signing?(v.anime.dom||'realm'):domainOf(v);if(!k)continue;
+    if(!signing&&(v===possessed||v.spCd>0||v.balance<.5||v.stun>8||v.shock>0))continue;
+    domainAnswer(v,k);return;}}
+function domainAnswer(v,k){v.anime=null;v.stillT=0;v.atk=null;v.spCd=Math.max(v.spCd,spCdOf(v));const h=v.pts[HIP],hd=v.pts[HEAD];say(hd.x,hd.y-34,domainName(k),'#7df0ff',16);sfx('spook',.9);domainOpen(k,v,h.x,h.y-20*v.sc);}
+function clashStart(A,B){const c={type:'clash',A,B,t:0,life:CLASHDUR,max:CLASHDUR,bal:0,wa:rnd(.8,1.2),wb:rnd(.8,1.2),seen:frame};fx.push(c);
+  for(const d of [A,B]){d.clash=c;d.r=d.R;const b=d.by;b.clash=c;b.atk=null;b.stillT=0;b.stun=0;b.anime={k:'clash',t:0,dom:d.type==='still'?'still':undefined};}
+  A.by.facing=B.by.pts[HIP].x>=A.by.pts[HIP].x?1:-1;B.by.facing=-A.by.facing||1;shake=Math.max(shake,11);flash=Math.max(flash,.55);sfx('boom',.9);sfx('zap',.6);
+  witness((A.x+B.x)/2,(A.y+B.y)/2,'seeBoom',null,null,'','gasp',500);}
+function clashSeam(c){const A=c.A,B=c.B,dx=B.x-A.x,dy=B.y-A.y,d=hyp(dx,dy),far=d>20,ux=far?dx/d:1,uy=far?dy/d:0,a=far?clamp((A.R*A.R-B.R*B.R+d*d)/(2*d),-A.R,A.R):0,h=Math.sqrt(Math.max(3600,A.R*A.R-a*a)),sh=c.bal*70;
+  return{mx:A.x+ux*(a+sh),my:A.y+uy*(a+sh),ux,uy,px:-uy,py:ux,h};}   /* the line where the two domes meet, pushed toward the one that is losing */
+function clashPush(b){const c=b.clash;if(!c)return;c.bal=clamp(c.bal+(b===c.A.by?1:-1)*.035,-1,1);const h=b.pts[b.facing>0?HR:HL];sparks(h.x,h.y,4,'#ffffff',4);sfx('click',.5);}
+function clashStep(c){const A=c.A,B=c.B,a=A.by,b=B.by;c.t++;c.seen=frame;
+  const ok=v=>v&&!v.remove&&!v.dead&&v.anime&&v.anime.k==='clash',oa=ok(a),ob=ok(b);
+  if(!oa||!ob||c.life<=1){clashEnd(c,!oa&&!ob?0:!oa?-1:!ob?1:Math.abs(c.bal)<.12?0:c.bal>0?1:-1);return;}
+  const pw=(v,w)=>w*(.5+.5*clamp(v.hp/v.maxHp,0,1));c.bal=clamp(c.bal+(pw(a,c.wa)-pw(b,c.wb))*.012+rnd(-.006,.006),-1,1);
+  A.life++;B.life++;shake=Math.max(shake,2.2);   /* (the domains themselves wait) */
+  if(c.t%3===0){const S=clashSeam(c),s=rnd(-1,1),x=S.mx+S.px*S.h*s,y=S.my+S.py*S.h*s;if(y<FLOOR)sparks(x,y,3,pick(['#ffffff',css(domCol(A)),css(domCol(B))]),6);}
+  if(c.t%34===0)sfx('zap',.35);}
+function clashEnd(c,res){c.life=0;const A=c.A,B=c.B;for(const d of [A,B]){d.clash=null;const v=d.by;if(v){v.clash=null;if(v.anime&&v.anime.k==='clash')v.anime=null;}}
+  const brk=d=>{d.life=0;domainShatter(d);const v=d.by;if(v&&!v.remove&&!v.dead){v.stun=Math.max(v.stun,res?110:45);v.balance=Math.min(v.balance,.2);v.spCd=Math.max(v.spCd,spCdOf(v));const hd=v.pts[HEAD];say(hd.x,hd.y-30,'DOMAIN BROKEN','#ff8a8a',15);react(v,'hit',null,true);}};
+  if(res<=0)brk(A);if(res>=0)brk(B);const w=res>0?A:res<0?B:null;
+  if(w){w.life=w.max;w.in=new Set();const hd=w.by.pts[HEAD];say(hd.x,hd.y-40,domainName(w.type==='still'?'still':'realm')+' WINS','#7df0ff',17);}
+  shake=Math.max(shake,13);flash=Math.max(flash,.6);sfx('boom',1);}
+function domainShatter(d){const C=domCol(d),col=css(C),lite=css(mixc(C,[255,255,255],.6));
+  for(let i=0;i<56;i++){const a=i/56*6.2832+rnd(-.05,.05),x=d.x+Math.cos(a)*d.R,y=d.y+Math.sin(a)*d.R;if(y>FLOOR+6||y<CEIL-6||x<XL-6||x>XR+6)continue;part(x,y,-Math.cos(a)*rnd(1,5)+rnd(-1,1),-Math.sin(a)*rnd(1,5)+rnd(-1,1),rnd(30,62),rnd(4,8),i%3?col:lite,{type:4,g:.22,drag:.97});}
+  ring(d.x,d.y,d.R,lite,26,6);}
+function stillStep(e){const by=e.by;e.r=Math.min(e.R,e.r+14);if(!by||by.remove||by.dead){e.life=Math.min(e.life,12);return;}if(inClash(e))return;stillDomes.push(e);
+  for(const v of bodies){if(v===by||v.kind!=='ragdoll'||v.dead||v.remove||v.held||v.shield>0||allies(by,v))continue;const c=v.pts[HIP];if(hyp(c.x-e.x,c.y-e.y)>e.r)continue;
+    if(v.anime&&v.anime.k==='sign'){domainAnswer(v,v.anime.dom||'realm');return;}   /* caught in the middle of its own hand sign: that is an answer, and the two domains clash */
+    if(!(v.stillT>=frame))stillBegin(v,by);v.stillT=frame+1;}}
+function stillBegin(v,by){v.stillAt=frame;for(const p of v.pts){p.stX=p.x;p.stY=p.y;}v.atk=null;v.anime=null;if(v.tk)tkEnd(v,false);if(v.grip)releaseGrip(v);v.uiDashT=0;v.uiFlip=null;v.uiPose=0;
+  const h=v.pts[HIP],hd=v.pts[HEAD];ring(h.x,h.y-10,46,'#9fe8ff',14,3);blame(v,by);
+  if(v===possessed&&domainOf(v)&&v.spCd<=0)say(hd.x,hd.y-52,'Answer with your own domain: use your special NOW','#ffe066',13);}
+function stillThink(b){b.atk=null;b.anime=null;b.planted=false;b.cpr=null;b.aid=null;   /* stilled: it does nothing at all. Driving it, you have a moment to answer with a domain of your own */
+  if(b===possessed&&pressed.KeyE&&b.spCd<=0&&frame-(b.stillAt||0)<=ANSWERWIN){const k=domainOf(b);if(k)domainAnswer(b,k);}}
+function stillHold(){for(const b of bodies){if(b.kind!=='ragdoll'||!(b.stillT>=frame)||b.dead||b.held)continue;for(const p of b.pts){if(p.pin||!p.att||p.gone||p.stX===undefined)continue;p.x=p.px=p.stX;p.y=p.py=p.stY;}}}   /* held exactly where it was caught, in mid-air if need be */
+function stillBullet(bl){if(!bl.by)return false;for(const e of stillDomes){if(bl.by===e.by||allies(e.by,bl.by))continue;if(hyp(bl.x-e.x,bl.y-e.y)<e.r)return true;}return false;}   /* an enemy's shot inside the dome hangs where it is */
+function drawStillDome(g,e){const al=Math.min(1,e.life/20);g.save();g.globalCompositeOperation='source-over';g.globalAlpha=al;g.fillStyle='rgba(6,22,34,.58)';g.beginPath();g.arc(e.x,e.y,e.r,0,6.3);g.fill();g.strokeStyle='rgba(60,170,230,.35)';g.lineWidth=11;g.stroke();g.strokeStyle='rgba(170,235,255,.95)';g.lineWidth=3;g.stroke();
+  g.strokeStyle='rgba(190,240,255,.5)';g.lineWidth=1.6;g.beginPath();for(let i=0;i<60;i++){const a=i/60*6.2832,r0=e.r*(i%5?.955:.91),c=Math.cos(a),s=Math.sin(a);g.moveTo(e.x+c*r0,e.y+s*r0);g.lineTo(e.x+c*e.r*.985,e.y+s*e.r*.985);}g.stroke();   /* a dial round the rim, and its marks do not move */
+  g.strokeStyle='rgba(170,235,255,.26)';g.lineWidth=1.2;for(let i=1;i<=3;i++){g.beginPath();g.arc(e.x,e.y,e.r*i*.24,0,6.3);g.stroke();}
+  g.fillStyle='#e6fbff';for(let i=0;i<46;i++){const a=i*2.399963,r0=e.r*Math.sqrt((i+.5)/46)*.96;g.globalAlpha=al*(.25+.3*(.5+.5*Math.sin(frame*.05+i*1.3)));g.fillRect(e.x+Math.cos(a)*r0-1,e.y+Math.sin(a)*r0-1,2,2);}   /* motes hanging in the air */
+  g.restore();}
+function drawStilled(g,b){const hd=b.pts[HEAD];g.save();g.strokeStyle='rgba(160,235,255,.8)';g.lineWidth=1.4;g.setLineDash([3,5]);g.beginPath();g.arc(hd.rx,hd.ry,hd.r+6,0,6.3);g.stroke();g.setLineDash([]);g.fillStyle='#dff8ff';
+  for(let i=0;i<b.pts.length;i+=2){const p=b.pts[i];if(p.gone||!p.att)continue;const x=p.rx+((i*37+b.id*13)%17)-8,y=p.ry-((i*53+b.id*7)%15)+4,s=3.2;g.globalAlpha=.35+.35*Math.sin(frame*.12+i*1.7+b.id);
+    g.beginPath();g.moveTo(x,y-s);g.lineTo(x+s*.3,y-s*.3);g.lineTo(x+s,y);g.lineTo(x+s*.3,y+s*.3);g.lineTo(x,y+s);g.lineTo(x-s*.3,y+s*.3);g.lineTo(x-s,y);g.lineTo(x-s*.3,y-s*.3);g.closePath();g.fill();}g.restore();}   /* a dotted ring round the head and a few still glints: caught in a Still Realm */
+function drawClash(g,c){const A=c.A,B=c.B,S=clashSeam(c),k=Math.min(1,c.t/10)*Math.min(1,c.life/12);g.save();g.globalCompositeOperation='lighter';g.lineCap='round';g.lineJoin='round';
+  for(let pass=0;pass<2;pass++){g.beginPath();const N=16;for(let i=0;i<=N;i++){const s=i/N*2-1,j=i===0||i===N?0:((Math.sin(i*12.9898+frame*1.7+pass*40)*43758.5453)%1)*(pass?26:15),x=S.mx+S.px*S.h*s+S.ux*j,y=S.my+S.py*S.h*s+S.uy*j;if(i)g.lineTo(x,y);else g.moveTo(x,y);}
+    g.strokeStyle=pass?'rgba(255,255,255,'+(.9*k).toFixed(3)+')':'rgba(200,170,255,'+(.45*k).toFixed(3)+')';g.lineWidth=pass?2.2:9;g.stroke();}   /* the seam between the two domes, crackling */
+  g.globalCompositeOperation='source-over';const ha=A.by&&!A.by.remove?A.by.pts[HEAD]:null,hb=B.by&&!B.by.remove?B.by.pts[HEAD]:null,bx=(A.x+B.x)/2,by0=Math.max(CEIL+64,Math.min(ha?ha.ry:A.y,hb?hb.ry:B.y)-86),W=190,left=A.x<=B.x?A:B,right=left===A?B:A,fr=clamp(.5+(left===A?1:-1)*c.bal*.5,.05,.95);
+  g.globalAlpha=k;g.fillStyle='rgba(8,6,16,.78)';rr(g,bx-W/2-3,by0-3,W+6,14,7);g.fill();g.fillStyle=css(domCol(left));g.fillRect(bx-W/2,by0,W*fr,8);g.fillStyle=css(domCol(right));g.fillRect(bx-W/2+W*fr,by0,W*(1-fr),8);g.fillStyle='#fff';g.fillRect(bx-W/2+W*fr-1.5,by0-3,3,14);   /* who is winning */
+  const sc=1+.9*Math.max(0,1-c.t/9);g.translate(bx,by0-14);g.scale(sc,sc);g.textAlign='center';g.font='900 26px system-ui';g.shadowColor='rgba(200,150,255,.95)';g.shadowBlur=18;g.fillStyle='#fff';g.fillText('DOMAIN CLASH',0,0);g.shadowBlur=0;
+  if(possessed&&(possessed===A.by||possessed===B.by)){g.font='700 12px system-ui';g.fillStyle='#ffe066';g.globalAlpha=k*(.6+.4*Math.sin(frame*.4));g.fillText('KEEP PRESSING YOUR SPECIAL!',0,46);}
+  g.restore();}
 function cineStep(dt){const c=cine;c.t+=dt*60;shake*=.85;if(c.t>=34&&!c.hit){c.hit=true;sfx('boom',.8);shake=Math.max(shake,7);}
-  if(!c.by||c.by.remove||c.t>=CINEDUR){cine=null;if(c.by&&!c.by.remove&&!c.by.dead)realmOpen(c.by,c.x,c.y);}}
-function drawCine(g){const c=cine,t=c.t,by=c.by,ease=v=>v<=0?0:v>=1?1:v*v*(3-2*v),outK=ease((t-(CINEDUR-16))/16),k=ease(t/12)*(1-outK),vw=VR-VL,vh=VB-VT,px=VL+vw*.3,py=VT+vh*.58,tx=VL+vw*.68;
+  if(!c.by||c.by.remove||c.t>=CINEDUR){cine=null;if(c.by&&!c.by.remove&&!c.by.dead)domainOpen(c.kind||'realm',c.by,c.x,c.y);}}
+function drawCine(g){const c=cine,CP=CINEPAL[c.kind==='still'?'still':'realm'],t=c.t,by=c.by,ease=v=>v<=0?0:v>=1?1:v*v*(3-2*v),outK=ease((t-(CINEDUR-16))/16),k=ease(t/12)*(1-outK),vw=VR-VL,vh=VB-VT,px=VL+vw*.3,py=VT+vh*.58,tx=VL+vw*.68;
   g.save();g.beginPath();g.rect(VL,VT,vw,vh);g.clip();
-  g.fillStyle='rgba(6,2,14,'+(.88*k).toFixed(3)+')';g.fillRect(VL,VT,vw,vh);                                         /* the arena goes dark */
-  g.save();g.translate(px,py);g.globalAlpha=.5*k;g.strokeStyle='rgba(190,130,255,.85)';for(let i=0;i<28;i++){const a=i/28*6.2832+t*.012,r0=vh*(.2+.05*((i*7)%5)),r1=vh*1.4;g.lineWidth=1+((i*13)%3);g.beginPath();g.moveTo(Math.cos(a)*r0,Math.sin(a)*r0);g.lineTo(Math.cos(a)*r1,Math.sin(a)*r1);g.stroke();}g.restore();   /* lines streaking out from behind the caster */
-  {const gr=g.createRadialGradient(px,py,8,px,py,vh*.55);gr.addColorStop(0,'rgba(150,70,255,'+(.55*k).toFixed(3)+')');gr.addColorStop(1,'rgba(150,70,255,0)');g.fillStyle=gr;g.fillRect(VL,VT,vw,vh);}
+  g.fillStyle=CP.bg+(.88*k).toFixed(3)+')';g.fillRect(VL,VT,vw,vh);                                         /* the arena goes dark */
+  g.save();g.translate(px,py);g.globalAlpha=.5*k;g.strokeStyle=CP.ln;for(let i=0;i<28;i++){const a=i/28*6.2832+t*.012,r0=vh*(.2+.05*((i*7)%5)),r1=vh*1.4;g.lineWidth=1+((i*13)%3);g.beginPath();g.moveTo(Math.cos(a)*r0,Math.sin(a)*r0);g.lineTo(Math.cos(a)*r1,Math.sin(a)*r1);g.stroke();}g.restore();   /* lines streaking out from behind the caster */
+  {const gr=g.createRadialGradient(px,py,8,px,py,vh*.55);gr.addColorStop(0,CP.gl+(.55*k).toFixed(3)+')');gr.addColorStop(1,CP.gl+'0)');g.fillStyle=gr;g.fillRect(VL,VT,vw,vh);}
   if(by&&!by.remove){const D=by.dim,tall=(D.torso+D.neck+D.headR*2+D.thigh+D.shin)*by.sc,K=vh/tall*(.56+.07*t/CINEDUR),hp=by.pts[HIP];g.save();g.globalAlpha=k;g.translate(px,py);g.scale(K,K);g.translate(-hp.rx,-(hp.ry-D.torso*.3*by.sc));try{drawRag(g,by);drawSign(g,by);}catch(e){}g.restore();}   /* the caster, large, slowly pushing in */
-  const t1=ease((t-18)/8)*(1-outK);if(t1>0){g.globalAlpha=t1;g.fillStyle='#d9c2ff';g.textAlign='center';g.font='700 '+Math.max(10,Math.round(vh*.036))+'px system-ui';try{g.letterSpacing='6px';}catch(e){}g.fillText('TERRITORY UNFOLDS',tx,VT+vh*.4);}
-  if(t>=34){const s=1+1.3*(1-ease((t-34)/6)),a=1-outK;g.save();g.globalAlpha=a;g.translate(tx,VT+vh*.55);g.scale(s,s);g.textAlign='center';g.font='900 '+Math.max(18,Math.round(vh*.115))+'px system-ui';try{g.letterSpacing='3px';}catch(e){}g.shadowColor='rgba(170,90,255,.95)';g.shadowBlur=26;g.fillStyle='#ffffff';g.fillText(c.name,0,0);g.restore();   /* the name slams in */
-    const wk=ease((t-40)/10);g.globalAlpha=a;g.fillStyle='rgba(190,130,255,.9)';g.fillRect(tx-vw*.2*wk,VT+vh*.6,vw*.4*wk,3);}
+  const t1=ease((t-18)/8)*(1-outK);if(t1>0){g.globalAlpha=t1;g.fillStyle=CP.tx;g.textAlign='center';g.font='700 '+Math.max(10,Math.round(vh*.036))+'px system-ui';try{g.letterSpacing='6px';}catch(e){}g.fillText('TERRITORY UNFOLDS',tx,VT+vh*.4);}
+  if(t>=34){const s=1+1.3*(1-ease((t-34)/6)),a=1-outK;g.save();g.globalAlpha=a;g.translate(tx,VT+vh*.55);g.scale(s,s);g.textAlign='center';g.font='900 '+Math.max(18,Math.round(vh*.115))+'px system-ui';try{g.letterSpacing='3px';}catch(e){}g.shadowColor=CP.sh;g.shadowBlur=26;g.fillStyle='#ffffff';g.fillText(c.name,0,0);g.restore();   /* the name slams in */
+    const wk=ease((t-40)/10);g.globalAlpha=a;g.fillStyle=CP.ln2;g.fillRect(tx-vw*.2*wk,VT+vh*.6,vw*.4*wk,3);}
   g.globalAlpha=1;g.fillStyle='#000';const bh=vh*.13*k;g.fillRect(VL,VT,vw,bh);g.fillRect(VL,VB-bh,vw,bh);          /* the black bars */
   if(t>CINEDUR-10){g.fillStyle='rgba(205,160,255,'+(.65*(1-(CINEDUR-t)/10)).toFixed(3)+')';g.fillRect(VL,VT,vw,vh);}   /* and the flash it ends on */
   g.restore();try{g.letterSpacing='0px';}catch(e){}g.textAlign='left';}
 function special(b,t,player){
   const C=b.C,P=b.pts,hip=P[HIP],neck=P[NECK],head=P[HEAD],f=b.facing;
-  if(b.balance<.5||b.atk)return;
+  if(b.balance<.5||b.atk||b.stillT>=frame||inClash(b))return;
   const sp=curSp(b);b.spCd=(player?80:spCdOf(b)*(sp==='blink'?.45:1)+rnd(0,sp==='tk'||sp==='blink'?40:120))*(1+.25*(b.fat||0));if(!player)spNext(b,true);/* (with several moves: a different one may be up next time) */const lbl=(tx)=>say(head.x,head.y-34,tx,'#7df0ff',16);
   if(t&&t.kind==='ragdoll'&&t!==b&&sp!=='ui'&&sp!=='fly'&&uiOn(t)){uiDodge(t,t.pts[NECK].x,t.pts[NECK].y,f,0,b);t.uiT=frame+50;if(sp==='tk'){lbl('It slipped away');return;}t=null;}   /* (and the move has no target any more: it is used on thin air) */   /* a special move aimed at someone with Ultra Instinct: it does them no harm (telekinesis cannot get a grip at all) */
   switch(sp){
@@ -1700,6 +1776,7 @@ function special(b,t,player){
       explode(hip.x,hip.y,200,12,0,{skip:b,soft:true,col:'#ffe066',by:b});ring(hip.x,hip.y,220,'#ffe066',24,6);shake=Math.max(shake,5);flash=Math.max(flash,.3);sfx('roar',.6);lbl('POWER SURGE!');break;}
     case 'rush':{const o=t&&t.kind==='ragdoll'&&!t.dead&&t!==b?t:nearestRag(b,x=>!x.dead&&!allies(b,x));if(!o||hyp(o.pts[HIP].x-hip.x,o.pts[HIP].y-hip.y)>460){lbl('Nobody in range');b.spCd=40;break;}b.anime={k:'rush',t:0,o,n:0};lbl('Vanishing Rush!');break;}
     case 'orb':b.anime={k:'orb',t:0,o:t&&t.kind==='ragdoll'&&!t.dead?t:null};lbl('Star Orb…');sfx('whoosh',.5);break;
+    case 'still':b.anime={k:'sign',t:0,dom:'still'};sfx('whoosh',.4);break;   /* the Still Realm: the same hand sign, another domain */
     case 'realm':b.anime={k:'sign',t:0};sfx('whoosh',.4);break;   /* first the hand sign (animeStep); the realm opens when it is made */   /* with Move cinematics on, the cut-scene plays first and the dome opens when it ends */
     case 'spark':if(startAttack(b,'punch',t,{pow:3.2,label:'CRIMSON SPARK!',spark:true})){ring(P[f>0?HR:HL].x,P[f>0?HR:HL].y,46,'#ff2a3a',12,3);const h=P[f>0?HR:HL];for(let i=0;i<16;i++)part(h.x,h.y,rnd(-4,4),rnd(-4,4),rnd(10,18),rnd(1.5,3),pick(['#1a0508','#ff2a3a','#ff7a8a']),{type:1,g:0});flash=Math.max(flash,.15);sfx('zap',.6);lbl('Crimson Spark!');}break;
     case 'tk':tkStart(b,t,player);break;                                                              // telekinesis: lift it, hold it, throw it (the rest is tkStep, every frame while it is held)
@@ -2453,7 +2530,7 @@ function effectsOf(b){
   if(b.sc>1.05)e.push(['Giant','#9cff9c']);else if(b.sc<.95)e.push(['Tiny','#ff9ecb']);
   if(b.burn<=0&&P.some(p=>p.smolder>0))e.push(['Smoldering','#b0b6c4']);if(P.some(p=>p.burnt>.5))e.push(['Charred','#8a8078']);if(b.toxSum>.15)e.push(['Acid in body '+Math.round(Math.min(1,b.toxSum/5)*100)+'%','#b6ff5a']);
   if(goreOn){if(P.some(p=>p.bruise>.35))e.push(isSkel(b)?['Cracked bones','#d9d2bb']:['Bruised','#b58ad6']);if(b.C.fluidCol&&!isSkel(b)&&P.some(p=>p.gore>.35))e.push(['Bloody','#ff6a6a']);}
-  if(b.brocShow>=frame-2&&!b.dead)e.push([b.broc&&b.broc.o?'Offering broccoli':'Eating broccoli','#9be56a']);if(b.shield>0)e.push(['Infinity: untouchable','#b9a8ff']);else if(infOn(b))e.push(['Infinity','#b9a8ff']);if(b.infHoldT>=frame-2&&!b.dead)e.push(['Caught in Infinity','#b9a8ff']);if(b.fat>0)e.push([FATNAME[b.fat]+(b.burn>0?' · burning off':''),'#ffb347']);if(b.rubberT>0)e.push(['Bouncy','#ffb347']);if(b.dizzy>0)e.push(['Dizzy','#ffd24a']);if(b.light)e.push(['Featherweight','#d9f4ff']);if(b.jam>0)e.push(['Partying','#ff8ac4']);if(b.fame>=1)e.push([(b.fame>=10000?'Famous · ':'')+fameTxt(b.fame)+' followers','#ff8ac4']);if(b.filmShow>=frame-2&&!b.dead)e.push(['Filming','#ffb3d1']);if(b.callT>0&&!b.dead)e.push(['Calling an ambulance','#ffd9a8']);if(b.medic&&!b.dead)e.push([b.medic.state==='work'?'Reviving':b.medic.state==='back'?'Heading back':'On a call','#bfe6ff']);if(b.rot>0)e.push(['Rotting '+Math.round(b.rot*100)+'%','#a6cf5a']);if(b.sadT>0&&!b.dead)e.push(['Grieving','#9fc0ff']);
+  if(b.brocShow>=frame-2&&!b.dead)e.push([b.broc&&b.broc.o?'Offering broccoli':'Eating broccoli','#9be56a']);if(b.shield>0)e.push(['Infinity: untouchable','#b9a8ff']);else if(infOn(b))e.push(['Infinity','#b9a8ff']);if(b.infHoldT>=frame-2&&!b.dead)e.push(['Caught in Infinity','#b9a8ff']);if(b.stillT>=frame&&!b.dead)e.push(['Stilled: techniques sealed','#9fe8ff']);if(b.clash&&b.clash.life>0&&!b.dead)e.push(['Domain clash','#e9d8ff']);if(b.fat>0)e.push([FATNAME[b.fat]+(b.burn>0?' · burning off':''),'#ffb347']);if(b.rubberT>0)e.push(['Bouncy','#ffb347']);if(b.dizzy>0)e.push(['Dizzy','#ffd24a']);if(b.light)e.push(['Featherweight','#d9f4ff']);if(b.jam>0)e.push(['Partying','#ff8ac4']);if(b.fame>=1)e.push([(b.fame>=10000?'Famous · ':'')+fameTxt(b.fame)+' followers','#ff8ac4']);if(b.filmShow>=frame-2&&!b.dead)e.push(['Filming','#ffb3d1']);if(b.callT>0&&!b.dead)e.push(['Calling an ambulance','#ffd9a8']);if(b.medic&&!b.dead)e.push([b.medic.state==='work'?'Reviving':b.medic.state==='back'?'Heading back':'On a call','#bfe6ff']);if(b.rot>0)e.push(['Rotting '+Math.round(b.rot*100)+'%','#a6cf5a']);if(b.sadT>0&&!b.dead)e.push(['Grieving','#9fc0ff']);
   if(b.aidBy&&b.aidT>=frame-3&&b.aidBy.aidShow>=frame-3)e.push(['Being bandaged','#fff1c9']);if(b.pts.some(p=>p.band>.05&&p.att))e.push(['Bandaged','#f1e9d2']);if(b.tumble)e.push(['Tumbling','#cfd8f5']);
   if(b.deflate>0)e.push(['Deflating','#ffd9ec']);if(gravMode===2)e.push(['Weightless','#cfd8f5']);
   return e;
@@ -2660,6 +2737,7 @@ function ragThink(b){
   b.deadFor=0;b.washed=false;
   if(b.deadT||b.rot){b.deadT=0;if(b.rot){b.rot=0;b.rotShown=0;repal(b);}}                                // back on its feet: fresh again
   if(b.frozen>0){if(--b.frozen<=0)thaw(b);else iceStand(b);b.planted=false;return;}
+  if(b.stillT>=frame){stillThink(b);return;}                                                       // caught in a Still Realm
   if(b.shock>0){b.shock--;for(const p of P)if(!p.pin){p.px+=rnd(-2.6,2.6);p.py+=rnd(-2.6,2.6);}b.balance=0;b.planted=false;b.atk=null;if(b.t%4===0){const p=pick(P);sparks(p.x,p.y,2,'#bfe6ff',3);}return;}
   if(b.sleep>0){b.sleep--;b.stun=Math.max(b.stun,4);if(b.t%55===0){const hd=P[HEAD];say(hd.x+10,hd.y-22,'z Z z','#c9a0ff',13);}}
   if(b.stun>0)b.stun--;
@@ -2942,6 +3020,7 @@ function checkHit(b,fist,A){
 
 /* ============================== world effects ============================== */
 function fxStep(){
+  stillDomes.length=0;
   if(uiSlowEnd&&frame>=uiSlowEnd){if(timeScale===.4)timeScale=1;uiSlowEnd=0;}   /* the moment of slow motion round an Ultra Instinct dodge is over */
   for(const e of fx){e.life--;
     if(e.type==='shard'){const r=Math.max(3,e.rad*.8);e.vy+=.32;e.vx*=.996;e.x+=e.vx;e.y+=e.vy;e.ang+=e.spin;
@@ -2957,7 +3036,9 @@ function fxStep(){
       if(hit){e.life=0;const by=e.by&&!e.by.remove?e.by:null;explode(e.x,e.y,150+e.r*2,22,34,by?{skip:by,by,col:'#bfe9ff'}:{col:'#bfe9ff'});ring(e.x,e.y,170,'#bfe9ff',22,6);shake=Math.max(shake,8);flash=Math.max(flash,.35);sfx('boom',.9);
         for(let i=0;i<22;i++){const a=rnd(0,6.283),sp=rnd(3,10);part(e.x,e.y,Math.cos(a)*sp,Math.sin(a)*sp,rnd(16,30),rnd(2,4.5),pick(['#bfe9ff','#ffffff','#7dd0ff']),{type:1,g:0,drag:.94});}}
       continue;}
-    if(e.type==='realm'){const k=e.max-e.life,by=e.by;e.r=Math.min(e.R,e.r+14);if(!by||by.remove||by.dead){e.life=Math.min(e.life,12);continue;}
+    if(e.type==='clash'){clashStep(e);continue;}
+    if(e.type==='still'){stillStep(e);continue;}
+    if(e.type==='realm'){const k=e.max-e.life,by=e.by;e.r=Math.min(e.R,e.r+14);if(!by||by.remove||by.dead){e.life=Math.min(e.life,12);continue;}if(inClash(e))continue;   /* (in a clash it does nothing) */
       if(k%22===8)for(const v of bodies){if(v===by||v.kind!=='ragdoll'||v.dead||v.remove||v.shield>0||allies(by,v))continue;const c=v.pts[NECK];if(hyp(c.x-e.x,c.y-e.y)>e.r)continue;   /* inside it, the cuts cannot miss */
         if(uiOn(v)){uiDodge(v,c.x,c.y,c.x>=e.x?1:-1,0,by);continue;}
         v.infOffT=frame+3;   /* (a Void Realm's cuts go through Infinity: its barrier is down for the cut) */   /* (except someone with Ultra Instinct) */
@@ -4410,7 +4491,7 @@ const POWERS={
       for(const b of bodies){if(b.kind!=='ragdoll'||b.dead||b===possessed||b.zombie)continue;const h=b.pts[HIP];if(hyp(h.x-x,h.y-y)>270)continue;if(b.jam>0){b.jam=0;continue;}if(b.soc.partner)endChat(b);b.sleep=0;
         if(b.mode==='fight'&&b.calmMode&&!(b.rage>0)){b.mode=b.calmMode;b.calmMode=null;b.atk=null;if(selected===b)syncModeUI();}b.grudge=null;b.jam=Infinity;}}},
   shield:{name:'Infinity',icon:'♾️',desc:'Click a ragdoll to give it Infinity: nothing can touch it. Whatever touches its barrier slows down more and more the nearer it gets and never arrives (bullets hang in the air), and nothing can hurt, cut, burn, freeze or shock it. It never runs out; click the ragdoll again to switch it off.',
-    down(){const p=findPoint(mouse.x,mouse.y,60,b=>b.kind==='ragdoll');if(!p||p.b.dead)return;const b=p.b,h=b.pts[HIP],on=!(b.shield>0);b.shield=on?Infinity:0;if(on)extinguish(b);ring(h.x,h.y-20,on?76:50,'#b9a8ff',18,4);say(h.x,h.y-70,on?'INFINITY':'Infinity off','#c9bcff',on?17:13);sfx(on?'heal':'click',.7);}},
+    down(){const p=findPoint(mouse.x,mouse.y,60,b=>b.kind==='ragdoll');if(!p||p.b.dead)return;const b=p.b,h=b.pts[HIP],on=!(b.shield>0);b.shield=on?Infinity:0;if(on)extinguish(b);say(h.x,h.y-70,on?'INFINITY':'Infinity off','#c9bcff',on?17:13);   /* (only the word, so you can tell the click took: no ring) */sfx(on?'heal':'click',.7);}},
   rubber:{name:'Rubber',icon:'🏀',desc:'Click a ragdoll to make it super bouncy. Click it again to turn it back to normal.',
     down(){const p=findPoint(mouse.x,mouse.y,60,b=>b.kind==='ragdoll');if(!p)return;const b=p.b,h=b.pts[HIP],on=!(b.rubberT>0);b.rubberT=on?Infinity:0;b.bounce=on?.92:b.C.bounce;ring(h.x,h.y-20,on?60:40,'#ffb347',16,4);sfx(on?'jump':'click',.9);}},
   swap:{name:'Swap',icon:'🔀',desc:'Click one ragdoll, then another: they trade places in a puff of smoke.',a:null,
@@ -4713,7 +4794,7 @@ function bulletHit(bl,b,p){
   if(b.kind==='balloon'){popBalloon(b);return;}
   if(b.kind==='bomb'||b.kind==='mine'||b.kind==='meteor'){removeBody(b);if(b.kind==='bomb')bombGo(b,p.x,p.y);else boom(p.x,p.y);bl.dead=true;return;}
   if(b.kind!=='ragdoll'){if(!p.pin){p.px-=ux*bl.push*2.2*p.im;p.py-=uy*bl.push*2.2*p.im;}sparks(x,y,3,b.kind==='crate'?'#d9a866':'#ffe9a8',3);if(b.kind==='crate'){confetti(x,y,2,'#b07c42');if(b.tnt)crateHit(b,9);}bl.dead=true;return;}
-  if(b.shield>0){sparks(x,y,5,'#bfe6ff',4);ring(x,y,16,'#bfe6ff',8,2);bl.dead=true;return;}
+  if(b.shield>0){bl.dead=true;return;}   /* (no sparks or ring: Infinity is invisible) */
   if(infOn(b)){infRipple(b,x,y);bl.dead=true;return;}
   if(uiOn(b)){if(bl.by&&bl.by!==b&&!bl.by.remove&&!bl.ref&&Math.random()<.125){bl.vx=-bl.vx;bl.vy=-bl.vy;bl.ref=true;bl.by=b;bl.last=b;bl.zOnly=false;b.uiCatch={x,y,t:frame+9};b.uiGlow=frame+80;b.uiT=Math.max(b.uiT||0,frame+10);   /* flicked straight back at whoever fired it (it is this dummy's bullet now) */
       sparks(x,y,8,'#dfe8ff',5);ring(x,y,14,'#ffffff',8,2);sfx('click',.6);if(frame-(b.uiSaid||-999)>55){b.uiSaid=frame;say(x,y-18,'RETURNED','#dfe8ff',12);}return;}
@@ -4733,7 +4814,7 @@ function bulletHit(bl,b,p){
 }
 function bulletsStep(){
   if(!bullets.length)return;
-  for(const bl of bullets){if(infList.length||shList.length)infBullet(bl);const n=Math.max(1,Math.ceil(bl.sp/7)),sx=bl.vx/n,sy=bl.vy/n;bl.lx=bl.x;bl.ly=bl.y;
+  for(const bl of bullets){if(stillDomes.length&&stillBullet(bl))continue;if(infList.length||shList.length)infBullet(bl);const n=Math.max(1,Math.ceil(bl.sp/7)),sx=bl.vx/n,sy=bl.vy/n;bl.lx=bl.x;bl.ly=bl.y;
     for(let k=0;k<n&&!bl.dead;k++){bl.x+=sx;bl.y+=sy;const x=bl.x,y=bl.y;
       if(x<XL||x>XR||y<CEIL||y>FLOOR){bl.dead=true;sparks(clamp(x,XL,XR),clamp(y,CEIL,FLOOR),3,'#ffe9a8',3);break;}
       let stop=false;for(const w of walls){if(x<w.minx-w.hw-2||x>w.maxx+w.hw+2||y<w.miny-w.hw-2||y>w.maxy+w.hw+2)continue;if(distSeg(x,y,w.x1,w.y1,w.x2,w.y2)<w.hw+1){stop=true;break;}}
@@ -4935,6 +5016,7 @@ function step(){
     collideBodies();solidPaints();infFields(it===ITER-1);
     for(const b of bodies)for(const p of b.pts)collideWorld(p);
   }
+  stillHold();
   for(const b of bodies){contactResponse(b);postBody(b);}
   gadgetStep();gizmoStep();ambStep();fluidStep();fireStep();flamesStep();
   // cleanup
@@ -5366,7 +5448,7 @@ function drawRag(g,b){
     g.fillStyle='rgba(190,235,255,.55)';g.beginPath();g.arc(hd.rx,hd.ry,hd.r+4,0,6.3);g.fill();g.fillStyle='#fff';for(let i=0;i<4;i++){const p=P[(i*3+1)%11];g.fillRect(p.rx-3+i,p.ry-4,2,2);}}
 }
 function drawRagOverlay(g,b){
-  if(b.anime&&b.anime.k==='sign')drawSign(g,b);
+  if(b.anime&&(b.anime.k==='sign'||b.anime.k==='clash'))drawSign(g,b);
   if(b.atk&&b.atk.spark&&!b.dead){const h=b.pts[b.atk.side?HR:HL],s=b.sc*b.C.scale;g.save();g.globalCompositeOperation='lighter';const gr=g.createRadialGradient(h.rx,h.ry,1,h.rx,h.ry,24*s);gr.addColorStop(0,'rgba(255,40,60,.8)');gr.addColorStop(1,'rgba(255,0,30,0)');g.fillStyle=gr;g.beginPath();g.arc(h.rx,h.ry,24*s,0,6.3);g.fill();   /* Crimson Spark: the fist burns red, black lightning round it */
     g.globalCompositeOperation='source-over';g.lineCap='round';g.lineJoin='round';for(let i=0;i<4;i++){const a=(frame*1.7+i*1.9)%6.2832,L=(13+((frame*7+i*13)%10))*s,mx=h.rx+Math.cos(a)*L*.5+Math.sin(frame*3+i)*4*s,my=h.ry+Math.sin(a)*L*.5+Math.cos(frame*2+i)*4*s;g.beginPath();g.moveTo(h.rx,h.ry);g.lineTo(mx,my);g.lineTo(h.rx+Math.cos(a)*L,h.ry+Math.sin(a)*L);g.strokeStyle='rgba(255,30,50,.9)';g.lineWidth=3.8;g.stroke();g.strokeStyle='#0a0003';g.lineWidth=1.9;g.stroke();}g.restore();}
   if(b.impale&&b.gun&&GUNS[b.gun.id]){const K=b.impale,P=b.pts,h=gunHand(b);if(h&&!K.q.gone){const e=h===P[HR]?P[ER]:P[EL],fl=hyp(h.rx-e.rx,h.ry-e.ry)||1,dx=(h.rx-e.rx)/fl,dy=(h.ry-e.ry)/fl,s=.8*b.sc,L=(GUNS[b.gun.id]._tip||36)*s,q=K.q,ex=q.rx+dx*7*s,ey=q.ry+dy*7*s,tx=h.rx+dx*L,ty=h.ry+dy*L,FC=K.o.C.fluidCol||'#b3202c';   /* run through: the blade where it has come out of the back, drawn over the victim */
@@ -5394,8 +5476,8 @@ function drawRagOverlay(g,b){
   if(b.cuffT>frame){const a=b.pts[HL],c=b.pts[HR];g.strokeStyle='#c3cbdc';g.lineWidth=2;g.beginPath();g.moveTo(a.rx,a.ry);g.lineTo(c.rx,c.ry);g.stroke();for(const q of [a,c]){g.beginPath();g.arc(q.rx,q.ry,q.r+1.3,0,6.3);g.stroke();}}   // handcuffs
   if(b.taseT>frame&&b.taseO&&!b.taseO.remove){const a=b.pts[b.facing>0?HR:HL],c=b.taseO.pts[NECK];g.strokeStyle='#cfeaff';g.lineWidth=1.6;g.beginPath();g.moveTo(a.rx,a.ry);for(let k=1;k<6;k++)g.lineTo(lerp(a.rx,c.rx,k/6)+rnd(-5,5),lerp(a.ry,c.ry,k/6)+rnd(-5,5));g.lineTo(c.rx,c.ry);g.stroke();}   // the taser's wires
   if(!b.dead){
-    if(b.shield>0){const S=infShape(b,true),th=Math.atan2(S[3]-S[1],S[2]-S[0]),cap=(R)=>{g.beginPath();g.arc(S[0],S[1],R,th+PI/2,th+PI*1.5);g.arc(S[2],S[3],R,th-PI/2,th+PI/2);g.closePath();};   // the space that never quite gets crossed
-      g.fillStyle='rgba(150,170,255,.09)';cap(S[4]);g.fill();g.strokeStyle='rgba(195,205,255,.7)';g.lineWidth=1.6;g.setLineDash([5,9]);g.lineDashOffset=-frame*.7;cap(S[4]);g.stroke();g.lineDashOffset=frame*.5;g.strokeStyle='rgba(150,130,255,.45)';cap(S[4]*INFIN);g.stroke();g.setLineDash([]);g.lineDashOffset=0;}
+    /* (the Infinity power's barrier is invisible, like the Infinity special's: the user asked. Nothing is drawn round the dummy; the Effects list says it is on) */
+    if(b.stillT>=frame)drawStilled(g,b);
     if(b.fame>=100){const tx=hd.rx+hd.r+7,ty=hd.ry-hd.r+1,t=(b.fame>=10000?'✔ ':'★ ')+fameTxt(b.fame);g.font='700 10px system-ui';g.textAlign='left';const w=g.measureText(t).width;g.fillStyle='rgba(20,10,24,.78)';rr(g,tx-4,ty-10.5,w+8,14,7);g.fill();g.fillStyle=b.fame>=10000?'#7fd4ff':'#ff8ac4';g.fillText(t,tx,ty);}
     if(b.team){const ty=top-4-(b.hurtShow>0||b===selected?8:0);g.fillStyle=TEAMS[b.team].col;g.beginPath();g.arc(hd.rx-14,ty,4.5,0,6.3);g.fill();g.strokeStyle='rgba(0,0,0,.6)';g.lineWidth=1.2;g.stroke();}
     g.font='13px system-ui';g.textAlign='center';g.globalAlpha=b===selected?1:.75;icoDraw(g,b.cuffT>frame?'⛓️':b.grudge&&b.calmMode?'💢':b.C.role&&ROLES[b.C.role]&&(b.mode==='stand'||isWalk(b)||(b.mode==='fight'&&b.C.role==='police'&&arrestOn))?ROLES[b.C.role].icon:MODES[b.mode].icon,hd.rx,top-(b.hurtShow>0||b===selected?8:0),15);g.globalAlpha=1;
@@ -5556,6 +5638,8 @@ function render(a){
     else if(e.type==='bolt'){g.globalAlpha=t;g.lineJoin='round';for(const [lw,col] of [[9,'rgba(120,180,255,.5)'],[3,'#fff']]){g.strokeStyle=col;g.lineWidth=lw;g.beginPath();e.pts.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.stroke();}}
     else if(e.type==='wave'){g.globalAlpha=1;g.lineCap='round';const fl=1+.12*Math.sin(frame*.9);for(const [k,col] of [[2.5,'rgba(90,170,255,.28)'],[1.5,'rgba(140,210,255,.6)'],[.7,'#f2fbff']]){g.strokeStyle=col;g.lineWidth=e.w*k*fl;g.beginPath();g.moveTo(e.x1,e.y1);g.lineTo(e.x2,e.y2);g.stroke();}g.fillStyle='rgba(200,235,255,.8)';g.beginPath();g.arc(e.x1,e.y1,e.w*1.5,0,6.3);g.fill();g.lineCap='butt';}
     else if(e.type==='orb'){g.globalAlpha=1;const gr=g.createRadialGradient(e.x,e.y,e.r*.1,e.x,e.y,e.r*1.5);gr.addColorStop(0,'#ffffff');gr.addColorStop(.45,'rgba(150,215,255,.95)');gr.addColorStop(1,'rgba(90,170,255,0)');g.fillStyle=gr;g.beginPath();g.arc(e.x,e.y,e.r*1.5,0,6.3);g.fill();}
+    else if(e.type==='still')drawStillDome(g,e);
+    else if(e.type==='clash')drawClash(g,e);
     else if(e.type==='realm'){g.save();g.globalCompositeOperation='source-over';g.globalAlpha=Math.min(1,e.life/20);g.fillStyle='rgba(14,6,28,.6)';g.beginPath();g.arc(e.x,e.y,e.r,0,6.3);g.fill();g.strokeStyle='rgba(120,50,220,.35)';g.lineWidth=11;g.stroke();g.strokeStyle='rgba(190,120,255,.95)';g.lineWidth=3.5;g.stroke();
       g.strokeStyle='rgba(200,140,255,.38)';g.lineWidth=1.3;for(let i=0;i<6;i++){const an=frame*.02*(i%2?-1:1)+i*1.047;g.beginPath();g.arc(e.x,e.y,e.r*(.28+.12*i),an,an+1.7);g.stroke();}g.restore();}
     else if(e.type==='cres'){const R=e.r*(1.5-t*.5);g.globalAlpha=t;g.save();g.translate(e.x,e.y);g.rotate(e.ang);g.fillStyle='#eaf6ff';g.beginPath();g.arc(-R*.55,0,R,-1.15,1.15);g.arc(-R*.82,0,R*1.03,1,-1,true);g.closePath();g.fill();g.restore();}   /* a blade's flash: a crescent, widening as it fades */
@@ -5619,7 +5703,8 @@ let SPEC=null;function specialList(){if(!SPEC){SPEC={};for(const id in CHARS){co
   SPEC.aura={name:'Power Surge',cd:560,from:'anime',desc:'the Power Surge: it bursts into a golden aura, and for ten seconds hits twice as hard and moves much faster.'};
   SPEC.rush={name:'Vanishing Rush',cd:260,from:'anime',desc:'the Vanishing Rush: it flickers round whoever it is fighting, striking from each side in turn, and finishes with a kick that launches them.'};
   SPEC.orb={name:'Star Orb',cd:330,from:'anime',desc:'the Star Orb: it raises its arms, gathers a great ball of light overhead and throws it. The ball bursts where it lands.'};
-  SPEC.realm={name:'Void Realm',cd:600,from:'anime',desc:'the Void Realm: it makes a hand sign, and a great dark dome opens around it for five seconds. Its wall is solid: everyone else caught inside is cut again and again, and nothing gets them out.'};
+  SPEC.realm={name:'Void Realm',cd:600,from:'anime',desc:'the Void Realm: it makes a hand sign, and a great dark dome opens around it for five seconds. Its wall is solid: everyone else caught inside is cut again and again, and nothing gets them out. If someone answers it with a domain of their own, the two domains clash: the stronger one shatters the other.'};
+  SPEC.still={name:'Still Realm',cd:640,from:'anime',desc:'the Still Realm: it makes a hand sign, and a pale dome opens around it for five seconds. Every enemy inside is stilled: held exactly where it is, in mid-air if need be, unable to move, strike or use any technique. Ultra Instinct and Infinity stop working for them and their shots hang in the air, so they can be hit freely. If someone answers it with a domain of their own, the two domains clash.'};
   SPEC.inf={name:'Infinity',cd:320,from:'anime',desc:'Infinity: an invisible barrier that nothing gets through. Whatever comes at it slows more and more the nearer it gets and never arrives: fists, weapons, bullets, thrown things, liquids, other bodies. Anyone who walks into it is caught: slowed right down and stuck there for a moment before they can pull away. Nothing can hurt, cut, burn, freeze, shock or grab the character while it is up, and it stays up while the character attacks (its own blows reach out through it). Only your hand, sleep and a Void Realm take it down. Used as a move, it throws back everything round it.'};
   SPEC.spark={name:'Crimson Spark',cd:170,from:'anime',desc:'the Crimson Spark: one punch, three times as hard. Black lightning edged in red bursts out where it lands, the world stops for an instant, and whoever it hit is thrown.'};}return SPEC;}   /* every special move in the game, with the character it comes from */
 function customRegister(d){
