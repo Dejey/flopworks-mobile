@@ -3176,8 +3176,9 @@ function fluidBodies(){
       const t=nl>=nw&&nl>=na&&nl>=nh?LAVA:na>nw&&na>=nh?ACID:nh>nw?HONEY:WATER;p.in=LNAME[t];if(t===HONEY){p.honey=Math.min(1,(p.honey||0)+.04);p.glue=ng*2>nh?1:0;if(p.glue){b.glueT=frame;if(!p.pin&&!b.held&&!(b.unstick>=frame)){if(p.gf!==frame-1){p.gx=p.x;p.gy=p.y;}p.gf=frame;p.x+=(p.gx-p.x)*GLUEHOLD;p.y+=(p.gy-p.y)*GLUEHOLD;p.px=p.x;p.py=p.y;}}}   /* in glue: held where it is, unless the hand has hold of it */
       p.deep=up>=2;p.dense=up>=2&&n>=4;/* really inside a body of liquid, not just splashed, rained on or under a pour */sub++;if(t===WATER)cw++;else if(t===LAVA)cl++;else if(t===HONEY)ch++;else ca++;
       if(!p.pin){const f=n>=5?1:n/5,L=LQ[t];let vx=p.x-p.px,vy=p.y-p.py;vx+=(sx/n-vx)*L.drag*f;vy+=(sy/n-vy)*L.drag*f-gb*L.buoy*fl*f*(p===hd||p===nk?tread:1);p.px=p.x-vx;p.py=p.y-vy;
-        if(!was&&frame-splashT>6&&vx*vx+vy*vy>16){splashT=frame;sfx('splash',Math.min(1,Math.sqrt(vx*vx+vy*vy)/12));}}
+        if(!was&&frame-splashT>6&&vx*vx+vy*vy>16){const dry=frame-(b.wetAt===undefined?-999:b.wetAt)>30;if(dry||(frame-(b.splT||0)>150&&vx*vx+vy*vy>36)){splashT=frame;b.splT=frame;sfx('splash',Math.min(1,Math.sqrt(vx*vx+vy*vy)/12)*(dry?1:.5));}}}   /* a splash on going in from dry; once in, only now and then (it was every dip of a hand: a rattle like clapping) */
     }
+    if(sub>0)b.wetAt=frame;
     if(douse){b.wet=Math.min(900,(b.wet||0)+10);for(const p of b.pts){if(p.fire>0){p.fire-=.09;if(p.fire<=0){p.fire=0;p.smolder=0;wisp(p.x,p.y-p.r);}}if(b.cid!=='frost')p.heat*=.5;}}
     const buried=RG&&hs>=6&&hsUp>=3&&!b.dead&&!b.pts[HEAD].gone&&b.pts[HEAD].att&&needsAir(b);if(buried)sandChoke(b);else if(RG)b.sandSaid=false;
     if(!sub){if(RG){if(b.swimHold>3)b.swimHold=3;/* out of the liquid altogether: stop paddling almost at once */if(b.swimHold>0)b.swimHold--;b.swim=b.swimHold>0;if(!b.swim)b.liqType=null;if(b.air<100&&!buried&&!(b.chokeT>=frame-1))b.air=Math.min(100,b.air+1.5);}continue;}
