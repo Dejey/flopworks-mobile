@@ -603,7 +603,7 @@ function makeSaw(x,y){const b=newBody('saw');b.fric=.3;b.bounce=.2;b.ms=4;const 
 function makeMine(x,y){const b=newBody('mine');b.fric=.6;b.bounce=.05;b.ms=1.5;b.arm=45;addPt(b,x,y,8,1.5);return b;}
 function makeMeteor(tx,ty){const x=clamp(tx+pick([-1,1])*rnd(150,320),XL+30,XR-30),y=CEIL+26,d=hyp(tx-x,ty-y)||1,b=newBody('meteor');b.grav=.3;b.ms=6;const p=addPt(b,x,y,15,9);p.px=x-(tx-x)/d*24;p.py=y-(ty-y)/d*24;witness(tx,ty,'seeMeteor',null,null,'','run',540);return b;}
 function makeAnchor(x,y){const b=newBody('anchor');b.collide=false;const p=addPt(b,x,y,5,1);p.pin=true;return b;}
-function makeBalloon(x,y,target){const b=newBody('balloon');b.grav=-.45;b.fric=.05;b.bounce=.4;b.ms=.2;b.col=pick(['#ff5a6e','#ffd24a','#5ad1ff','#8cff7a','#c58cff','#ff9a3c']);
+function makeBalloon(x,y,target){const b=newBody('balloon');b.grav=-.45;b.fric=.05;b.bounce=.4;b.ms=.2;b.col=pick(['#ff5a6e','#ffd24a','#5ad1ff','#8cff7a','#c58cff','#ff9a3c','#ff7ad1','#4ce0c2']);b.born=frame;b.wob=1;   /* born: it swells into shape over its first moments (drawBalloon) */
   const p=addPt(b,x,y-(target?50:0),14,.12);b.link=null;
   if(target){b.owner=target.b;b.link={p,q:target,len:64,len0:64,stiff:1,kind:'rope',w:1.5,cut:false,tear:0};links.push(b.link);}
   return b;}
@@ -910,7 +910,9 @@ function smashCrate(b){
   let n=0;for(const e of fx)if(e.type==='shard')n++;for(let i=0;n>90&&i<fx.length;i++)if(fx[i].type==='shard'){fx.splice(i--,1);n--;}
   confetti(c.x,c.y,16,'#b07c42');smoke(c.x,c.y,3);sfx('thud',1.3);sfx('snip',1.1);shake=Math.max(shake,3);mayhem+=8;removeBody(b);
 }
-function popBalloon(b){if(b.remove)return;const p=b.pts[0];confetti(p.x,p.y,10,b.col);sfx('pop');removeBody(b);}
+function popBalloon(b){if(b.remove)return;const p=b.pts[0],S=balloonShade(b);   /* it bursts into shreds of rubber, with a quick white snap */
+  for(let i=0;i<13;i++){const a=rnd(0,6.3),v=rnd(2,6.5);part(p.x+Math.cos(a)*p.r*.6,p.y+Math.sin(a)*p.r*.6,Math.cos(a)*v,Math.sin(a)*v-.6,rnd(22,48),rnd(2.5,5),i%3?b.col:S.lo,{type:4,g:.2,drag:.93});}
+  confetti(p.x,p.y,4,S.hi);ring(p.x,p.y,p.r*2.2,'#ffffff',9,3);sfx('pop');removeBody(b);}
 function scaleBody(b,f){const sc=b.sc||1,nf=clamp(sc*f,.45,2.4)/sc;if(Math.abs(nf-1)<.01)return false;f=nf;const c=b.kind==='ragdoll'?b.pts[HIP]:b.pts[b.pts.length-1],cx=c.x,cy=c.y;
   for(const p of b.pts){const vx=p.x-p.px,vy=p.y-p.py;p.x=cx+(p.x-cx)*f;p.y=cy+(p.y-cy)*f;p.px=p.x-vx;p.py=p.y-vy;p.r*=f;p.m*=f*f;p.im=1/p.m;}
   for(const s of b.sticks){s.len*=f;s.len0*=f;s.w*=f;}
@@ -1371,7 +1373,7 @@ function postBody(b){
   else if(b.kind==='meteor'){const p=b.pts[0];for(let i=0;i<2;i++)addFlame(p.x+rnd(-8,8),p.y+rnd(-8,8),rnd(-.5,.5),rnd(-.5,.5),rnd(14,22),rnd(14,24));if(Math.random()<.3)soot(p.x,p.y);
     if(p.hit||p.bump){removeBody(b);boom(p.x,p.y);for(let i=0;i<4;i++)addPatch(p.x+rnd(-90,90),groundBelow(p.x,p.y-20,true),rnd(160,300));}}
   else if(b.kind==='bomb'){if(--b.fuse<=0){const p=b.pts[0];removeBody(b);bombGo(b,p.x,p.y);}else{spinStep(b);if(frame%3===0&&b.xk!=='c4'&&b.xk!=='nade'&&b.xk!=='mini'){const t=spinTip(b,b.pts[0]);part(t[0],t[1],rnd(-1,1),rnd(-2,0),12,2,'#ffd24a',{type:1});}}}
-  else if(b.kind==='balloon'){const l=b.link;if(l&&(l.cut||l.q.b.remove)){b.link=null;b.owner=null;}else if(l&&gravity){const T=l.q.b,lift=T.kind==='ragdoll'?.22*gravity*T.grav:.17*gravity/Math.max(.5,T.ms);   /* a balloon pulls against gravity whichever way that points: with gravity reversed it drags what it is tied to down toward the floor (it used to do nothing then) */T.balloonN=(T.balloonN||0)+1;for(const q of T.pts)if(!q.pin)q.py+=lift;}}
+  else if(b.kind==='balloon'){const l=b.link,P=b.pts[0];b.wob=(b.wob||0)*.93;if((P.bump||P.hit)&&P.rs>2.2&&!(b.wobT>frame)){b.wob=.75;b.wobT=frame+30;}   /* a real knock makes it wobble for a moment (looks only); balloons jostling in a bunch do not keep it going */if(l&&(l.cut||l.q.b.remove)){b.link=null;b.owner=null;}else if(l&&gravity){const T=l.q.b,lift=T.kind==='ragdoll'?.22*gravity*T.grav:.17*gravity/Math.max(.5,T.ms);   /* a balloon pulls against gravity whichever way that points: with gravity reversed it drags what it is tied to down toward the floor (it used to do nothing then) */T.balloonN=(T.balloonN||0)+1;for(const q of T.pts)if(!q.pin)q.py+=lift;}}
 }
 /* a bomb of one of the Explosives kinds goes off (b.xk). nade and c4: an ordinary blast. dyn: that, and a second, wider one. cluster: a smaller blast that throws out seven bomblets (mini), each a small blast of its own a moment later. */
 /* every C4 charge that is waiting goes off, one a moment after the other (a right click with C4 in hand; the Detonate chip on mobile) */
@@ -5403,7 +5405,7 @@ function drawProp(g,b){
       g.fillStyle='#2a2d36';g.beginPath();g.arc(p.rx,p.ry,p.r,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.3)';g.beginPath();g.arc(p.rx-3,p.ry-3,2.5,0,6.3);g.fill();break;
     case 'bone':if(b.fireb){const gr=g.createRadialGradient(p.rx,p.ry,1,p.rx,p.ry,16);gr.addColorStop(0,'#fff6c8');gr.addColorStop(.45,'#ffb347');gr.addColorStop(1,'rgba(255,90,30,0)');g.fillStyle=gr;g.beginPath();g.arc(p.rx,p.ry,16,0,6.3);g.fill();break;}
       g.save();g.translate(p.rx,p.ry);g.rotate(b.rot);g.strokeStyle='#f2eedf';g.lineWidth=4;g.lineCap='round';g.beginPath();g.moveTo(-9,0);g.lineTo(9,0);g.stroke();g.fillStyle='#f2eedf';for(const sx of [-9,9]){g.beginPath();g.arc(sx,-2.5,3,0,6.3);g.arc(sx,2.5,3,0,6.3);g.fill();}g.restore();break;
-    case 'balloon':g.fillStyle=b.col;g.beginPath();g.ellipse(p.rx,p.ry,p.r*.9,p.r*1.1,0,0,6.3);g.fill();g.beginPath();g.moveTo(p.rx-3,p.ry+p.r*1.05);g.lineTo(p.rx+3,p.ry+p.r*1.05);g.lineTo(p.rx,p.ry+p.r*1.05-4);g.fill();g.fillStyle='rgba(255,255,255,.45)';g.beginPath();g.ellipse(p.rx-4,p.ry-5,2.5,4.5,-.4,0,6.3);g.fill();break;
+    case 'balloon':drawBalloon(g,b,p);break;
     case 'saw':g.save();g.translate(p.rx,p.ry);g.rotate(frame*.45);g.fillStyle='#c9d2e3';g.beginPath();for(let i=0;i<14;i++){const a=i/14*6.283;g.lineTo(Math.cos(a)*p.r*1.12,Math.sin(a)*p.r*1.12);g.lineTo(Math.cos(a+.3)*p.r*.86,Math.sin(a+.3)*p.r*.86);}g.closePath();g.fill();
       g.fillStyle='#7d889f';g.beginPath();g.arc(0,0,p.r*.55,0,6.3);g.fill();g.fillStyle='#2a3350';g.beginPath();g.arc(0,0,p.r*.18,0,6.3);g.fill();g.fillRect(-1.5,-p.r*.5,3,p.r);g.restore();break;
     case 'mine':{const k=p.r*1.5/9.6,lit=b.arm>0?'#ffd24a':((frame>>3)&1?'#ff3b3b':'#8a2020');g.save();g.translate(p.rx,p.ry);g.rotate(b.rot||0);g.translate(-12*k,1-13*k);g.scale(k,k);g.fillStyle='#343d5c';g.beginPath();g.ellipse(12,15.6,9.6,5.2,0,0,6.3);g.fill();g.fillRect(2.4,13,19.2,2.6);g.fillStyle='#5b6788';g.beginPath();g.ellipse(12,13,9.6,5.2,0,0,6.3);g.fill();g.fillStyle='#46527c';g.beginPath();g.ellipse(12,13,6.2,3.3,0,0,6.3);g.fill();g.fillStyle='#a3211b';g.beginPath();g.ellipse(12,12.9,3.2,1.8,0,0,6.3);g.fill();g.fillStyle=lit;g.beginPath();g.ellipse(12,12.3,3.2,1.8,0,0,6.3);g.fill();g.fillStyle='#c9d2e3';for(const [bx,by] of [[4.4,13],[19.6,13],[12,9.1],[12,17]]){g.beginPath();g.arc(bx,by,.75,0,6.3);g.fill();}g.restore();break;}   /* a disc with a button on top, as on its button; the button is its light */
@@ -5411,7 +5413,29 @@ function drawProp(g,b){
     case 'anchor':g.fillStyle='#8a94ad';g.beginPath();g.arc(p.rx,p.ry,5,0,6.3);g.fill();g.fillStyle='#2a3350';g.beginPath();g.arc(p.rx,p.ry,2,0,6.3);g.fill();break;
   }
 }
-function drawRope(g,l){if(l.grip)return;if(l.kind==='rod'){g.strokeStyle='#8a94ad';g.lineWidth=l.w;g.beginPath();g.moveTo(l.p.rx,l.p.ry);g.lineTo(l.q.rx,l.q.ry);g.stroke();g.strokeStyle='#d5dcec';g.lineWidth=1;g.stroke();return;}const a=l.p,c=l.q,d=hyp(a.rx-c.rx,a.ry-c.ry),sag=d<l.len?Math.sqrt(l.len*l.len-d*d)*.35:0;
+/* How a balloon looks. A teardrop, shaded from a light spot to a darker rim, with a glossy streak and a knot. It leans along its string (the knot points at what it is tied to), swells into shape when it is made, and wobbles when knocked. None of this changes how it lifts or collides. */
+function balloonShade(b){if(b.sh&&b.shC===b.col)return b.sh;const h=b.col||'#ff5a6e',c=[parseInt(h.slice(1,3),16)||0,parseInt(h.slice(3,5),16)||0,parseInt(h.slice(5,7),16)||0];b.shC=b.col;
+  return b.sh={hi:css(mixc(c,[255,255,255],.6)),lo:css(mixc(c,[24,12,44],.36)),knot:css(mixc(c,[24,12,44],.52))};}
+/* the angle of the knot seen from the middle of the balloon: 0 is straight down, and it turns toward +x. Smoothed, once a frame. */
+function balloonAng(b){if(b.angF===frame&&b.ang!=null)return b.ang;const p=b.pts[0],l=b.link,flip=gravity<0;let a=(flip?Math.PI:0)-clamp((p.x-p.px)*.07,-.6,.6)*(flip?-1:1);   /* loose: the knot hangs below (above, with gravity reversed) and trails behind as it drifts */
+  if(l&&!l.cut){const dx=l.q.x-p.x,dy=l.q.y-p.y,d=hyp(dx,dy),k=clamp((d/l.len-.5)/.4,0,1);if(d>1){const la=Math.atan2(dx,dy);a+=Math.atan2(Math.sin(la-a),Math.cos(la-a))*k;}}   /* tied: the tighter the string, the more it points along it */
+  if(b.ang==null||b.angF==null||frame-b.angF>3)b.ang=a;else b.ang+=Math.atan2(Math.sin(a-b.ang),Math.cos(a-b.ang))*.3;
+  b.angF=frame;return b.ang;}
+function balloonScale(b){if(b.born==null)return 1;const t=clamp((frame-b.born)/16,0,1),u=t-1;return Math.max(.12,1+2.2*u*u*u+1.2*u*u);}   /* swells up, a little too far, then settles */
+function balloonKnot(b,p){const a=balloonAng(b),L=p.r*1.4*balloonScale(b);return [p.rx+Math.sin(a)*L,p.ry+Math.cos(a)*L];}   /* where the string leaves it */
+function drawBalloon(g,b,p){const S=balloonShade(b),a=balloonAng(b),r=p.r,s=balloonScale(b),w=(b.wob||0)*Math.sin(frame*.55+b.id)*.09;
+  if(!b.link||b.link.cut){const sx=Math.sin(a),sy=Math.cos(a),k=balloonKnot(b,p),sw=Math.sin(frame*.13+b.id)*3.2;   /* a loose one trails a short string */
+    g.strokeStyle='rgba(235,236,246,.8)';g.lineWidth=1.2;g.lineCap='round';g.beginPath();g.moveTo(k[0],k[1]);g.bezierCurveTo(k[0]+sx*8+sy*sw,k[1]+sy*8-sx*sw,k[0]+sx*16-sy*sw,k[1]+sy*16+sx*sw,k[0]+sx*24,k[1]+sy*24);g.stroke();}
+  g.save();g.translate(p.rx,p.ry);g.rotate(-a);g.scale(s*(1+w),s*(1-w));
+  g.fillStyle=S.knot;g.beginPath();g.moveTo(-r*.1,r*1.1);g.lineTo(r*.1,r*1.1);g.lineTo(r*.25,r*1.42);g.quadraticCurveTo(0,r*1.3,-r*.25,r*1.42);g.closePath();g.fill();   /* the knot */
+  const gr=g.createRadialGradient(-r*.34,-r*.52,r*.08,-r*.1,-r*.2,r*1.42);gr.addColorStop(0,S.hi);gr.addColorStop(.42,b.col);gr.addColorStop(1,S.lo);g.fillStyle=gr;
+  g.beginPath();g.moveTo(0,r*1.16);g.bezierCurveTo(-r*.42,r*.86,-r*.98,r*.38,-r*.98,-r*.2);g.bezierCurveTo(-r*.98,-r*.82,-r*.52,-r*1.18,0,-r*1.18);g.bezierCurveTo(r*.52,-r*1.18,r*.98,-r*.82,r*.98,-r*.2);g.bezierCurveTo(r*.98,r*.38,r*.42,r*.86,0,r*1.16);g.closePath();g.fill();
+  g.lineCap='round';g.strokeStyle='rgba(255,255,255,.17)';g.lineWidth=r*.13;g.beginPath();g.arc(0,-r*.14,r*.72,.3,1.2);g.stroke();   /* light coming back off the far side */
+  g.strokeStyle='rgba(255,255,255,.72)';g.lineWidth=r*.17;g.beginPath();g.arc(0,-r*.16,r*.66,3.46,4.2);g.stroke();g.fillStyle='rgba(255,255,255,.72)';g.beginPath();g.arc(Math.cos(4.52)*r*.66,-r*.16+Math.sin(4.52)*r*.66,r*.075,0,6.3);g.fill();   /* the gloss: a streak and a dot */
+  g.fillStyle=S.lo;g.beginPath();g.ellipse(0,r*1.13,r*.14,r*.07,0,0,6.3);g.fill();g.restore();}
+function drawRope(g,l){if(l.grip)return;if(l.p.b&&l.p.b.kind==='balloon'&&l.p.b.link===l){const B=l.p.b,k=balloonKnot(B,l.p),c=l.q,dx=c.rx-k[0],dy=c.ry-k[1],d=hyp(dx,dy)||1,Le=Math.max(8,l.len-l.p.r*1.4),sag=d<Le?Math.sqrt(Le*Le-d*d)*.3:0,nx=-dy/d*sag*.55,ny=dx/d*sag*.55,gy=sag*.5*(gravity>=0?1:-1);   /* a balloon's string runs from its knot, and curls when it is slack */
+    g.strokeStyle='rgba(235,236,246,.8)';g.lineWidth=1.2;g.lineCap='round';g.beginPath();g.moveTo(k[0],k[1]);g.bezierCurveTo(k[0]+dx*.33+nx,k[1]+dy*.33+ny+gy,k[0]+dx*.66-nx,k[1]+dy*.66-ny+gy,c.rx,c.ry);g.stroke();return;}
+  if(l.kind==='rod'){g.strokeStyle='#8a94ad';g.lineWidth=l.w;g.beginPath();g.moveTo(l.p.rx,l.p.ry);g.lineTo(l.q.rx,l.q.ry);g.stroke();g.strokeStyle='#d5dcec';g.lineWidth=1;g.stroke();return;}const a=l.p,c=l.q,d=hyp(a.rx-c.rx,a.ry-c.ry),sag=d<l.len?Math.sqrt(l.len*l.len-d*d)*.35:0;
   g.strokeStyle=l.w<2?'rgba(230,230,240,.7)':(l.heat>0?css(mixc([184,148,98],[34,24,18],Math.min(1,l.heat*1.3))):'#b89462');g.lineWidth=l.w;g.beginPath();g.moveTo(a.rx,a.ry);g.quadraticCurveTo((a.rx+c.rx)/2,(a.ry+c.ry)/2+sag*(gravity>=0?1:-1),c.rx,c.ry);g.stroke();}
 let bgCache=null,bgKey='';
 function drawBG(g,world){
