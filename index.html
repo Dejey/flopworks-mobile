@@ -1616,7 +1616,7 @@ function drawSign(g,b){const A=b.anime;if(!A||(A.k!=='sign'&&A.k!=='clash')||b.d
   g.save();g.globalCompositeOperation='lighter';const gr=g.createRadialGradient(x,y,1,x,y,20*s);gr.addColorStop(0,(A.dom==='still'?'rgba(90,210,255,':'rgba(170,90,255,')+(.7*k).toFixed(3)+')');gr.addColorStop(1,A.dom==='still'?'rgba(60,170,230,0)':'rgba(120,50,220,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,20*s,0,6.3);g.fill();g.restore();
   g.strokeStyle=b.pal.skin;g.lineCap='round';g.lineWidth=2.3*s;g.beginPath();g.moveTo(x,y-2*s);g.lineTo(x+f*.6*s,y-2*s-9*s*k);g.moveTo(x+f*2.7*s,y-2*s);g.lineTo(x+f*3.6*s,y-2*s-8*s*k);g.stroke();}
 function animeStep(b,I){const A=b.anime,P=b.pts,hip=P[HIP],neck=P[NECK],head=P[HEAD],s=b.sc*b.C.scale;
-  if(b.dead||b.frozen>0||b.stun>8||b.held||b.balance<.3||b.sleep>0){b.anime=null;return;}
+  if(b.dead||b.frozen>0||b.held||(A.k!=='clash'&&(b.stun>8||b.balance<.3||b.sleep>0))){b.anime=null;return;}   /* (a domain clash is seen through even from the floor) */
   A.t++;b.atkCd=Math.max(b.atkCd,6);const o=A.o&&!A.o.remove&&!A.o.dead?A.o:null;
   if(A.k==='clash'){if(!inClash(b)){b.anime=null;return;}I.mv=0;I.jump=false;I.arms='cpr';I.fx=neck.x+b.facing*8*s;I.fy=neck.y+13*s;I.fmv=9;if(b===possessed&&pressed.KeyE)clashPush(b);   /* a domain clash: the sign is held to the end; driving it, every press of the special key pushes */
     if(frame%2===0){const hx=(P[HL].x+P[HR].x)/2,hy=(P[HL].y+P[HR].y)/2,a=rnd(0,6.2832);part(hx,hy,Math.cos(a)*2.4,Math.sin(a)*2.4,12,rnd(1.4,2.6),A.dom==='still'?'#9fe8ff':'#c08aff',{type:1,g:0});}return;}
@@ -1672,8 +1672,7 @@ function setCineOn(v){cineOn=v;$('setCine').checked=v;try{localStorage.setItem('
 const REALMR=340,REALMCUT=.4;
 /* ---- Domains: the Void Realm, the Still Realm, and what happens when two meet ----
    domainOpen makes the dome (an fx of type 'realm' or 'still') and then domainMeet looks for a rival: a hostile domain already open and touching it, or
-   someone hostile inside it who can answer with a domain of their own (caught in the middle of the hand sign, or, if you are not driving it, with one
-   ready). Either way the two domains CLASH (fx type 'clash'): while it lasts neither does anything, both casters hold the sign, and c.bal drifts toward
+   the nearest enemy who has a domain of their own, who always answers with it at once (guaranteed: the user asked). Either way the two domains CLASH (fx type 'clash'): while it lasts neither does anything, both casters hold the sign, and c.bal drifts toward
    whoever is stronger (health, a little luck, and for the one you drive every press of the special key). At the end the weaker dome shatters and its
    caster is left stunned; the winner's domain starts afresh. Too close to call, and both break.
    Still Realm: every enemy inside is stilled (b.stillT): held exactly where it is (stillHold), unable to act or use any technique. Ultra Instinct and
@@ -1691,11 +1690,11 @@ function domainOpen(kind,b,x,y){const e=kind==='still'?{type:'still',x,y,r:0,R:S
   fx.push(e);shake=Math.max(shake,6);flash=Math.max(flash,.3);domainMeet(e);return e;}
 function domainRival(b,x,y,R){for(const o of fx){if(!isDome(o)||inClash(o)||o.life<30||!o.by||o.by.remove||o.by.dead||o.by===b||allies(b,o.by))continue;if(hyp(o.x-x,o.y-y)<o.R+R-40)return o;}return null;}
 function domainMeet(e){const by=e.by,o=domainRival(by,e.x,e.y,e.R);if(o){clashStart(o,e);return;}
-  for(const v of bodies){if(v===by||v.kind!=='ragdoll'||v.dead||v.remove||v.held||v.frozen>0||v.sleep>0||allies(by,v))continue;const c=v.pts[HIP];if(hyp(c.x-e.x,c.y-e.y)>e.R)continue;
-    const signing=v.anime&&v.anime.k==='sign',k=signing?(v.anime.dom||'realm'):domainOf(v);if(!k)continue;
-    if(!signing&&(v===possessed||v.spCd>0||v.balance<.5||v.stun>8||v.shock>0))continue;
-    domainAnswer(v,k);return;}}
-function domainAnswer(v,k){v.anime=null;v.stillT=0;v.atk=null;v.spCd=Math.max(v.spCd,spCdOf(v));const h=v.pts[HIP],hd=v.pts[HEAD];say(hd.x,hd.y-34,domainName(k),'#7df0ff',16);sfx('spook',.9);domainOpen(k,v,h.x,h.y-20*v.sc);}
+  let best=null,bk=null,bd=e.R*1.75;   /* guaranteed (the user asked): the nearest enemy who has a domain answers, whatever state it is in (its move not ready, knocked down, stunned, asleep, or the one you are driving). Only one frozen solid or in your hand cannot. As far as two domes can still touch. */
+  for(const v of bodies){if(v===by||v.kind!=='ragdoll'||v.dead||v.remove||v.held||v.frozen>0||allies(by,v))continue;const c=v.pts[HIP],d=hyp(c.x-e.x,c.y-e.y);if(d>=bd)continue;
+    const k=v.anime&&v.anime.k==='sign'?(v.anime.dom||'realm'):domainOf(v);if(!k)continue;best=v;bk=k;bd=d;}
+  if(best)domainAnswer(best,bk);}
+function domainAnswer(v,k){v.anime=null;v.stillT=0;v.atk=null;v.sleep=0;v.stun=0;v.shock=0;v.balance=Math.max(v.balance,.7);v.spCd=Math.max(v.spCd,spCdOf(v));const h=v.pts[HIP],hd=v.pts[HEAD];say(hd.x,hd.y-34,domainName(k),'#7df0ff',16);sfx('spook',.9);domainOpen(k,v,h.x,h.y-20*v.sc);}
 function clashStart(A,B){const c={type:'clash',A,B,t:0,life:CLASHDUR,max:CLASHDUR,bal:0,wa:rnd(.8,1.2),wb:rnd(.8,1.2),seen:frame};fx.push(c);
   for(const d of [A,B]){d.clash=c;d.r=d.R;const b=d.by;b.clash=c;b.atk=null;b.stillT=0;b.stun=0;b.anime={k:'clash',t:0,dom:d.type==='still'?'still':undefined};}
   A.by.facing=B.by.pts[HIP].x>=A.by.pts[HIP].x?1:-1;B.by.facing=-A.by.facing||1;shake=Math.max(shake,11);flash=Math.max(flash,.55);sfx('boom',.9);sfx('zap',.6);
@@ -5703,8 +5702,8 @@ let SPEC=null;function specialList(){if(!SPEC){SPEC={};for(const id in CHARS){co
   SPEC.aura={name:'Power Surge',cd:560,from:'anime',desc:'the Power Surge: it bursts into a golden aura, and for ten seconds hits twice as hard and moves much faster.'};
   SPEC.rush={name:'Vanishing Rush',cd:260,from:'anime',desc:'the Vanishing Rush: it flickers round whoever it is fighting, striking from each side in turn, and finishes with a kick that launches them.'};
   SPEC.orb={name:'Star Orb',cd:330,from:'anime',desc:'the Star Orb: it raises its arms, gathers a great ball of light overhead and throws it. The ball bursts where it lands.'};
-  SPEC.realm={name:'Void Realm',cd:600,from:'anime',desc:'the Void Realm: it makes a hand sign, and a great dark dome opens around it for five seconds. Its wall is solid: everyone else caught inside is cut again and again, and nothing gets them out. If someone answers it with a domain of their own, the two domains clash: the stronger one shatters the other.'};
-  SPEC.still={name:'Still Realm',cd:640,from:'anime',desc:'the Still Realm: it makes a hand sign, and a pale dome opens around it for five seconds. Every enemy inside is stilled: held exactly where it is, in mid-air if need be, unable to move, strike or use any technique. Ultra Instinct and Infinity stop working for them and their shots hang in the air, so they can be hit freely. If someone answers it with a domain of their own, the two domains clash.'};
+  SPEC.realm={name:'Void Realm',cd:600,from:'anime',desc:'the Void Realm: it makes a hand sign, and a great dark dome opens around it for five seconds. Its wall is solid: everyone else caught inside is cut again and again, and nothing gets them out. An enemy who has a domain of their own always answers with it at once, and the two domains clash: the stronger one shatters the other.'};
+  SPEC.still={name:'Still Realm',cd:640,from:'anime',desc:'the Still Realm: it makes a hand sign, and a pale dome opens around it for five seconds. Every enemy inside is stilled: held exactly where it is, in mid-air if need be, unable to move, strike or use any technique. Ultra Instinct and Infinity stop working for them and their shots hang in the air, so they can be hit freely. An enemy who has a domain of their own always answers with it at once, and the two domains clash.'};
   SPEC.inf={name:'Infinity',cd:320,from:'anime',desc:'Infinity: an invisible barrier that nothing gets through. Whatever comes at it slows more and more the nearer it gets and never arrives: fists, weapons, bullets, thrown things, liquids, other bodies. Anyone who walks into it is caught: slowed right down and stuck there for a moment before they can pull away. Nothing can hurt, cut, burn, freeze, shock or grab the character while it is up, and it stays up while the character attacks (its own blows reach out through it). Only your hand, sleep and a Void Realm take it down. Used as a move, it throws back everything round it.'};
   SPEC.spark={name:'Crimson Spark',cd:170,from:'anime',desc:'the Crimson Spark: one punch, three times as hard. Black lightning edged in red bursts out where it lands, the world stops for an instant, and whoever it hit is thrown.'};}return SPEC;}   /* every special move in the game, with the character it comes from */
 function customRegister(d){
