@@ -326,6 +326,7 @@ html.mrot .panel,html.mrot #bottom,html.mrot #top,html.mrot #settings,html.mrot 
     <label class="srow"><span class="si">🪰</span><span class="st"><b>Rotting</b><small>A body left dead for a while slowly turns green and draws flies. Water washes it clean</small></span><input type="checkbox" id="setRot" checked><i class="sw"></i></label>
     <label class="srow"><span class="si">🧟</span><span class="st"><b>Dead rise as zombies</b><small>Anyone who dies gets back up as a zombie a few seconds later (as long as they still have a head), and goes after the living</small></span><input type="checkbox" id="setRise"><i class="sw"></i></label>
     <label class="srow"><span class="si">🌊</span><span class="st"><b>Smooth movement</b><small>Dummies are drawn with their little shakes, twitches and snaps eased out, they walk with longer, flowing steps, easing into and out of their stride, and when one turns to face the other way its face swings across its head over a moment instead of flipping at once. Fast things (throws, punches, falls) are left as sharp as ever</small></span><input type="checkbox" id="setSmooth"><i class="sw"></i></label>
+    <label class="srow"><span class="si"></span><span class="st"><b>Fast liquid</b><small>Liquid is drawn more coarsely, which costs much less when there is a lot of it: switch it on if pools and waves make the game slow. Its edges are a little less fine; it flows exactly the same</small></span><input type="checkbox" id="setFastLiq"><i class="sw"></i></label>
     <label class="srow"><span class="si">😱</span><span class="st"><b>Reactions</b><small>They shout, gasp, run and duck at what happens, disasters included</small></span><input type="checkbox" id="setReact" checked><i class="sw"></i></label>
     <label class="srow"><span class="si">👀</span><span class="st"><b>Watch the cursor</b><small>Standing dummies turn to face your cursor and wave when it comes near. Off: they take no notice of it</small></span><input type="checkbox" id="setWatch" checked><i class="sw"></i></label>
     <label class="srow"><span class="si">🪂</span><span class="st"><b>Realistic falling</b><small>Fast free fall and painful landings (default). Off = feather fall</small></span><input type="checkbox" id="setFall"><i class="sw"></i></label>
@@ -2027,6 +2028,7 @@ function witness(x,y,key,a,v,name,kind,R,what){                /* what: the dang
 }
 let rotOn=true;const ROTWAIT=1500,ROTTIME=2400;          // starts about 25 seconds after death, fully green 40 seconds later
 let riseOn=false,turnOn=false,smoothOn=false;
+let fastLiq=false;function setFastLiq(v){fastLiq=v;$('setFastLiq').checked=v;try{localStorage.setItem('flopworksM.fastliq',v?'1':'0');}catch(e){}}   /* Settings: Fast liquid (a coarser grid in drawFluid) */
 function setSmoothOn(v){smoothOn=v;$('setSmooth').checked=v;try{localStorage.setItem('flopworksM.smooth',v?'1':'0');}catch(e){}setTurnOn(v);}   /* one switch for both (the user asked): smooth movement, and smooth turning with it */
 function setTurnOn(v){turnOn=v;try{localStorage.setItem('flopworksM.turn',v?'1':'0');}catch(e){}}   /* (it has no switch of its own any more: setSmoothOn sets it) */
 function setRiseOn(v){riseOn=v;$('setRise').checked=v;try{localStorage.setItem('flopworksM.rise',v?'1':'0');}catch(e){}}
@@ -3709,7 +3711,8 @@ function drawFluid(g){
   const cam=worldSize||zoom>1.001,z=cam?zoom:1,vc=viewC();
   let wx0=cam?(VL-vc[0])/z+camX:VL,wx1=cam?(VR-vc[0])/z+camX:VR,wy0=cam?(VT-vc[1])/z+camY:VT,wy1=cam?(H-vc[1])/z+camY:H;
   if(wx0<XL-8)wx0=XL-8;if(wx1>XR+8)wx1=XR+8;if(wy0<CEIL-8)wy0=CEIL-8;if(wy1>FLOOR+8)wy1=FLOOR+8;if(wx1<=wx0||wy1<=wy0)return;
-  const cs=Math.round(clamp(3/z,2.25,9)*4)/4,inv=1/cs,gxi=Math.floor(wx0*inv)-1,gyi=Math.floor(wy0*inv)-1,gx0=gxi*cs,gy0=gyi*cs,gw=Math.ceil((wx1-gx0)*inv)+2,gh=Math.ceil((wy1-gy0)*inv)+2;
+  const cs=Math.round(clamp((fastLiq?5.5:3)/z,fastLiq?4.25:2.25,9)*4)/4,inv=1/cs,   /* the size of a cell of the grid, in world units: nearly twice as big with Fast liquid on, so about a third of the cells to fill, shade and outline */
+    gxi=Math.floor(wx0*inv)-1,gyi=Math.floor(wy0*inv)-1,gx0=gxi*cs,gy0=gyi*cs,gw=Math.ceil((wx1-gx0)*inv)+2,gh=Math.ceil((wy1-gy0)*inv)+2;
   fluidGrid(gw,gh);const SW=fSW;fCS=cs;fINV=inv;fGX=gx0;fGY=gy0;fGXI=gxi;fGYI=gyi;fGW=gw;fGH=gh;fFlip=gravity<0;
   for(let t=0;t<8;t++){if(FF[t]&&fbx1[t]>=fbx0[t]&&fClr){FF[t].fill(0,0,fClr);FS[t].fill(0,0,fClr);if(t===PASTE&&fPR){fPR.fill(0,0,fClr);fPG.fill(0,0,fClr);fPB.fill(0,0,fClr);}if(t===HONEY&&fGL)fGL.fill(0,0,fClr);}fbx0[t]=fby0[t]=1e9;fbx1[t]=fby1[t]=-1;}
   if(fBd&&fBA&&fClr){fBA.fill(0,0,fClr);fBR.fill(0,0,fClr);fBG.fill(0,0,fClr);fBB.fill(0,0,fClr);}fBd=0;
@@ -6106,7 +6109,7 @@ function buildUI(){
   $('bPause').onclick=togglePause;$('bGrav').onclick=cycleGrav;$('bClear').onclick=()=>clearAll();$('bReset').onclick=()=>resetScene();
   $('bSet').onclick=()=>{showMapMenu(false);showSettings(!menuOpen($('settings')));};$('setClose').onclick=()=>showSettings(false);
   $('setSound').onchange=e=>{if(e.target.checked===muted)toggleMute();e.target.blur();};
-  $('setReset').onclick=()=>{setShowVit(true);setBodyFig(true);setGore(true);setBrutal(true);setWatch(true);setCineOn(true);setSocial(true);setReactOn(true);setAidOn(true);setRotOn(true);setFilmOn(true);setArrestOn(true);setRiseOn(false);setTurnOn(false);setSmoothOn(false);setSplatLife(0);setRealFall(true);setPaste(false);setEdgePan(false);setFullView(false);mapCamDefault();setDefChar('bob',true);if(muted)toggleMute();$('setReset').blur();};
+  $('setReset').onclick=()=>{setShowVit(true);setBodyFig(true);setGore(true);setBrutal(true);setWatch(true);setCineOn(true);setSocial(true);setReactOn(true);setAidOn(true);setRotOn(true);setFilmOn(true);setArrestOn(true);setRiseOn(false);setTurnOn(false);setSmoothOn(false);setFastLiq(typeof MOBV!=='undefined');setSplatLife(0);setRealFall(true);setPaste(false);setEdgePan(false);setFullView(false);mapCamDefault();setDefChar('bob',true);if(muted)toggleMute();$('setReset').blur();};
   document.addEventListener('pointerdown',e=>{const s=$('settings');if(menuOpen(s)&&!s.contains(e.target)&&!$('bSet').contains(e.target))showSettings(false);});
   $('setVit').onchange=e=>{setShowVit(e.target.checked);e.target.blur();};
   try{if(localStorage.getItem('flopworksM.vitals')!=='1')showVit=false;}catch(e){}
@@ -6150,6 +6153,7 @@ function buildUI(){
   $('setArrest').onchange=e=>{setArrestOn(e.target.checked);e.target.blur();};try{if(localStorage.getItem('flopworksM.arrest')==='0')arrestOn=false;}catch(e){}setArrestOn(arrestOn);
   $('setRise').onchange=e=>{setRiseOn(e.target.checked);e.target.blur();};try{if(localStorage.getItem('flopworksM.rise')==='1')riseOn=true;}catch(e){}setRiseOn(riseOn);
   try{if(localStorage.getItem('flopworksM.turn')==='1')smoothOn=true;}catch(e){}   /* (someone who had only the old Smooth turning switch on keeps their smooth turns) */
+  $('setFastLiq').onchange=e=>{setFastLiq(e.target.checked);e.target.blur();};{let v=typeof MOBV!=='undefined';try{const q=localStorage.getItem('flopworksM.fastliq');if(q==='1')v=true;else if(q==='0')v=false;}catch(e){}setFastLiq(v);}
   $('setSmooth').onchange=e=>{setSmoothOn(e.target.checked);e.target.blur();};try{if(localStorage.getItem('flopworksM.smooth')==='1')smoothOn=true;}catch(e){}setSmoothOn(smoothOn);
   $('setSplat').onchange=e=>{setSplatLife(e.target.value);e.target.blur();};{let v=0;try{v=+localStorage.getItem('flopworksM.splat')||0;}catch(e){}setSplatLife(v);}
   $('setRot').onchange=e=>{setRotOn(e.target.checked);e.target.blur();};
@@ -6588,7 +6592,7 @@ const ICO=(()=>{
     setFilm:M.influencer,
     setArrest:p('M12 2.4 L20.2 5.8 V12 Q20.2 18.6 12 21.8 Q3.8 18.6 3.8 12 V5.8Z',BL)+p(star(12,11.6,4.6,2,5),YE),
     setRot:e(7.6,9.6,3.8,2.3,LB)+e(16.4,9.6,3.8,2.3,LB)+e(12,13.4,3.6,5,'#46527c')+c(10.6,9.4,1.3,RD)+c(13.4,9.4,1.3,RD)+s('M8.6 14 L6.4 15.6 M15.4 14 L17.6 15.6 M9 17 L7.4 19 M15 17 L16.6 19',GY,1.1),
-    setRise:P.zombie,setTurn:U.reset,setSmooth:P.wave,setReact:M.flee,
+    setRise:P.zombie,setFastLiq:T.water,setTurn:U.reset,setSmooth:P.wave,setReact:M.flee,
     setWatch:p('M2.4 12 Q12 3.4 21.6 12 Q12 20.6 2.4 12Z',WH)+c(12,12,4.2,BL)+c(12,12,1.9,BK),
     setFall:p('M3.4 11 A8.6 8.6 0 0 1 20.6 11Z',OR)+s('M3.8 11 L11 18.6 M20.2 11 L13 18.6 M12 11 V18',GY,1.1)+r(10.5,18.2,3,3.6,BR,.7),
     setPaste:P.blast,
