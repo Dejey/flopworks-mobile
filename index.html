@@ -3482,7 +3482,7 @@ function drawFluid(g){
     const tex=fluidTex(FTEX,t);tex.getContext('2d').putImageData(fImg,0,0,x0,y0,x1-x0+1,y1-y0+1);
     if(gl){fluidGlowTex(t,gl,x0,x1,y0,y1);fluidTex(FGTEX,t).getContext('2d').putImageData(fImg,0,0,x0,y0,x1-x0+1,y1-y0+1);glows.push([t,x0,y0,x1,y1]);}
     const pat=g.createPattern(tex,'no-repeat');pat.setTransform(M);
-    const ne=fluidMarch(t,x0,x1,y0,y1);g.fillStyle=pat;g.beginPath();const nr=fluidLoops(g,ne);g.fill();
+    const ne=fluidMarch(t,Math.max(0,x0-1),Math.min(gw-1,x1+1),Math.max(0,y0-1),Math.min(gh-1,y1+1));g.fillStyle=pat;   /* one cell wider than the liquid's own box: zoomed out (big cells) the liquid can still be above the threshold in the box's last cell, and its edge is then between that cell and the empty one beyond. Left out, the outline did not close there and the fill went missing (all of the default view on a phone) */g.beginPath();const nr=fluidLoops(g,ne);g.fill();
     if(nr){g.beginPath();for(let q=0;q<nr;q+=2){const x=fRim[q];if(x!==x){q+=2;g.moveTo(fRim[q],fRim[q+1]);}else g.lineTo(x,fRim[q+1]);}
       if(FRIMSOFT[t]){g.strokeStyle=FRIMSOFT[t];g.lineWidth=Math.max(4.5,3.4/z);g.stroke();}
       g.strokeStyle=FRIM[t];g.lineWidth=Math.max(1.5,1.2/z);g.stroke();}
@@ -5980,8 +5980,8 @@ bFull.onclick=()=>{audioKick();const d=document,el=d.documentElement;
   const rq=el.requestFullscreen||el.webkitRequestFullscreen;if(!rq){setInfo('This browser has no full screen button. Add the game to your home screen instead: it opens without the address bar.');return;}
   Promise.resolve(rq.call(el)).then(()=>{try{screen.orientation.lock('landscape').catch(()=>{});}catch(_){}}).catch(()=>{});};
 /* ---- the map is the shape of the screen, and stays so: turn the phone and it changes size at once (the user asked). A scene nobody has touched yet is simply built again for the new shape, which lays it out best; one that has been played in keeps everything in it and only the map round it changes (worldResize) ---- */
-let dirty=false,lastMin=minZoom(),fitT=0;
-{const lm=window.loadMap;window.loadMap=function(){const r=lm.apply(this,arguments);dirty=false;lastMin=minZoom();return r;};
+let dirty=false,lastMin=minZoom(),fitT=0,builtLand=W>=H;   /* builtLand: the map was made for a screen held sideways */
+{const lm=window.loadMap;window.loadMap=function(){const r=lm.apply(this,arguments);dirty=false;lastMin=minZoom();builtLand=W>=H;return r;};
  const sc=window.spawnChar;window.spawnChar=function(){dirty=true;return sc.apply(this,arguments);};}
 function wantWorld(){if(!MAPS[curMap]||MAPS[curMap].custom)return null;const vw=VR-VL,vh=VB+14-VT;   /* the size the map should be for this screen (a Custom map keeps the size its sliders give it) */
   if(camMapZ){const z=Math.min(5,camMapZ),cw=Math.round(vw/z),ch=Math.round(vh/z-14);if(cw>=200&&ch>=140)return [cw,ch];}
@@ -6000,7 +6000,7 @@ function worldResize(w,h){const ow=XR-XL,oh=FLOOR-CEIL;if(Math.abs(w-ow)<2&&Math
   fx=[];parts=[];texts=[];flames=[];fireworks=[];fwStars=[];fwGlow=[];geysers=[];bullets.length=0;ambulances.length=0;for(const b of bodies)if(b.medic)b.medic=null;
   if(grab){grab.b.held=false;grab=null;}if(tele){tele.b.held=false;tele=null;}ropeA=null;wallA=null;aim=null;fanA=null;
   worldSize=[w,h];fitWorld();bgKey='';zoom=minZoom();camX=(XL+XR)/2;camY=(CEIL+FLOOR+14)/2;clampCam();mouseWorld();}
-function fitNow(){const t=wantWorld();if(!t)return;const cw=XR-XL,ch=FLOOR-CEIL;if(Math.abs(Math.log((t[0]/(t[1]+14))/(cw/(ch+14))))<.1)return;   /* still near enough the shape of the screen */
+function fitNow(){const t=wantWorld();if(!t)return;const cw=XR-XL,ch=FLOOR-CEIL,off=Math.abs(Math.log((t[0]/(t[1]+14))/(cw/(ch+14)))),land=W>=H;if(off<.1||(land===builtLand&&off<.5))return;builtLand=land;   /* only when the phone has really been turned, or the shape is far off: a browser toolbar sliding in or out must not move the map */   /* still near enough the shape of the screen */
   if(!dirty||$('help').style.display!=='none')loadMap(curMap);else worldResize(t[0],t[1]);lastMin=minZoom();}
 addEventListener('resize',()=>{const mz=minZoom();if(zoom<mz||Math.abs(zoom-lastMin)<.02)zoom=mz;lastMin=mz;clampCam();mouseWorld();turnNote();   /* (it was showing the whole map: it still does) */
   clearTimeout(fitT);fitT=setTimeout(fitNow,90);});   /* a turn sends several of these in a row: the map is fitted once they stop */
