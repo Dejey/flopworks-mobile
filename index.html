@@ -2825,7 +2825,7 @@ function applyPose(b,I){
     {let vx=hip.x-hip.px,vy=hip.y-hip.py;vx+=(mv*sw*push-vx)*.3*k;if(up)vy+=(-up*2.6-vy)*.24*k;if(!hip.pin){hip.px=hip.x-vx;hip.py=hip.y-vy;}
       if(am>.05)for(const p of P)if(p!==hip&&p.att&&!p.pin){const pv=p.x-p.px;p.px=p.x-(pv+(mv*sw*push-pv)*.2*k);}}
     {const stuck=Math.abs(mv)>.05&&Math.abs(hip.x-hip.lx)<.35;if(b.swimStuck<0)b.swimStuck++;else if(stuck)b.swimStuck++;else if(b.swimStuck>0)b.swimStuck--;
-      if(b.swimStuck>=0&&k>.5&&(b.mode==='possess'?kUp&&b.swimStuck>8:b.swimStuck>28)){b.swimStuck=-95;b.climbT=80;sfx('splash',.6);}
+      if(b.swimStuck>=0&&k>.5&&(b.mode==='possess'?kUp&&b.swimStuck>8:b.swimStuck>28)){b.swimStuck=-95;b.climbT=80;}
       if(b.climbT>8&&!P.some(p=>p.in)&&!besideWall(b))b.climbT=8;                  /* out of the liquid with no edge left to climb: the climb is over, no paddling up through open air */
       if(b.climbT>0){b.climbT--;b.swimHold=Math.max(b.swimHold,6);for(const p of P)if(p.att&&!p.pin){const pv=p.y-p.py;p.py=p.y-(pv+(-4.2-pv)*.4*k);}}}
     steer(neck,hip.x+ff*am*D.torso*.55,hip.y-D.torso*(1-.17*am),.3,.3*k,6,abx,aby);                              // body leans flat into the stroke
@@ -3176,7 +3176,7 @@ function fluidBodies(){
       const t=nl>=nw&&nl>=na&&nl>=nh?LAVA:na>nw&&na>=nh?ACID:nh>nw?HONEY:WATER;p.in=LNAME[t];if(t===HONEY){p.honey=Math.min(1,(p.honey||0)+.04);p.glue=ng*2>nh?1:0;if(p.glue){b.glueT=frame;if(!p.pin&&!b.held&&!(b.unstick>=frame)){if(p.gf!==frame-1){p.gx=p.x;p.gy=p.y;}p.gf=frame;p.x+=(p.gx-p.x)*GLUEHOLD;p.y+=(p.gy-p.y)*GLUEHOLD;p.px=p.x;p.py=p.y;}}}   /* in glue: held where it is, unless the hand has hold of it */
       p.deep=up>=2;p.dense=up>=2&&n>=4;/* really inside a body of liquid, not just splashed, rained on or under a pour */sub++;if(t===WATER)cw++;else if(t===LAVA)cl++;else if(t===HONEY)ch++;else ca++;
       if(!p.pin){const f=n>=5?1:n/5,L=LQ[t];let vx=p.x-p.px,vy=p.y-p.py;vx+=(sx/n-vx)*L.drag*f;vy+=(sy/n-vy)*L.drag*f-gb*L.buoy*fl*f*(p===hd||p===nk?tread:1);p.px=p.x-vx;p.py=p.y-vy;
-        if(!was&&frame-splashT>6&&vx*vx+vy*vy>16){const dry=frame-(b.wetAt===undefined?-999:b.wetAt)>30;if(dry||(frame-(b.splT||0)>150&&vx*vx+vy*vy>36)){splashT=frame;b.splT=frame;sfx('splash',Math.min(1,Math.sqrt(vx*vx+vy*vy)/12)*(dry?1:.5));}}}   /* a splash on going in from dry; once in, only now and then (it was every dip of a hand: a rattle like clapping) */
+        }   /* no splash sound for a body going into liquid: the user asked for it to be removed (it rattled like clapping) */
     }
     if(sub>0)b.wetAt=frame;
     if(douse){b.wet=Math.min(900,(b.wet||0)+10);for(const p of b.pts){if(p.fire>0){p.fire-=.09;if(p.fire<=0){p.fire=0;p.smolder=0;wisp(p.x,p.y-p.r);}}if(b.cid!=='frost')p.heat*=.5;}}
