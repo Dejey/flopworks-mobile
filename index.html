@@ -790,10 +790,10 @@ function wallSplat(x,y,col,size){
    The splats already painted into the wall's picture are rubbed out wherever a drop of water is. Looked at every few frames. */
 function splatWash(){if(!liqCount[WATER]||(!splats.length&&!splatBakeN))return;let gone=false;
   for(const S of splats){if(S.a<=0){gone=true;continue;}let R=S.rad;if(!R){R=14;for(const q of S.blobs)R=Math.max(R,hyp(q[0],q[1])+q[2]);S.rad=R;}
-    const m=fluidCount(S.x,S.y,R+6,WATER);if(m>=2){S.a-=.07*Math.min(1,m/5);bloodInto(S.x,S.y,S.col,.12);}else if(fluidCount(S.x,S.y+R+20,18,WATER)>=3)S.a-=.02;if(S.a<=0)gone=true;}
+    const m=fluidCount(S.x,S.y,R+6,WATER);if(m>=2&&bloodyAt(S.x,S.y,R+6)){/* blood does not wash blood off */}else if(m>=2){S.a-=.07*Math.min(1,m/5);bloodInto(S.x,S.y,S.col,.12);}else if(fluidCount(S.x,S.y+R+20,18,WATER)>=3)S.a-=.02;if(S.a<=0)gone=true;}
   if(gone)splats=splats.filter(S=>S.a>0);
   if(splatBake&&splatBakeN&&frame%12===3&&splatBake.x0===XL&&splatBake.y0===CEIL&&splatBake.w0===XR-XL&&splatBake.h0===FLOOR-CEIL){const g=splatBake.getContext('2d'),k=splatBake.k;let any=false;
-    g.setTransform(k,0,0,k,-XL*k,-CEIL*k);g.globalCompositeOperation='destination-out';g.globalAlpha=.45;g.beginPath();for(let i=0;i<LN;i++){if(LTYPE[i]!==WATER||LDEAD[i])continue;g.moveTo(LX[i]+9,LY[i]);g.arc(LX[i],LY[i],9,0,6.3);any=true;}if(any)g.fill();g.globalCompositeOperation='source-over';g.globalAlpha=1;}}
+    g.setTransform(k,0,0,k,-XL*k,-CEIL*k);g.globalCompositeOperation='destination-out';g.globalAlpha=.45;g.beginPath();for(let i=0;i<LN;i++){if(LTYPE[i]!==WATER||LDEAD[i]||LBL[i]>.5)continue;g.moveTo(LX[i]+9,LY[i]);g.arc(LX[i],LY[i],9,0,6.3);any=true;}if(any)g.fill();g.globalCompositeOperation='source-over';g.globalAlpha=1;}}
 let splatLife=0;                                               // seconds a splat on the wall lasts; 0 = it stays until the scene is cleared (the Settings choice)
 function setSplatLife(v){splatLife=[0,10,30,60,180].includes(+v)?+v:0;const e=$('setSplat');if(e)e.value=String(splatLife);try{localStorage.setItem('flopworksM.splat',String(splatLife));}catch(e){}}
 /* Forever: the picture of the back wall that settled blood is painted into (splatBake; splatBakeN: how many splats are in it; splatBakeA: how much of it rain has left). It covers the whole arena and is made again when the arena changes size. */
@@ -1193,15 +1193,19 @@ function collideWorld(p){
     let d=Math.sqrt(d2);if(d<1e-4){dx=0;dy=-1;d=1;}else{dx/=d;dy/=d;}
     const ov=R-(d2<1e-8?0:d);p.x+=dx*ov;p.y+=dy*ov;p.hit=1;p.nx=dx;p.ny=dy;if(dy<-.5)p.gr=true;}
 }
-let sawSfx=0;
+let sawSfx=0,sawDoomed=[];
+/* a body the saw has taken the torso of (or all but a few parts of): the rest of it goes too, a part every few frames, wherever it lies */
+function sawDoomStep(){for(let k=sawDoomed.length-1;k>=0;k--){const o=sawDoomed[k];if(o.remove||!bodies.includes(o)){sawDoomed.splice(k,1);continue;}if(frame%5)continue;let i=-1;for(let j=0;j<=SHR;j++)if(!o.sticks[j].gone){i=j;break;}if(i<0||o.shield>0){sawDoomed.splice(k,1);o.sawDoom=false;continue;}destroyPart(o,i);}}
 function sawHit(S,o){
   if(o.sawT===frame||o.kind==='anchor'||o.kind==='saw')return;if(o.kind==='ragdoll'&&infOn(o)){infRipple(o,S.pts[0].x,S.pts[0].y);return;}if(o.kind==='ragdoll'&&uiOn(o)){const d=o.pts[HIP].x>=S.pts[0].x?1:-1;uiDodge(o,o.pts[NECK].x,o.pts[NECK].y,d,0,null);uiDash(o,d);return;}o.sawT=frame;const c=S.pts[0];
   if(o.kind==='ragdoll'){damage(o,1.6);o.stun=Math.max(o.stun,8);let best=null,bd=1e9;
     for(let i=UAL;i<=SHR;i++){const st=o.sticks[i];if(st.cut)continue;const d=distSeg(c.x,c.y,st.p.x,st.p.y,st.q.x,st.q.y);if(d<bd){bd=d;best=st;}}
     if(best&&bd<c.r+best.w+8&&o.C.tear!==0&&Math.random()<.1)cutStick(o,best);
     if(best){hurtPart(best.p,.04,.05);hurtPart(best.q,.04,.05);partHit(o,best.q,2.5);}
-    if(pasteOn){let st=null,sd=1e9;for(let i=0;i<=SHR;i++){const s=o.sticks[i];if(s.gone)continue;const d=distSeg(c.x,c.y,s.p.x,s.p.y,s.q.x,s.q.y);if(d<sd){sd=d;st=s;}}   /* full destruction: the saw grinds whatever part is on it, head, torso and severed pieces included */
-      if(st&&sd<c.r+st.w+8)partHit(o,hyp(st.p.x-c.x,st.p.y-c.y)<hyp(st.q.x-c.x,st.q.y-c.y)?st.p:st.q,3.5);}
+    for(let i=0;i<=SHR;i++){const s=o.sticks[i];if(s.gone||distSeg(c.x,c.y,s.p.x,s.p.y,s.q.x,s.q.y)>c.r+s.w+8)continue;const full=PART_HP[i]*o.C.hp/100*o.sc*o.sc;if(s.hp===undefined||s.hp>full)s.hp=full;s.hp-=Math.max(4,full/25);if(s.hp<=0){destroyPart(o,i);if(o.remove)return;let left=0;for(let k=0;k<=SHR;k++)if(!o.sticks[k].gone)left++;if((i===SP||left<=3)&&!o.sawDoom){o.sawDoom=true;sawDoomed.push(o);}}}
+    if(!o.held)for(const p of o.pts){if(p.gone||p.pin)continue;const dx=c.x-p.x,dy=c.y-p.y,d=hyp(dx,dy)||1;if(d<170){p.px-=dx/d*.9;p.py-=dy/d*.9;}}   /* and the rest of the body is drawn in after it */
+    /* the saw grinds away every part that is on it, head, torso and severed pieces included, whatever the settings and however tough the character: at most 25 frames for any part */
+    /* (it used to grind a whole body down only with Full destruction switched on) */
     if(frame%2===0){if(canBleed(o))bleedFx(o,c.x+rnd(-12,12),c.y+rnd(-12,12),1,rnd(-1,1),-1,5);else part(c.x+rnd(-12,12),c.y+rnd(-12,12),rnd(-4,4),rnd(-5,-1),rnd(15,30),rnd(2,3),'#f2eedf',{g:.25});}}
   else if(o.kind==='balloon')popBalloon(o);
   else if(frame%3===0)sparks(c.x+rnd(-c.r,c.r),c.y+rnd(-c.r,c.r),2,'#ffd27a',5);
@@ -2993,11 +2997,16 @@ function bloodInto(x,y,col,amt){if(!LN)return false;const R=13,R2=R*R;let m=0;
   let cx0=(((x-R-XL)/FCELL)|0)+1,cx1=(((x+R-XL)/FCELL)|0)+1,cy0=(((y-R-CEIL)/FCELL)|0)+1,cy1=(((y+R-CEIL)/FCELL)|0)+1;if(cx0<0)cx0=0;if(cy0<0)cy0=0;if(cx1>=gW)cx1=gW-1;if(cy1>=gH)cy1=gH-1;
   for(let cy=cy0;cy<=cy1&&m<16;cy++)for(let cx=cx0;cx<=cx1&&m<16;cx++){const c=cx+cy*gW;for(let k=cellStart[c],e=cellStart[c+1];k<e&&m<16;k++){const j=cellItems[k];if(j>=LN||LDEAD[j])continue;const t=LTYPE[j];if(t>=PASTE||t===LAVA)continue;const dx=LX[j]-x,dy=LY[j]-y;if(dx*dx+dy*dy<R2)BLHIT[m++]=j;}}
   if(!m)return false;const c=bloodRGB(col),a=amt/m;for(let i=0;i<m;i++)bloodTint(BLHIT[i],a,c);bloodAt=frame;return true;}
+/* is the water here mostly blood? (the Blood liquid, or water with a great deal of blood in it) */
+function bloodyAt(x,y,R){if(!LN)return false;const R2=R*R;let n=0,sum=0;
+  let cx0=(((x-R-XL)/FCELL)|0)+1,cx1=(((x+R-XL)/FCELL)|0)+1,cy0=(((y-R-CEIL)/FCELL)|0)+1,cy1=(((y+R-CEIL)/FCELL)|0)+1;if(cx0<0)cx0=0;if(cy0<0)cy0=0;if(cx1>=gW)cx1=gW-1;if(cy1>=gH)cy1=gH-1;
+  for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const c=cx+cy*gW;for(let k=cellStart[c],e=cellStart[c+1];k<e;k++){const j=cellItems[k];if(j>=LN||LDEAD[j]||LTYPE[j]!==WATER)continue;const dx=LX[j]-x,dy=LY[j]-y;if(dx*dx+dy*dy<R2){n++;sum+=LBL[j];}}}
+  return n>0&&sum>n*.5;}
 function bloodMix(){let any=false;
   for(let i=0;i<LN;i++){const ti=LTYPE[i];if(ti>=PASTE||ti===LAVA){if(ti===LAVA)LBL[i]=0;continue;}let bi=LBL[i];
     for(let k=NBS[i],e=NBS[i+1];k<e;k++){const j=NB[k];if(j<=i||j>=LN)continue;const tj=LTYPE[j];if(tj>=PASTE||tj===LAVA)continue;const bj=LBL[j],d=(bj-bi)*.04;
       if(d>.00002){bloodTint(i,d,LBC[j]);LBL[j]=bj-d;bi=LBL[i];}else if(d<-.00002){bloodTint(j,-d,LBC[i]);bi+=d;LBL[i]=bi;}}
-    if(bi>.0002){if(bi>.004)any=true;LBL[i]=bi*.99985;}else if(bi>0)LBL[i]=0;}
+    if(bi>.0002){if(bi>.004)any=true;LBL[i]=LTM[i]===2&&ti===WATER?bi:bi*.99985;}   /* poured blood does not fade by itself; it only thins into the water round it */else if(bi>0)LBL[i]=0;}
   if(any)bloodAt=frame;}
 function fluidClear(){solidTop.fill(1e9);LN=0;LSTATIC=0;liqCount=[0,0,0,0,0,0,0,0];NBS[0]=0;cellStart.fill(0);lavaSrc.length=0;hazBins.fill(0);liqBins.fill(0);}
 function fcell(x,y){let cx=(((x-XL)/FCELL)|0)+1,cy=(((y-CEIL)/FCELL)|0)+1;cx=cx<0?0:cx>=gW?gW-1:cx;cy=cy<0?0:cy>=gH?gH-1:cy;return cx+cy*gW;}
@@ -3084,7 +3093,7 @@ function pour(type,self,glue){   /* glue: honey, marked as glue (LTM 1) */
   if(mouse.alt){fluidErase(mouse.x,mouse.y,30);return;}
   const vx=clamp((mouse.x-(self.lx===undefined?mouse.x:self.lx))*.35,-6,6);self.lx=mouse.x;
   const r=FLOWR[flow-1],hw=Math.max(5,4.2*r);self.acc=(self.acc||0)+r;                       // the Flow setting: particles per frame, and a wider spout to match
-  while(self.acc>=1){self.acc--;const i=fluidAdd(type,mouse.x+rnd(-hw,hw),mouse.y+rnd(-5,5),vx+rnd(-.4,.4),6+rnd(0,1));if(glue)LTM[i]=1;}
+  while(self.acc>=1){self.acc--;const i=fluidAdd(type,mouse.x+rnd(-hw,hw),mouse.y+rnd(-5,5),vx+rnd(-.4,.4),6+rnd(0,1));if(glue===2){LTM[i]=2;LBL[i]=1;LBC[i]=bloodRGB('#b3121f');bloodAt=frame;}else if(glue)LTM[i]=1;}   /* 2: blood (water full of blood) */
   /* (pouring is silent: the user asked for the water sounds to be removed) */
 }
 function fluidErase(x,y,R){for(let i=0;i<LN;i++){const dx=LX[i]-x,dy=LY[i]-y;if(dx*dx+dy*dy<R*R)LDEAD[i]=1;}}
@@ -3166,11 +3175,12 @@ function fluidBodies(){
     const near=any&&!(b.maxx<liqBox[0]-24||b.minx>liqBox[2]+24||b.maxy<liqBox[1]-24||b.miny>liqBox[3]+24);
     const fl=RG?b.float:(KFLOAT[b.kind]||1),gb=gravity*Math.max(0,b.grav),hd=RG?b.pts[HEAD]:null,nk=RG?b.pts[NECK]:null,tread=RG&&!b.dead&&b.balance>.3?1.9:1.35;
     for(const p of b.pts){const was=p.in;p.in=null;p.deep=false;p.dense=false;if(p.honey>0){p.honey-=.0012;if(p.honey<0){p.honey=0;p.glue=0;}else if(!p.glue&&RG&&p.honey>.3&&!p.gone&&Math.random()<.012)part(p.x+rnd(-3,3),p.y+p.r*.6,0,.4,rnd(30,50),rnd(1.6,2.6),'#f2b23a',{type:7,g:.12,drag:.97});}   /* a coat of honey wears off slowly, dripping */if(!near)continue;
-      const R=p.r+9,R2=R*R,px=p.x,py=p.y;let n=0,nw=0,nl=0,na=0,nh=0,ng=0,up=0,sx=0,sy=0;
+      const R=p.r+9,R2=R*R,px=p.x,py=p.y;let n=0,nw=0,nl=0,na=0,nh=0,ng=0,up=0,sx=0,sy=0,bs=0;
       let cx0=(((px-R-XL)/FCELL)|0)+1,cx1=(((px+R-XL)/FCELL)|0)+1,cy0=(((py-R-CEIL)/FCELL)|0)+1,cy1=(((py+R-CEIL)/FCELL)|0)+1;
       if(cx0<0)cx0=0;if(cy0<0)cy0=0;if(cx1>=gW)cx1=gW-1;if(cy1>=gH)cy1=gH-1;
       for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const c=cx+cy*gW;for(let k=cellStart[c],e=cellStart[c+1];k<e;k++){const j=cellItems[k];if(j>=LN||LDEAD[j]||LATO[j])continue;/* honey stuck to someone is not a pool they are standing in */const t=LTYPE[j];if(t>=PASTE){if(t===SAND&&p===hd){const dx=LX[j]-px,dy=LY[j]-py;if(dx*dx+dy*dy<R2){hs++;if(dy<-4)hsUp++;}}continue;}   /* sand is not a liquid, but how much of it is packed round the head (and over it) is counted: that is being buried */
-        const dx=LX[j]-px,dy=LY[j]-py;if(dx*dx+dy*dy>=R2)continue;n++;if(t===WATER)nw++;else if(t===LAVA)nl++;else if(t===HONEY){nh++;if(LTM[j]===1)ng++;}else na++;if(dy<-6)up++;sx+=LVX[j];sy+=LVY[j];}}
+        const dx=LX[j]-px,dy=LY[j]-py;if(dx*dx+dy*dy>=R2)continue;n++;if(t===WATER){nw++;bs+=LBL[j];}else if(t===LAVA)nl++;else if(t===HONEY){nh++;if(LTM[j]===1)ng++;}else na++;if(dy<-6)up++;sx+=LVX[j];sy+=LVY[j];}}
+      if(nw>0&&bs>nw*.5&&b.kind==='ragdoll')p.gore=Math.max(p.gore||0,.6);   /* in blood: covered in it */
       if(nw>0){douse=true;if(p.fire>0){p.fire=0;p.smolder=0;wisp(p.x,p.y-p.r);wisp(p.x,p.y-p.r-6);if(frame-hissT>8){hissT=frame;sfx('hiss',.6);}}if(b.cid!=='frost')p.heat=0;/* a melting snowman stands in his own meltwater: it must not stop the melting */}
       if(n<2&&!ng)continue;   /* (one drop of glue is enough to be stuck in) */
       const t=nl>=nw&&nl>=na&&nl>=nh?LAVA:na>nw&&na>=nh?ACID:nh>nw?HONEY:WATER;p.in=LNAME[t];if(t===HONEY){p.honey=Math.min(1,(p.honey||0)+.04);p.glue=ng*2>nh?1:0;if(p.glue){b.glueT=frame;if(!p.pin&&!b.held&&!(b.unstick>=frame)){if(p.gf!==frame-1){p.gx=p.x;p.gy=p.y;}p.gf=frame;p.x+=(p.gx-p.x)*GLUEHOLD;p.y+=(p.gy-p.y)*GLUEHOLD;p.px=p.x;p.py=p.y;}}}   /* in glue: held where it is, unless the hand has hold of it */
@@ -3635,6 +3645,7 @@ function gizmoStep(){
     if(liqCount[WATER]<2400)for(let k=0;k<3;k++)fluidAdd(WATER,G.x+rnd(-9,9),G.y-6,rnd(-.8,.8),-rnd(11,12.5));
     for(const b of bodies){if(b.kind==='anchor'||b.maxx<G.x-34||b.minx>G.x+34)continue;let any=false;for(const p of b.pts){if(p.pin||Math.abs(p.x-G.x)>30||p.y>G.y+4||p.y<G.y-330)continue;any=true;p.py+=(1-(G.y-p.y)/330)*1.5/Math.sqrt(Math.max(.4,b.ms));}if(any&&b.kind==='ragdoll')b.balance=Math.max(0,b.balance-.05);}
     }
+  if(sawDoomed.length)sawDoomStep();
   for(let i=gizmos.length-1;i>=0;i--){const G=gizmos[i];if(G.cd>0)G.cd--;const x0=G.x-G.w/2,x1=G.x+G.w/2;let used=false;
     if(G.vy!==undefined&&gravity>0){const gy=groundBelow(G.x,G.y-10);                                             // dropped things fall until something is under them, with one small bounce
       if(G.y<gy-.5){G.vy=Math.min(16,G.vy+gravity);G.y+=G.vy;if(G.y>=gy){if(G.vy>5){G.vy=-G.vy*.28;G.y=gy-1;sfx('thud',.25);}else{G.vy=0;G.y=gy;}}}else{G.y=gy;G.vy=0;}}
@@ -4170,6 +4181,7 @@ const TOOLS={
   gluel:{name:'Glue',icon:'🫠',desc:'Hold to pour glue. White and thicker than honey: it barely flows, and whatever is in it is held fast. A dummy standing in it cannot walk or jump out, and things dropped in stay put; pull them free with the hand. It clings to whoever touches it, water does not wash it away, and lava burns it off. The Flow slider (or mouse wheel) sets how much pours; right-click soaks it back up.',step(){if(mouse.down)pour(HONEY,this,true);else this.lx=undefined;}},
   honey:{name:'Honey',icon:'🍯',desc:'Hold to pour honey. Thick and golden: it oozes, heaps up and levels out slowly, and anything in it moves as if through glue. Dummies wade through it at a crawl and come out coated and dripping. Lava burns it off and water slowly thins it. The Flow slider (or mouse wheel) sets how much pours; right-click soaks it back up.',step(){if(mouse.down)pour(HONEY,this);else this.lx=undefined;}},
   water:{name:'Water',icon:'💧',desc:'Hold to pour water. It flows, pools behind walls, floats or sinks things, puts fires out, drowns heads held under and carries lightning. The Flow slider (or mouse wheel) sets how much pours; right-click soaks it back up.',step(){if(mouse.down)pour(WATER,this);else this.lx=undefined;}},
+  blood:{name:'Blood',icon:'',desc:'Hold to pour blood. It flows and pools like water and puts fires out, but it is red, it leaves whoever wades in it covered in blood, and it does not wash bloodstains off the walls. Poured into water it thins out and turns the water pink. The Flow slider (or mouse wheel) sets how much pours; right-click soaks it back up.',step(){if(mouse.down)pour(WATER,this,2);else this.lx=undefined;}},
   lava:{name:'Lava',icon:'🌋',desc:'Hold to pour thick, slow lava. It ignites and melts what it touches, burns limbs off, and turns to rock where it meets water. The Flow slider (or mouse wheel) sets how much pours; right-click soaks it back up.',step(){if(mouse.down)pour(LAVA,this);else this.lx=undefined;}},
   acid:{name:'Acid',icon:'🧪',desc:'Hold to pour acid. It dissolves ragdolls limb by limb, eats crates, balls and rock, and is slowly diluted by water. The Flow slider (or mouse wheel) sets how much pours; right-click soaks it back up.',step(){if(mouse.down)pour(ACID,this);else this.lx=undefined;}},
   sand:{name:'Sand',icon:'⏳',desc:'Click to drop a block of sand; drag to drop a row of them. Sand falls, heaps up, runs off edges, buries things and can be stood on. Explosions blow it away, acid eats it, and the blade and saw cut through it. Right-click brushes it away.',
@@ -4792,7 +4804,7 @@ function bowlHit(o,v){const p=o.pts[0],now=hyp(p.x-p.px,p.y-p.py),was=hyp(p.vx0,
   const c=v.pts[HIP];sfx('thud',1);if(sp>9){say(c.x,c.y-50,'STRIKE!','#ffe066',16);shake=Math.max(shake,3);}}
 function makeBowl(x,y,r,m){const b=makeBall(x,y),p=b.pts[0];b.bowl=true;b.ms=m*.7;b.bounce=.16;b.fric=.012;p.r=r;p.m=m;p.im=1/m;return b;}   // a ball with real weight: a bowling ball, or the ball of a wrecking ball
 const SECTIONS={
-  toolGrid:[['Hands',['grab','brute','pin','rope','weld','blade','eraser','magnet']],['Destroy',['cannon','rocket','hammer','wreck','boulder']],['Traps',['spikes','trap','press','burner','turret','tesla','saw','peel']],['Explosives',['bomb','grenade','dynamite','cluster','c4','mine','tnt','firework']],['Guns',['pistol','uzi','smg','rifle','shotgun','sniper','minigun','flamer','launcher']],['Build',['spawn','crate','ball','balloon','wall','bouncer','fan','portal','sand','concrete','belt','kit','pizza','burger','confetti','bowl']],['Liquids',['water','lava','acid','honey','gluel']]],
+  toolGrid:[['Hands',['grab','brute','pin','rope','weld','blade','eraser','magnet']],['Destroy',['cannon','rocket','hammer','wreck','boulder']],['Traps',['spikes','trap','press','burner','turret','tesla','saw','peel']],['Explosives',['bomb','grenade','dynamite','cluster','c4','mine','tnt','firework']],['Guns',['pistol','uzi','smg','rifle','shotgun','sniper','minigun','flamer','launcher']],['Build',['spawn','crate','ball','balloon','wall','bouncer','fan','portal','sand','concrete','belt','kit','pizza','burger','confetti','bowl']],['Liquids',['water','blood','lava','acid','honey','gluel']]],
   powerGrid:[['Forces',['blast','hole','tele','lift','twister','quake','gust','swap','launch','pillar','warp','stun','disarm','anvil','slam']],['Elements',['bolt','fire','ice','rain','meteor','skylaser','geyser','wave','erupt','shower','acidrain','evap','blizzard','storm','honeyrain']],['Bodies',['size','heal','sleep','rage','clone','party','shield','rubber','dizzy','feather','floaty','heavy','haste','bomb','cupid','feud','zombie','scare','peace']],['Potions',['potRegen','potImmortal','potStrong','potSwift','potInvis','potFire','potGiant','potPoison','potSkel','potTiny','potFury','potJump','potDoze','potCure']],['Time',['slow','fast']]]};
 let cur=TOOLS.grab,curId='grab';
 function pickTool(id){const t=TOOLS[id]||POWERS[id];if(!t)return;
@@ -6078,6 +6090,7 @@ const ICO=(()=>{
     confetti:p('M2.6 21.4 L8 9.6 L14.4 16Z',PU)+s('M5.5 15.7 L8.3 18.5 M6.9 12.8 L11.2 17.1',YE,1.4)+g(45,e(11.2,12.8,4.6,1.3,'#7d55e0'),11.2,12.8)+g(25,r(13,4.4,3.8,1.9,RD,.4),14.9,5.3)+g(-30,r(17.2,9.4,3.8,1.9,BL,.4),19.1,10.3)+g(60,r(9.2,3,3.6,1.8,GR,.4),11,3.9)+g(-15,r(18,15.4,3.6,1.8,YE,.4),19.8,16.3)+c(17.6,3.4,1,PK)+c(21.4,6.4,.9,OR)+c(15.6,8.6,.8,LB)+p(star(20.8,20.4,1.7,.65,4),YE)+s('M14 10 Q15.8 8 14.6 6.6',PK,1.2)+c(6,5.6,.8,LB)+c(13.4,20.8,.8,OR),
     bowl:orb(12,12,9.2,'#3b4fb8','#2a3a94','#93a4f0')+c(12.6,8,1.4,BK)+c(16.2,9.4,1.4,BK)+c(14,12.4,1.5,BK)+s('M6.4 16 Q9.4 19.6 14.6 19.4','#5f73d8',1.1),
     water:drop(BL,'#cfe6ff')+p('M19.6 2.4 Q21.8 5.3 21.8 6.5 A2.2 2.2 0 0 1 17.4 6.5 Q17.4 5.3 19.6 2.4Z',LB),
+    blood:drop(RD,'#ffb3b5')+c(19.6,6.4,1.9,RD)+c(21.4,11,1.1,RD),
     lava:drop(OR,'#ffd9a8')+e(13,16.4,3,2.6,YE)+c(19,6,1.1,YE)+c(5.2,8.4,.9,OR),
     acid:drop(GR,'#dcffb4')+ci(13.8,14.4,1.5,WH,1.1)+c(12.4,18,.9,WH)+ci(19.2,6.4,1.5,'#b6f08a',1.2)+c(5,9,.9,'#b6f08a'),
     honey:r(10.9,.6,2.2,4.6,AM,1.1)+drop(AM,'#ffe9a8')+c(10.4,10.4,.8,'#ffe9a8'),
