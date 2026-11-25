@@ -515,6 +515,8 @@ function audioKick(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioC
 const CHARS={
  bob:{name:'Bob',tag:'Crash dummy',desc:'All-rounder that shrugs off impacts, and the kindest dummy there is: he greets everyone warmly, pays compliments, hurries to help and never trash-talks.',nice:true,scale:1,mass:1,speed:2.3,jump:10.5,str:1,rate:1,pose:1,poise:1,grav:1,bounce:.18,hp:110,tear:2.8,gib:.5,res:{impact:.55,fire:1,shock:1},special:'uppercut',spName:'Uppercut',spCd:260,
   col:{skin:'#f4c430',shirt:'#f4c430',pants:'#e2b224',shoe:'#1c1c22'},joint:'#1c1c22',face:'normal'},
+ redbob:{name:'Red Bob',tag:'Crash dummy',desc:'Bob in red. The same kind all-rounder that shrugs off impacts: he greets everyone warmly, pays compliments, hurries to help and never trash-talks.',nice:true,headOf:'bob',scale:1,mass:1,speed:2.3,jump:10.5,str:1,rate:1,pose:1,poise:1,grav:1,bounce:.18,hp:110,tear:2.8,gib:.5,res:{impact:.55,fire:1,shock:1},special:'uppercut',spName:'Uppercut',spCd:260,
+  col:{skin:'#e23b3b',shirt:'#e23b3b',pants:'#c42d2d',shoe:'#1c1c22'},joint:'#1c1c22',face:'normal'},   /* (headOf: his head is drawn as Bob's) */
  brick:{name:'Brick',tag:'Bruiser',desc:'Huge, heavy, hits like a truck. And mean: rude to everyone, mocks the hurt, shoves people out of his way and never helps.',mean:true,scale:1.28,thick:1.25,mass:2.4,speed:1.55,jump:8.5,str:2,rate:.75,pose:1.1,poise:2.2,grav:1,bounce:.08,hp:180,tear:3.4,gib:.3,res:{impact:.8,fire:1,shock:1},special:'slam',spName:'Ground Slam',spCd:300,headShape:'box',
   col:{skin:'#d89a6a',shirt:'#b8322c',pants:'#34425f',shoe:'#1b1b1f'},face:'angry'},
  noodle:{name:'Noodle',tag:'Stretchy',desc:'Long floppy limbs with huge reach.',scale:1.05,limb:1.4,thick:.72,neckL:1.25,mass:.65,speed:2.5,jump:11,str:.8,rate:1.1,pose:.8,poise:.6,grav:1,bounce:.25,hp:85,tear:3.8,gib:.4,res:{impact:1,fire:1,shock:1},special:'whip',spName:'Whip Arm',spCd:200,
@@ -551,7 +553,7 @@ const CHARS={
   col:{skin:'#f4f6fb',shirt:'#f4f6fb',pants:'#e3e8f2',shoe:'#8a94a8'},joint:'#ff7a45',face:'normal'},
 };
 // resting pulse, body fluid, its colour, how fast it leaks when a limb comes off
-const VIT={bob:[70,'Blood','#d83a3a',1],brick:[58,'Blood','#d83a3a',1],noodle:[82,'Blood','#d83a3a',1],bolt:[0,'Oil','#15151a',.6],shade:[64,'Blood','#d83a3a',1],puff:[92,'Air','#ffffff',1.5],bones:[0,null,null,0],jelly:[48,'Goo','#3fbf63',1],zed:[0,'Blood','#4d6b24',.7],frost:[0,'Slush','#bfe3ff',.8],ember:[96,'Magma','#ff8a2a',1],spike:[0,'Sap','#9be56a',.7],boo:[0,'Ectoplasm','#c9d4ff',.5],astro:[68,'Blood','#d83a3a',1],medic:[72,'Blood','#d83a3a',1],cop:[74,'Blood','#d83a3a',1],chief:[70,'Blood','#d83a3a',1],human:[72,'Blood','#d83a3a',1]};
+const VIT={bob:[70,'Blood','#d83a3a',1],redbob:[70,'Blood','#d83a3a',1],brick:[58,'Blood','#d83a3a',1],noodle:[82,'Blood','#d83a3a',1],bolt:[0,'Oil','#15151a',.6],shade:[64,'Blood','#d83a3a',1],puff:[92,'Air','#ffffff',1.5],bones:[0,null,null,0],jelly:[48,'Goo','#3fbf63',1],zed:[0,'Blood','#4d6b24',.7],frost:[0,'Slush','#bfe3ff',.8],ember:[96,'Magma','#ff8a2a',1],spike:[0,'Sap','#9be56a',.7],boo:[0,'Ectoplasm','#c9d4ff',.5],astro:[68,'Blood','#d83a3a',1],medic:[72,'Blood','#d83a3a',1],cop:[74,'Blood','#d83a3a',1],chief:[70,'Blood','#d83a3a',1],human:[72,'Blood','#d83a3a',1]};
 /* head under the sand: no air. It holds its breath for a few seconds, then starts to suffocate (the same slow damage as drowning) and passes out. Dig it out, or pull it clear, and it breathes again. */
 function sandChoke(b){b.sandT=frame;b.air=Math.max(0,b.air-.3);if(b.air<=0)damage(b,.22);
   if(b.t%24===0){const hd=b.pts[HEAD];part(hd.x+rnd(-6,6),hd.y-hd.r,rnd(-.5,.5),-rnd(.6,1.4),rnd(20,34),rnd(2,3.5),'#e8c27a',{type:1,g:.04});}
@@ -1664,16 +1666,16 @@ function sparkHit(b,o,q,dx,dy){const x=q.x,y=q.y;
   shake=Math.max(shake,11);flash=Math.max(flash,.4);sfx('zap',1);sfx('boom',.75);if(timeScale===1){timeScale=.4;uiSlowEnd=frame+7;}
   if(o.kind==='ragdoll'&&!o.dead&&!warded(o)){for(const p of o.pts)if(!p.pin){p.px-=dx*5.5;p.py-=dy*5.5-2.2;}damage(o,SPARKDMG*o.C.res.impact);/* the blow itself, on top of the punch (the user asked for far more damage): most of an ordinary dummy's health in one hit */if(!o.dead){o.stun=Math.max(o.stun,34);o.balance=0;}}}
 const SPARKDMG=58;
-/* ---- the cut-scene for a Void Realm (Settings: Move cinematics) ----
+/* ---- the cut-scenes for the domains and for a domain clash (Settings: Move cinematics) ----
    While cine is set the game itself does not step: the loop calls cineStep, which only runs the cut-scene's own clock (in sixtieths of a second, so it
-   plays at the same speed whatever the game speed), and render draws drawCine over the frozen arena. When it ends the dome opens (realmOpen). */
-let cine=null,cineOn=true;const CINEDUR=100;
+   plays at the same speed whatever the game speed), and render draws drawCine over the frozen arena. When it ends the dome opens (domainOpen). */
+let cine=null,cineOn=true,cineHid=false;const CINEDUR=128;
 function setCineOn(v){cineOn=v;$('setCine').checked=v;try{localStorage.setItem('flopworksM.cine',v?'1':'0');}catch(e){}}
 const REALMR=340,REALMCUT=.4;
 /* ---- Domains: the Void Realm, the Still Realm, and what happens when two meet ----
    domainOpen makes the dome (an fx of type 'realm' or 'still') and then domainMeet looks for a rival: a hostile domain already open and touching it, or
    the nearest enemy who has a domain of their own, who always answers with it at once (guaranteed: the user asked). Either way the two domains CLASH (fx type 'clash'): while it lasts neither does anything, both casters hold the sign, and c.bal drifts toward
-   whoever is stronger (health, a little luck, and for the one you drive every press of the special key). At the end the weaker dome shatters and its
+   one of them by chance (c.fate; for the one you drive, every press of the special key pushes too). At the end the losing dome shatters and its
    caster is left stunned; the winner's domain starts afresh. Too close to call, and both break.
    Still Realm: every enemy inside is stilled (b.stillT): held exactly where it is (stillHold), unable to act or use any technique. Ultra Instinct and
    Infinity are off for it (uiOn, infOn), and its shots hang in the air (stillBullet). It can still be hurt. */
@@ -1695,17 +1697,18 @@ function domainMeet(e){const by=e.by,o=domainRival(by,e.x,e.y,e.R);if(o){clashSt
     const k=v.anime&&v.anime.k==='sign'?(v.anime.dom||'realm'):domainOf(v);if(!k)continue;best=v;bk=k;bd=d;}
   if(best)domainAnswer(best,bk);}
 function domainAnswer(v,k){v.anime=null;v.stillT=0;v.atk=null;v.sleep=0;v.stun=0;v.shock=0;v.balance=Math.max(v.balance,.7);v.spCd=Math.max(v.spCd,spCdOf(v));const h=v.pts[HIP],hd=v.pts[HEAD];say(hd.x,hd.y-34,domainName(k),'#7df0ff',16);sfx('spook',.9);domainOpen(k,v,h.x,h.y-20*v.sc);}
-function clashStart(A,B){const c={type:'clash',A,B,t:0,life:CLASHDUR,max:CLASHDUR,bal:0,wa:rnd(.8,1.2),wb:rnd(.8,1.2),seen:frame};fx.push(c);
+function clashStart(A,B){const c={type:'clash',A,B,t:0,life:CLASHDUR,max:CLASHDUR,bal:0,fate:rnd(-1,1),seen:frame};fx.push(c);   /* fate: which way this clash will lean, and how hard. Pure chance (the user asked): either domain can win, whoever is healthier */
   for(const d of [A,B]){d.clash=c;d.r=d.R;const b=d.by;b.clash=c;b.atk=null;b.stillT=0;b.stun=0;b.anime={k:'clash',t:0,dom:d.type==='still'?'still':undefined};}
   A.by.facing=B.by.pts[HIP].x>=A.by.pts[HIP].x?1:-1;B.by.facing=-A.by.facing||1;shake=Math.max(shake,11);flash=Math.max(flash,.55);sfx('boom',.9);sfx('zap',.6);
-  witness((A.x+B.x)/2,(A.y+B.y)/2,'seeBoom',null,null,'','gasp',500);}
+  witness((A.x+B.x)/2,(A.y+B.y)/2,'seeBoom',null,null,'','gasp',500);
+  if(cineOn&&!cine)cine={kind:'clash',by:A.by,by2:B.by,ka:A.type==='still'?'still':'realm',kb:B.type==='still'?'still':'realm',t:0};}   /* (its cut-scene, if those are on) */
 function clashSeam(c){const A=c.A,B=c.B,dx=B.x-A.x,dy=B.y-A.y,d=hyp(dx,dy),far=d>20,ux=far?dx/d:1,uy=far?dy/d:0,a=far?clamp((A.R*A.R-B.R*B.R+d*d)/(2*d),-A.R,A.R):0,h=Math.sqrt(Math.max(3600,A.R*A.R-a*a)),sh=c.bal*70;
   return{mx:A.x+ux*(a+sh),my:A.y+uy*(a+sh),ux,uy,px:-uy,py:ux,h};}   /* the line where the two domes meet, pushed toward the one that is losing */
 function clashPush(b){const c=b.clash;if(!c)return;c.bal=clamp(c.bal+(b===c.A.by?1:-1)*.035,-1,1);const h=b.pts[b.facing>0?HR:HL];sparks(h.x,h.y,4,'#ffffff',4);sfx('click',.5);}
 function clashStep(c){const A=c.A,B=c.B,a=A.by,b=B.by;c.t++;c.seen=frame;
   const ok=v=>v&&!v.remove&&!v.dead&&v.anime&&v.anime.k==='clash',oa=ok(a),ob=ok(b);
   if(!oa||!ob||c.life<=1){clashEnd(c,!oa&&!ob?0:!oa?-1:!ob?1:Math.abs(c.bal)<.12?0:c.bal>0?1:-1);return;}
-  const pw=(v,w)=>w*(.5+.5*clamp(v.hp/v.maxHp,0,1));c.bal=clamp(c.bal+(pw(a,c.wa)-pw(b,c.wb))*.012+rnd(-.006,.006),-1,1);
+  c.bal=clamp(c.bal+c.fate*.0075+rnd(-.014,.014),-1,1);   /* it wavers to and fro, and drifts the way chance has it */
   A.life++;B.life++;shake=Math.max(shake,2.2);   /* (the domains themselves wait) */
   if(c.t%3===0){const S=clashSeam(c),s=rnd(-1,1),x=S.mx+S.px*S.h*s,y=S.my+S.py*S.h*s;if(y<FLOOR)sparks(x,y,3,pick(['#ffffff',css(domCol(A)),css(domCol(B))]),6);}
   if(c.t%34===0)sfx('zap',.35);}
@@ -1720,8 +1723,13 @@ function domainShatter(d){const C=domCol(d),col=css(C),lite=css(mixc(C,[255,255,
 function stillStep(e){const by=e.by;e.r=Math.min(e.R,e.r+14);if(!by||by.remove||by.dead){e.life=Math.min(e.life,12);return;}if(inClash(e))return;stillDomes.push(e);
   for(const v of bodies){if(v===by||v.kind!=='ragdoll'||v.dead||v.remove||v.held||v.shield>0||allies(by,v))continue;const c=v.pts[HIP];if(hyp(c.x-e.x,c.y-e.y)>e.r)continue;
     if(v.anime&&v.anime.k==='sign'){domainAnswer(v,v.anime.dom||'realm');return;}   /* caught in the middle of its own hand sign: that is an answer, and the two domains clash */
-    if(!(v.stillT>=frame))stillBegin(v,by);v.stillT=frame+1;}}
-function stillBegin(v,by){v.stillAt=frame;for(const p of v.pts){p.stX=p.x;p.stY=p.y;}v.atk=null;v.anime=null;if(v.tk)tkEnd(v,false);if(v.grip)releaseGrip(v);v.uiDashT=0;v.uiFlip=null;v.uiPose=0;
+    if(!(v.stillT>=frame))stillBegin(v,by);v.stillT=frame+1;
+    const age=frame-v.stillAt;v.know=(v.know||0)*1.022+11;                                              /* knowledge pours into its head, faster and faster (drawStilled shows it), and it is more than a head can take: */
+    if(age%12===11){blame(v,by);damage(v,v.maxHp*STILLDMG);}                                             /* it is hurt steadily, about a third of its health over the five seconds */
+    if(age===50&&!v.dead)bubble(v,pick(KNOWLINES),150);}}
+const STILLDMG=.013,KNOWLINES=['Too… much…','I can see everything…','So much to know…','My head…','It will not stop…','I understand… everything…'];
+function knowFmt(n){return n<1000?String(Math.round(n)):n<1e6?(n/1e3).toFixed(1)+'K':(n/1e6).toFixed(2)+'M';}
+function stillBegin(v,by){v.stillAt=frame;v.know=0;v.bubble=null;for(const p of v.pts){p.stX=p.x;p.stY=p.y;}v.atk=null;v.anime=null;if(v.tk)tkEnd(v,false);if(v.grip)releaseGrip(v);v.uiDashT=0;v.uiFlip=null;v.uiPose=0;
   const h=v.pts[HIP],hd=v.pts[HEAD];ring(h.x,h.y-10,46,'#9fe8ff',14,3);blame(v,by);
   if(v===possessed&&domainOf(v)&&v.spCd<=0)say(hd.x,hd.y-52,'Answer with your own domain: use your special NOW','#ffe066',13);}
 function stillThink(b){b.atk=null;b.anime=null;b.planted=false;b.cpr=null;b.aid=null;   /* stilled: it does nothing at all. Driving it, you have a moment to answer with a domain of your own */
@@ -1735,7 +1743,10 @@ function drawStillDome(g,e){const al=Math.min(1,e.life/20);g.save();g.globalComp
   g.restore();}
 function drawStilled(g,b){const hd=b.pts[HEAD];g.save();g.strokeStyle='rgba(160,235,255,.8)';g.lineWidth=1.4;g.setLineDash([3,5]);g.beginPath();g.arc(hd.rx,hd.ry,hd.r+6,0,6.3);g.stroke();g.setLineDash([]);g.fillStyle='#dff8ff';
   for(let i=0;i<b.pts.length;i+=2){const p=b.pts[i];if(p.gone||!p.att)continue;const x=p.rx+((i*37+b.id*13)%17)-8,y=p.ry-((i*53+b.id*7)%15)+4,s=3.2;g.globalAlpha=.35+.35*Math.sin(frame*.12+i*1.7+b.id);
-    g.beginPath();g.moveTo(x,y-s);g.lineTo(x+s*.3,y-s*.3);g.lineTo(x+s,y);g.lineTo(x+s*.3,y+s*.3);g.lineTo(x,y+s);g.lineTo(x-s*.3,y+s*.3);g.lineTo(x-s,y);g.lineTo(x-s*.3,y-s*.3);g.closePath();g.fill();}g.restore();}   /* a dotted ring round the head and a few still glints: caught in a Still Realm */
+    g.beginPath();g.moveTo(x,y-s);g.lineTo(x+s*.3,y-s*.3);g.lineTo(x+s,y);g.lineTo(x+s*.3,y+s*.3);g.lineTo(x,y+s);g.lineTo(x-s*.3,y+s*.3);g.lineTo(x-s,y);g.lineTo(x-s*.3,y-s*.3);g.closePath();g.fill();}   /* a dotted ring round the head and a few still glints: caught in a Still Realm */
+  const hx=hd.rx,hy=hd.ry,GL='0123456789ΣπΔ∞√∫≠λΩ?';g.font='700 9px ui-monospace,monospace';g.textAlign='center';g.fillStyle='#dff8ff';
+  for(let i=0;i<12;i++){const q=(frame*.018+i/12)%1,a=i*2.399963+b.id,r=(hd.r+58)*(1-q)+hd.r*.4,n=Math.floor(frame*.018+i/12);g.globalAlpha=Math.min(1,q*5)*(1-q*.35);g.fillText(GL[(i*7+n*13+b.id)%GL.length],hx+Math.cos(a)*r,hy+Math.sin(a)*r*.8+3);}   /* figures and signs streaming into its head from all round */
+  g.globalAlpha=1;g.font='800 10px system-ui';g.fillStyle='#9fe8ff';g.fillText('KNOWLEDGE +'+knowFmt(b.know||0),hx,hy-hd.r-(b.bubble?56:24));g.textAlign='left';g.restore();}   /* and the count of what it has learned, running up */
 function drawClash(g,c){const A=c.A,B=c.B,S=clashSeam(c),k=Math.min(1,c.t/10)*Math.min(1,c.life/12);g.save();g.globalCompositeOperation='lighter';g.lineCap='round';g.lineJoin='round';
   for(let pass=0;pass<2;pass++){g.beginPath();const N=16;for(let i=0;i<=N;i++){const s=i/N*2-1,j=i===0||i===N?0:((Math.sin(i*12.9898+frame*1.7+pass*40)*43758.5453)%1)*(pass?26:15),x=S.mx+S.px*S.h*s+S.ux*j,y=S.my+S.py*S.h*s+S.uy*j;if(i)g.lineTo(x,y);else g.moveTo(x,y);}
     g.strokeStyle=pass?'rgba(255,255,255,'+(.9*k).toFixed(3)+')':'rgba(200,170,255,'+(.45*k).toFixed(3)+')';g.lineWidth=pass?2.2:9;g.stroke();}   /* the seam between the two domes, crackling */
@@ -1744,19 +1755,66 @@ function drawClash(g,c){const A=c.A,B=c.B,S=clashSeam(c),k=Math.min(1,c.t/10)*Ma
   const sc=1+.9*Math.max(0,1-c.t/9);g.translate(bx,by0-14);g.scale(sc,sc);g.textAlign='center';g.font='900 26px system-ui';g.shadowColor='rgba(200,150,255,.95)';g.shadowBlur=18;g.fillStyle='#fff';g.fillText('DOMAIN CLASH',0,0);g.shadowBlur=0;
   if(possessed&&(possessed===A.by||possessed===B.by)){g.font='700 12px system-ui';g.fillStyle='#ffe066';g.globalAlpha=k*(.6+.4*Math.sin(frame*.4));g.fillText('KEEP PRESSING YOUR SPECIAL!',0,46);}
   g.restore();}
-function cineStep(dt){const c=cine;c.t+=dt*60;shake*=.85;if(c.t>=34&&!c.hit){c.hit=true;sfx('boom',.8);shake=Math.max(shake,7);}
+/* The cut-scene has two shots. Up to CINEHIT: close on the caster making the sign, rings of light closing on its hands. Then a white cut to the second
+   shot: the caster full length on the left, the domain's own picture behind it (Void Realm: a black sun and cuts flashing across the screen; Still Realm:
+   a great clock whose hands race and then stop dead, the dust in the air stopping with them), its name slamming in on the right. It ends with the dome
+   sweeping out over the whole screen. A domain clash has a cut-scene of its own (kind 'clash'): the screen split corner to corner, a caster in each half. */
+const CINEHIT=40,CLASHCINE=92,cineEase=v=>v<=0?0:v>=1?1:v*v*(3-2*v),cineH=(i,s)=>{const v=Math.sin(i*127.1+s*311.7)*43758.5453;return v-Math.floor(v);},CINEDOME={realm:'14,6,28',still:'6,22,34'},CINESUB={realm:'EVERYTHING INSIDE IS CUT',still:'EVERYTHING INSIDE STOPS'};
+function cineStep(dt){const c=cine;c.t+=dt*60;shake*=.85;
+  if(c.kind==='clash'){if(c.t>=30&&!c.hit){c.hit=true;sfx('boom',1);sfx('zap',.7);shake=Math.max(shake,12);}if(c.t>=CLASHCINE||!c.by||c.by.remove||!c.by2||c.by2.remove){cine=null;flash=Math.max(flash,.7);}return;}
+  if(c.t>=CINEHIT&&!c.hit){c.hit=true;sfx('boom',.8);shake=Math.max(shake,8);}
+  if(c.kind==='still'&&c.t>CINEHIT&&c.t<CINEHIT+46){const n=Math.floor(Math.sqrt((c.t-CINEHIT)/46)*7);if(n!==c.tick){c.tick=n;sfx('click',.7);}}   /* the clock ticking, slower and slower */
+  if(c.t>=CINEDUR-24&&!c.out){c.out=true;sfx('whoosh',.9);}
   if(!c.by||c.by.remove||c.t>=CINEDUR){cine=null;if(c.by&&!c.by.remove&&!c.by.dead)domainOpen(c.kind||'realm',c.by,c.x,c.y);}}
-function drawCine(g){const c=cine,CP=CINEPAL[c.kind==='still'?'still':'realm'],t=c.t,by=c.by,ease=v=>v<=0?0:v>=1?1:v*v*(3-2*v),outK=ease((t-(CINEDUR-16))/16),k=ease(t/12)*(1-outK),vw=VR-VL,vh=VB-VT,px=VL+vw*.3,py=VT+vh*.58,tx=VL+vw*.68;
-  g.save();g.beginPath();g.rect(VL,VT,vw,vh);g.clip();
-  g.fillStyle=CP.bg+(.88*k).toFixed(3)+')';g.fillRect(VL,VT,vw,vh);                                         /* the arena goes dark */
-  g.save();g.translate(px,py);g.globalAlpha=.5*k;g.strokeStyle=CP.ln;for(let i=0;i<28;i++){const a=i/28*6.2832+t*.012,r0=vh*(.2+.05*((i*7)%5)),r1=vh*1.4;g.lineWidth=1+((i*13)%3);g.beginPath();g.moveTo(Math.cos(a)*r0,Math.sin(a)*r0);g.lineTo(Math.cos(a)*r1,Math.sin(a)*r1);g.stroke();}g.restore();   /* lines streaking out from behind the caster */
-  {const gr=g.createRadialGradient(px,py,8,px,py,vh*.55);gr.addColorStop(0,CP.gl+(.55*k).toFixed(3)+')');gr.addColorStop(1,CP.gl+'0)');g.fillStyle=gr;g.fillRect(VL,VT,vw,vh);}
-  if(by&&!by.remove){const D=by.dim,tall=(D.torso+D.neck+D.headR*2+D.thigh+D.shin)*by.sc,K=vh/tall*(.56+.07*t/CINEDUR),hp=by.pts[HIP];g.save();g.globalAlpha=k;g.translate(px,py);g.scale(K,K);g.translate(-hp.rx,-(hp.ry-D.torso*.3*by.sc));try{drawRag(g,by);drawSign(g,by);}catch(e){}g.restore();}   /* the caster, large, slowly pushing in */
-  const t1=ease((t-18)/8)*(1-outK);if(t1>0){g.globalAlpha=t1;g.fillStyle=CP.tx;g.textAlign='center';g.font='700 '+Math.max(10,Math.round(vh*.036))+'px system-ui';try{g.letterSpacing='6px';}catch(e){}g.fillText('TERRITORY UNFOLDS',tx,VT+vh*.4);}
-  if(t>=34){const s=1+1.3*(1-ease((t-34)/6)),a=1-outK;g.save();g.globalAlpha=a;g.translate(tx,VT+vh*.55);g.scale(s,s);g.textAlign='center';g.font='900 '+Math.max(18,Math.round(vh*.115))+'px system-ui';try{g.letterSpacing='3px';}catch(e){}g.shadowColor=CP.sh;g.shadowBlur=26;g.fillStyle='#ffffff';g.fillText(c.name,0,0);g.restore();   /* the name slams in */
-    const wk=ease((t-40)/10);g.globalAlpha=a;g.fillStyle=CP.ln2;g.fillRect(tx-vw*.2*wk,VT+vh*.6,vw*.4*wk,3);}
-  g.globalAlpha=1;g.fillStyle='#000';const bh=vh*.13*k;g.fillRect(VL,VT,vw,bh);g.fillRect(VL,VB-bh,vw,bh);          /* the black bars */
-  if(t>CINEDUR-10){g.fillStyle='rgba(205,160,255,'+(.65*(1-(CINEDUR-t)/10)).toFixed(3)+')';g.fillRect(VL,VT,vw,vh);}   /* and the flash it ends on */
+function cineTall(b){const D=b.dim;return(D.torso+D.neck+D.headR*2+D.thigh+D.shin)*b.sc;}
+function cineFigure(g,b,x,y,K,al){if(!b||b.remove||al<=0)return;const hp=b.pts[HIP];g.save();g.globalAlpha=al;g.translate(x,y);g.scale(K,K);g.translate(-hp.rx,-(hp.ry-b.dim.torso*.3*b.sc));try{drawRag(g,b);drawSign(g,b);}catch(e){}g.restore();}   /* a dummy drawn large, its chest at x,y */
+function cineBars(g,k){const vw=VR-VL,vh=VB-VT,bh=vh*.13*k;g.globalAlpha=1;g.fillStyle='#000';g.fillRect(VL,VT,vw,bh);g.fillRect(VL,VB-bh,vw,bh);}
+function cineText(g,s,x,y,px,wt,sp){g.font=wt+' '+Math.max(9,Math.round(px))+'px system-ui';try{g.letterSpacing=sp+'px';}catch(e){}g.fillText(s,x,y);}
+function drawCine(g){const c=cine;if(c.kind==='clash'){drawClashCine(g,c);return;}
+  const kd=c.kind==='still'?'still':'realm',still=kd==='still',CP=CINEPAL[kd],t=c.t,by=c.by,E=cineEase,vw=VR-VL,vh=VB-VT,k=E(t/10),px=VL+vw*.3,py=VT+vh*.58,tx=VL+vw*.68,diag=Math.hypot(vw,vh);
+  g.save();g.beginPath();g.rect(VL,VT,vw,vh);g.clip();g.textAlign='center';
+  if(t>CINEDUR-6){g.fillStyle='rgba('+CINEDOME[kd]+','+((CINEDUR-t)/6).toFixed(3)+')';g.fillRect(VL,VT,vw,vh);g.restore();g.textAlign='left';return;}   /* the very end: the dome's dark, thinning to show the arena under the real dome */
+  g.fillStyle=CP.bg+(.92*k).toFixed(3)+')';g.fillRect(VL,VT,vw,vh);                                               /* the arena goes dark */
+  if(t<CINEHIT){const cx=VL+vw*.5,cy=VT+vh*.5,z=1.02+.4*t/CINEHIT;                                              /* shot one: the sign */
+    {const gr=g.createRadialGradient(cx,cy,6,cx,cy,vh*.6);gr.addColorStop(0,CP.gl+(.6*k).toFixed(3)+')');gr.addColorStop(1,CP.gl+'0)');g.fillStyle=gr;g.fillRect(VL,VT,vw,vh);}
+    g.strokeStyle=CP.ln;for(let i=0;i<4;i++){const u=E((t-i*5)/(CINEHIT-12)),r=vh*(.95-.86*u);if(u<=0||u>=1)continue;g.globalAlpha=.7*k*u;g.lineWidth=1.5+i*.8;g.beginPath();g.arc(cx,cy,r,0,6.3);g.stroke();}   /* rings of light closing on the hands */
+    if(by&&!by.remove)cineFigure(g,by,cx,cy+vh*.02,vh/cineTall(by)*z,k);
+    const a=E((t-10)/10);if(a>0){g.globalAlpha=a*.9;g.fillStyle=CP.tx;cineText(g,'DOMAIN',cx,VB-vh*.2,vh*.04,'700',Math.round(10+12*t/CINEHIT));}}
+  else{const u=t-CINEHIT,m=Math.min(1,u/46),stop=1-(1-m)*(1-m)*(1-m);                                              /* shot two. stop: 0 to 1, fast at first, then dead still (the clock) */
+    if(still){const R=vh*.44*(.7+.3*E(u/12));g.save();g.translate(px,py-vh*.06);g.globalAlpha=.9;g.strokeStyle=CP.ln;g.lineWidth=3;g.beginPath();g.arc(0,0,R,0,6.3);g.stroke();g.lineWidth=1.2;g.beginPath();g.arc(0,0,R*.86,0,6.3);g.stroke();
+        g.beginPath();for(let i=0;i<60;i++){const a=i/60*6.2832,r0=R*(i%5?.93:.88),cs=Math.cos(a),sn=Math.sin(a);g.moveTo(cs*r0,sn*r0);g.lineTo(cs*R*.985,sn*R*.985);}g.lineWidth=2;g.stroke();
+        g.lineCap='round';g.strokeStyle='#ffffff';const am=-1.5708+stop*31.4,ah=-1.5708+stop*5.2;g.lineWidth=3;g.beginPath();g.moveTo(0,0);g.lineTo(Math.cos(am)*R*.8,Math.sin(am)*R*.8);g.stroke();g.lineWidth=5;g.beginPath();g.moveTo(0,0);g.lineTo(Math.cos(ah)*R*.5,Math.sin(ah)*R*.5);g.stroke();   /* the hands race, and stop */
+        if(m<1){g.globalAlpha=.35*(1-m);g.strokeStyle=CP.ln;g.lineWidth=R*.26;g.beginPath();g.arc(0,0,R*.64,am-1.6*(1-m),am);g.stroke();}g.restore();   /* (the blur behind the minute hand, gone when it stops) */
+      g.fillStyle='#e6fbff';for(let i=0;i<70;i++){const bx=VL+vw*cineH(i,1),b0=VT+vh*cineH(i,2),d=vh*(.25+.5*cineH(i,3))*stop,sz=1.5+2.2*cineH(i,4);g.globalAlpha=.25+.5*cineH(i,5);g.fillRect(bx-d*.25,((b0+d-VT)%vh)+VT,sz,sz);}}   /* dust falling through the air, slowing, hanging */
+    else{const R=vh*(.2+.26*E(u/16));g.save();g.translate(px,py-vh*.06);g.globalAlpha=1;g.fillStyle='#000';g.beginPath();g.arc(0,0,R,0,6.3);g.fill();g.strokeStyle=CP.ln;g.lineWidth=3;g.stroke();
+        g.lineWidth=1.4;g.globalAlpha=.6;for(let i=0;i<7;i++){const an=t*.03*(i%2?-1:1)+i*.9;g.beginPath();g.arc(0,0,R*(1.12+.13*i),an,an+1.5);g.stroke();}g.restore();   /* a black sun, rings turning round it */
+      g.lineCap='round';for(let i=0;i<9;i++){const s0=5+i*7.5,q=(u-s0)/7;if(q<0||q>1)continue;const an=cineH(i,7)*3.1416,ox=VL+vw*(.15+.7*cineH(i,8)),oy=VT+vh*(.2+.6*cineH(i,9)),dx=Math.cos(an)*diag,dy=Math.sin(an)*diag,e=Math.min(1,q*3);
+        g.globalAlpha=(1-q)*.5;g.strokeStyle=CP.ln;g.lineWidth=9*(1-q)+1;g.beginPath();g.moveTo(ox-dx,oy-dy);g.lineTo(ox-dx+2*dx*e,oy-dy+2*dy*e);g.stroke();g.globalAlpha=1-q;g.strokeStyle='#ffffff';g.lineWidth=2.4*(1-q)+.6;g.stroke();}}   /* cuts flashing right across the screen */
+    g.save();g.translate(px,py);g.globalAlpha=.35;g.strokeStyle=CP.ln;for(let i=0;i<28;i++){const a=i/28*6.2832+t*.012,r0=vh*(.5+.05*((i*7)%5)),r1=vh*1.4;g.lineWidth=1+((i*13)%3);g.beginPath();g.moveTo(Math.cos(a)*r0,Math.sin(a)*r0);g.lineTo(Math.cos(a)*r1,Math.sin(a)*r1);g.stroke();}g.restore();   /* lines streaking out from behind the caster */
+    if(by&&!by.remove)cineFigure(g,by,px,py,vh/cineTall(by)*(.56+.07*u/(CINEDUR-CINEHIT)),1);                    /* the caster, large, slowly pushing in */
+    g.fillStyle=CP.tx;const t1=E((u-2)/8);if(t1>0){g.globalAlpha=t1;cineText(g,'DOMAIN',tx,VT+vh*.4,vh*.036,'700',8);}
+    if(u>=4){const s=1+1.4*(1-E((u-4)/6));g.save();g.globalAlpha=1;g.translate(tx,VT+vh*.55);g.scale(s,s);g.shadowColor=CP.sh;g.shadowBlur=26;g.fillStyle='#ffffff';cineText(g,c.name,0,0,vh*.115,'900',3);g.restore();   /* the name slams in */
+      const wk=E((u-10)/10);g.globalAlpha=1;g.fillStyle=CP.ln2;g.fillRect(tx-vw*.2*wk,VT+vh*.6,vw*.4*wk,3);const t2=E((u-18)/10);if(t2>0){g.globalAlpha=t2*.85;g.fillStyle=CP.tx;cineText(g,CINESUB[kd],tx,VT+vh*.68,vh*.028,'600',4);}}}
+  if(t>=CINEHIT-3&&t<CINEHIT+9){const a=t<CINEHIT?(t-(CINEHIT-3))/3:1-(t-CINEHIT)/9;g.globalAlpha=1;g.fillStyle='rgba(255,255,255,'+(.9*a).toFixed(3)+')';g.fillRect(VL,VT,vw,vh);}   /* the white cut between the shots */
+  const outK=E((t-(CINEDUR-24))/18);cineBars(g,k*(1-outK));
+  if(outK>0){g.globalAlpha=1;g.fillStyle='rgb('+CINEDOME[kd]+')';g.beginPath();g.arc(px,py,diag*outK,0,6.3);g.fill();g.strokeStyle=CP.ln;g.lineWidth=7;g.stroke();g.strokeStyle='#ffffff';g.lineWidth=2;g.stroke();}   /* the dome sweeps out over everything */
+  g.restore();try{g.letterSpacing='0px';}catch(e){}g.textAlign='left';}
+function drawClashCine(g,c){const t=c.t,E=cineEase,vw=VR-VL,vh=VB-VT,a=c.by,b=c.by2,la=a.pts[HIP].x<=b.pts[HIP].x,Lb=la?a:b,Rb=la?b:a,kl=la?c.ka:c.kb,kr=la?c.kb:c.ka,k=E(t/8),hit=t>=30,mid=VL+vw/2,sl=vw*.09,slide=1-E(t/26),outK=E((t-(CLASHCINE-10))/10);
+  g.save();g.beginPath();g.rect(VL,VT,vw,vh);g.clip();g.textAlign='center';
+  for(let side=0;side<2;side++){const P=CINEPAL[side?kr:kl],body=side?Rb:Lb,dir=side?-1:1,fx0=side?VR-vw*.24:VL+vw*.24,fxp=fx0-dir*slide*vw*.45,fy=VT+vh*.6;
+    g.save();g.beginPath();if(side){g.moveTo(mid+sl,VT);g.lineTo(VR,VT);g.lineTo(VR,VB);g.lineTo(mid-sl,VB);}else{g.moveTo(VL,VT);g.lineTo(mid+sl,VT);g.lineTo(mid-sl,VB);g.lineTo(VL,VB);}g.closePath();g.clip();
+    g.globalAlpha=1;g.fillStyle=P.bg+(.95*k).toFixed(3)+')';g.fillRect(VL,VT,vw,vh);
+    {const gr=g.createRadialGradient(fx0,fy,8,fx0,fy,vh*.7);gr.addColorStop(0,P.gl+(.6*k).toFixed(3)+')');gr.addColorStop(1,P.gl+'0)');g.fillStyle=gr;g.fillRect(VL,VT,vw,vh);}
+    g.strokeStyle=P.ln;g.lineCap='round';for(let i=0;i<18;i++){const y=VT+vh*cineH(i,11+side),len=vw*(.05+.12*cineH(i,13)),x0=((t*(14+10*cineH(i,15))+vw*cineH(i,17))%(vw*.7));g.globalAlpha=.4*k;g.lineWidth=1+2*cineH(i,19);g.beginPath();g.moveTo(side?VR-x0:VL+x0,y);g.lineTo(side?VR-x0-len:VL+x0+len,y);g.stroke();}   /* lines rushing in toward the middle */
+    cineFigure(g,body,fxp,fy,vh/cineTall(body)*(.5+.05*t/CLASHCINE),k);
+    const tn=E((t-8)/8);if(tn>0){g.globalAlpha=tn;g.fillStyle=P.tx;cineText(g,domainName(side?kr:kl),side?VR-vw*.2:VL+vw*.2,VT+vh*.24,vh*.04,'800',4);}
+    g.restore();}
+  g.lineCap='round';g.lineJoin='round';for(let pass=0;pass<2;pass++){g.beginPath();const N=14;for(let i=0;i<=N;i++){const s=i/N,j=i===0||i===N?0:(cineH(i,Math.floor(t/2)+pass*9)-.5)*vw*(hit?.07:.035),x=mid+sl-2*sl*s+j,y=VT+vh*s;if(i)g.lineTo(x,y);else g.moveTo(x,y);}
+    g.globalAlpha=k;g.strokeStyle=pass?'#ffffff':'rgba(220,200,255,.55)';g.lineWidth=pass?(hit?4:2.4):(hit?18:10);g.stroke();}   /* the seam between them, crackling: wider once they meet */
+  if(hit){const u=t-30,s=1+1.7*(1-E(u/6));g.save();g.globalAlpha=1;g.translate(mid,VT+vh*.52);g.scale(s,s);g.shadowColor='rgba(255,255,255,.9)';g.shadowBlur=30;g.fillStyle='#ffffff';cineText(g,'DOMAIN CLASH',0,0,vh*.13,'900',3);g.restore();
+    const wk=E((u-6)/10);g.globalAlpha=1;g.fillStyle=CINEPAL[kl].ln2;g.fillRect(mid-vw*.24*wk,VT+vh*.58,vw*.24*wk,3);g.fillStyle=CINEPAL[kr].ln2;g.fillRect(mid,VT+vh*.58,vw*.24*wk,3);
+    if(u<9){g.fillStyle='rgba(255,255,255,'+(.9*(1-u/9)).toFixed(3)+')';g.fillRect(VL,VT,vw,vh);}}
+  cineBars(g,k);if(outK>0){g.globalAlpha=1;g.fillStyle='rgba(255,255,255,'+(.95*outK).toFixed(3)+')';g.fillRect(VL,VT,vw,vh);}   /* it ends on white, which the arena fades in from */
   g.restore();try{g.letterSpacing='0px';}catch(e){}g.textAlign='left';}
 function special(b,t,player){
   const C=b.C,P=b.pts,hip=P[HIP],neck=P[NECK],head=P[HEAD],f=b.facing;
@@ -2433,7 +2491,7 @@ const MODES={
 const DANCESTART=['Ooh, I love this song!','Finally, music!','Time to dance!','Watch and learn!'],
   DANCESOLO=['Check out these moves!','Uh! Yeah!','Can not stop, will not stop!','This is my jam!','Watch this one!','Feel the beat!','I could do this all day.','Who needs a dance floor?'],
   DANCEMOVE=['Hands in the air!','Disco time!','Beep boop. Robot mode.','Side to side!'],       // one per dance move
-  DANCECHAR={bob:['Dummies can dance too!','Crash test? More like dance test.'],brick:['I am surprisingly graceful.','Heavy, but light on my toes.'],noodle:['Noodle arms, activate!','So bendy!'],bolt:['EXECUTING DANCE.EXE','Groove subroutine engaged.'],
+  DANCECHAR={bob:['Dummies can dance too!','Crash test? More like dance test.'],redbob:['Red dummies dance faster!','Crash test? More like dance test.'],brick:['I am surprisingly graceful.','Heavy, but light on my toes.'],noodle:['Noodle arms, activate!','So bendy!'],bolt:['EXECUTING DANCE.EXE','Groove subroutine engaged.'],
     shade:['A ninja dances in silence. Mostly.','Stealth shuffle!'],puff:['Light on my feet!','Float like a balloon!'],bones:['Rattle them bones!','No body? No problem!'],jelly:['Wobble wobble!','Jiggle it!'],zed:['Braaains… and beats!','Even the dead can dance.','Do the monster shuffle!'],
     frost:['Cool moves only!','Do not make me melt!'],ember:['Too hot to handle!','This floor is on fire!'],spike:['Careful, I am a prickly dancer!','Stay sharp!'],boo:['Boo-gie time!','Doing the monster mash!'],astro:['Moonwalk time!','One small step, one giant shuffle!'],medic:['Dancing is good for the heart!','Doctor\'s orders: dance!'],cop:['Dancing on duty. Do not tell anyone.','Hands up! And wave them about.'],chief:['Stop, drop and rock and roll!','This dance floor is fireproof.'],human:['I only know two moves.','Nobody is watching, right?']},
   DANCEDUO=['Nice moves, {v}!','In sync, {v}!','Dance battle, {v}?','Go {v}, go {v}!'],DUOREPLY=['You too!','You are on!','Try to keep up!','Yeah!'],
@@ -2529,7 +2587,7 @@ function effectsOf(b){
   if(b.sc>1.05)e.push(['Giant','#9cff9c']);else if(b.sc<.95)e.push(['Tiny','#ff9ecb']);
   if(b.burn<=0&&P.some(p=>p.smolder>0))e.push(['Smoldering','#b0b6c4']);if(P.some(p=>p.burnt>.5))e.push(['Charred','#8a8078']);if(b.toxSum>.15)e.push(['Acid in body '+Math.round(Math.min(1,b.toxSum/5)*100)+'%','#b6ff5a']);
   if(goreOn){if(P.some(p=>p.bruise>.35))e.push(isSkel(b)?['Cracked bones','#d9d2bb']:['Bruised','#b58ad6']);if(b.C.fluidCol&&!isSkel(b)&&P.some(p=>p.gore>.35))e.push(['Bloody','#ff6a6a']);}
-  if(b.brocShow>=frame-2&&!b.dead)e.push([b.broc&&b.broc.o?'Offering broccoli':'Eating broccoli','#9be56a']);if(b.shield>0)e.push(['Infinity: untouchable','#b9a8ff']);else if(infOn(b))e.push(['Infinity','#b9a8ff']);if(b.infHoldT>=frame-2&&!b.dead)e.push(['Caught in Infinity','#b9a8ff']);if(b.stillT>=frame&&!b.dead)e.push(['Stilled: techniques sealed','#9fe8ff']);if(b.clash&&b.clash.life>0&&!b.dead)e.push(['Domain clash','#e9d8ff']);if(b.fat>0)e.push([FATNAME[b.fat]+(b.burn>0?' · burning off':''),'#ffb347']);if(b.rubberT>0)e.push(['Bouncy','#ffb347']);if(b.dizzy>0)e.push(['Dizzy','#ffd24a']);if(b.light)e.push(['Featherweight','#d9f4ff']);if(b.jam>0)e.push(['Partying','#ff8ac4']);if(b.fame>=1)e.push([(b.fame>=10000?'Famous · ':'')+fameTxt(b.fame)+' followers','#ff8ac4']);if(b.filmShow>=frame-2&&!b.dead)e.push(['Filming','#ffb3d1']);if(b.callT>0&&!b.dead)e.push(['Calling an ambulance','#ffd9a8']);if(b.medic&&!b.dead)e.push([b.medic.state==='work'?'Reviving':b.medic.state==='back'?'Heading back':'On a call','#bfe6ff']);if(b.rot>0)e.push(['Rotting '+Math.round(b.rot*100)+'%','#a6cf5a']);if(b.sadT>0&&!b.dead)e.push(['Grieving','#9fc0ff']);
+  if(b.brocShow>=frame-2&&!b.dead)e.push([b.broc&&b.broc.o?'Offering broccoli':'Eating broccoli','#9be56a']);if(b.shield>0)e.push(['Infinity: untouchable','#b9a8ff']);else if(infOn(b))e.push(['Infinity','#b9a8ff']);if(b.infHoldT>=frame-2&&!b.dead)e.push(['Caught in Infinity','#b9a8ff']);if(b.stillT>=frame&&!b.dead){e.push(['Stilled: techniques sealed','#9fe8ff']);e.push(['Knowledge +'+knowFmt(b.know||0),'#dff8ff']);}if(b.clash&&b.clash.life>0&&!b.dead)e.push(['Domain clash','#e9d8ff']);if(b.fat>0)e.push([FATNAME[b.fat]+(b.burn>0?' · burning off':''),'#ffb347']);if(b.rubberT>0)e.push(['Bouncy','#ffb347']);if(b.dizzy>0)e.push(['Dizzy','#ffd24a']);if(b.light)e.push(['Featherweight','#d9f4ff']);if(b.jam>0)e.push(['Partying','#ff8ac4']);if(b.fame>=1)e.push([(b.fame>=10000?'Famous · ':'')+fameTxt(b.fame)+' followers','#ff8ac4']);if(b.filmShow>=frame-2&&!b.dead)e.push(['Filming','#ffb3d1']);if(b.callT>0&&!b.dead)e.push(['Calling an ambulance','#ffd9a8']);if(b.medic&&!b.dead)e.push([b.medic.state==='work'?'Reviving':b.medic.state==='back'?'Heading back':'On a call','#bfe6ff']);if(b.rot>0)e.push(['Rotting '+Math.round(b.rot*100)+'%','#a6cf5a']);if(b.sadT>0&&!b.dead)e.push(['Grieving','#9fc0ff']);
   if(b.aidBy&&b.aidT>=frame-3&&b.aidBy.aidShow>=frame-3)e.push(['Being bandaged','#fff1c9']);if(b.pts.some(p=>p.band>.05&&p.att))e.push(['Bandaged','#f1e9d2']);if(b.tumble)e.push(['Tumbling','#cfd8f5']);
   if(b.deflate>0)e.push(['Deflating','#ffd9ec']);if(gravMode===2)e.push(['Weightless','#cfd8f5']);
   return e;
@@ -5396,7 +5454,7 @@ function drawRag(g,b){
   ln(SP,pal.shirt);
   if(!S[SP].cut){const tc=S[SP].cuts?stickClip(g,S[SP]):false,n=P[NECK],h=P[HIP],a=Math.atan2(n.ry-h.ry,n.rx-h.rx),w=S[SP].w,L=S[SP].len0;g.save();g.translate(h.rx,h.ry);g.rotate(a);
     if(S[SP].skel){g.strokeStyle=BN;g.lineWidth=2.4*b.sc;for(let i=0;i<4;i++){const x=L*(.4+i*.15);g.beginPath();g.moveTo(x,-8.5*b.sc);g.lineTo(x,8.5*b.sc);g.stroke();}if(RB){g.fillStyle='#39e6ff';g.beginPath();g.arc(L*.62,0,3.4*b.sc,0,6.3);g.fill();g.fillStyle='rgba(57,230,255,.25)';g.beginPath();g.arc(L*.62,0,6.5*b.sc,0,6.3);g.fill();}}   // a bare chest: ribs (a robot: the bars of its frame, and its power core), and none of the clothes
-    else if(b.cid==='bob'){const cx=L*.62,r=w*.36;g.fillStyle='#1c1c22';g.beginPath();g.moveTo(cx,0);g.arc(cx,0,r,0,PI/2);g.closePath();g.fill();g.beginPath();g.moveTo(cx,0);g.arc(cx,0,r,PI,PI*1.5);g.closePath();g.fill();g.strokeStyle='#1c1c22';g.lineWidth=1;g.beginPath();g.arc(cx,0,r,0,6.3);g.stroke();}
+    else if(b.cid==='bob'||b.cid==='redbob'){const cx=L*.62,r=w*.36;g.fillStyle='#1c1c22';g.beginPath();g.moveTo(cx,0);g.arc(cx,0,r,0,PI/2);g.closePath();g.fill();g.beginPath();g.moveTo(cx,0);g.arc(cx,0,r,PI,PI*1.5);g.closePath();g.fill();g.strokeStyle='#1c1c22';g.lineWidth=1;g.beginPath();g.arc(cx,0,r,0,6.3);g.stroke();}
     else if(b.cid==='bones'){g.strokeStyle=pal.skin;g.lineWidth=2.4*b.sc;for(let i=0;i<4;i++){const x=L*(.42+i*.15);g.beginPath();g.moveTo(x,-8*b.sc);g.lineTo(x,8*b.sc);g.stroke();}}
     else if(b.cid==='bolt'){g.fillStyle='#2b3442';rr(g,L*.45,-w*.3,L*.3,w*.6,2);g.fill();g.fillStyle=(b.t>>5)&1?'#39e6ff':'#7dff9a';g.fillRect(L*.5,-w*.15,L*.08,w*.3);g.fillStyle='#ffd24a';g.fillRect(L*.62,-w*.15,L*.08,w*.3);}
     else if(b.cid==='shade'){g.fillStyle='#d8343a';g.fillRect(-1,-w*.52,4*b.sc,w*1.04);}
@@ -5669,7 +5727,7 @@ function render(a){
   }
   g.restore();
   if(flash>.02){g.fillStyle='rgba(255,255,255,'+flash*.5+')';g.fillRect(0,0,W,H);}
-  if(cine)drawCine(g);
+  if(cine)drawCine(g);if(!!cine!==cineHid){cineHid=!!cine;const v=$('vit');if(v)v.style.visibility=cineHid?'hidden':'';}   /* (the vitals panel is put away while a cut-scene plays: it sat over the picture) */
   if(raining){g.fillStyle='rgba(30,50,100,.13)';g.fillRect(VL,VT,VR-VL,VB-VT);}
   if(timeScale!==1){g.fillStyle='rgba(120,200,255,.06)';g.fillRect(VL,VT,VR-VL,VB-VT);g.fillStyle='rgba(160,220,255,.8)';g.font='700 12px system-ui';g.textAlign='left';g.fillText(timeScale<1?'⏱ SLOW-MO':'⏩ FAST-FORWARD',VL+12,VT+20);}
   if(Math.abs(zoom-defZoom())>.01){g.fillStyle='rgba(255,255,255,.75)';g.font='700 12px system-ui';g.textAlign='left';g.fillText('🔍 '+zoom.toFixed(1)+'×   Z in · J out · double-tap Z to reset · wheel or arrow keys move the view',VL+12,VT+(timeScale!==1?38:20));}
@@ -5702,8 +5760,8 @@ let SPEC=null;function specialList(){if(!SPEC){SPEC={};for(const id in CHARS){co
   SPEC.aura={name:'Power Surge',cd:560,from:'anime',desc:'the Power Surge: it bursts into a golden aura, and for ten seconds hits twice as hard and moves much faster.'};
   SPEC.rush={name:'Vanishing Rush',cd:260,from:'anime',desc:'the Vanishing Rush: it flickers round whoever it is fighting, striking from each side in turn, and finishes with a kick that launches them.'};
   SPEC.orb={name:'Star Orb',cd:330,from:'anime',desc:'the Star Orb: it raises its arms, gathers a great ball of light overhead and throws it. The ball bursts where it lands.'};
-  SPEC.realm={name:'Void Realm',cd:600,from:'anime',desc:'the Void Realm: it makes a hand sign, and a great dark dome opens around it for five seconds. Its wall is solid: everyone else caught inside is cut again and again, and nothing gets them out. An enemy who has a domain of their own always answers with it at once, and the two domains clash: the stronger one shatters the other.'};
-  SPEC.still={name:'Still Realm',cd:640,from:'anime',desc:'the Still Realm: it makes a hand sign, and a pale dome opens around it for five seconds. Every enemy inside is stilled: held exactly where it is, in mid-air if need be, unable to move, strike or use any technique. Ultra Instinct and Infinity stop working for them and their shots hang in the air, so they can be hit freely. An enemy who has a domain of their own always answers with it at once, and the two domains clash.'};
+  SPEC.realm={name:'Void Realm',cd:600,from:'anime',desc:'the Void Realm: it makes a hand sign, and a great dark dome opens around it for five seconds. Its wall is solid: everyone else caught inside is cut again and again, and nothing gets them out. An enemy who has a domain of their own always answers with it at once, and the two domains clash: one of them shatters the other, and which one is down to chance.'};
+  SPEC.still={name:'Still Realm',cd:640,from:'anime',desc:'the Still Realm: it makes a hand sign, and a pale dome opens around it for five seconds. Every enemy inside is stilled: held exactly where it is, in mid-air if need be, unable to move, strike or use any technique. Ultra Instinct and Infinity stop working for them and their shots hang in the air, so they can be hit freely. All the while knowledge pours into their heads, more than a head can take: a count of it runs up over each of them and it hurts them steadily, about a third of their health in all. An enemy who has a domain of their own always answers with it at once, and the two domains clash.'};
   SPEC.inf={name:'Infinity',cd:320,from:'anime',desc:'Infinity: an invisible barrier that nothing gets through. Whatever comes at it slows more and more the nearer it gets and never arrives: fists, weapons, bullets, thrown things, liquids, other bodies. Anyone who walks into it is caught: slowed right down and stuck there for a moment before they can pull away. Nothing can hurt, cut, burn, freeze, shock or grab the character while it is up, and it stays up while the character attacks (its own blows reach out through it). Only your hand, sleep and a Void Realm take it down. Used as a move, it throws back everything round it.'};
   SPEC.spark={name:'Crimson Spark',cd:170,from:'anime',desc:'the Crimson Spark: one punch, three times as hard. Black lightning edged in red bursts out where it lands, the world stops for an instant, and whoever it hit is thrown.'};}return SPEC;}   /* every special move in the game, with the character it comes from */
 function customRegister(d){
