@@ -274,7 +274,7 @@ canvas#c{touch-action:none}
 #mAlt.on{background:#7a5a12;border-color:#ffd24a;color:#fff}
 #mCancel{border-color:#ff8a8a!important;color:#ffd0d0!important}
 #mTurn{position:fixed;left:50%;top:100px;transform:translateX(-50%);z-index:7;background:rgba(18,26,48,.94);border:1px solid #ffd24a;color:#ffe9a8;border-radius:14px;font:inherit;font-size:12.5px;padding:8px 14px;max-width:92vw;text-align:center}
-#info svg{display:inline-block!important;vertical-align:-3px;width:26px;height:15px}
+#info svg{display:inline-block!important;vertical-align:-4px;height:17px;width:auto}
 /* ----- the sideways lock: the page turned a quarter on an upright screen (its size and turn are set by MOBV.sync). Sizes above use --mw/--mh, the page's own width and height, because vw and vh still measure the upright screen ----- */
 html.mrot body{position:fixed;left:0;top:0;transform-origin:0 0;overflow:hidden}
 html.mrot .panel,html.mrot #bottom,html.mrot #top,html.mrot #settings,html.mrot #mapMenu,html.mrot #help .card,html.mrot #maker{touch-action:pan-x pan-y}
@@ -3668,7 +3668,7 @@ function drawGizmos(g){
       g.fillStyle=hot?'#ffffff':'#bfe6ff';g.beginPath();g.arc(G.x,G.y-52,7,0,6.3);g.fill();g.fillStyle='rgba(150,210,255,'+(hot?.5:.14+.08*Math.sin(frame*.3))+')';g.beginPath();g.arc(G.x,G.y-52,hot?22:13,0,6.3);g.fill();}
     else if(G.type==='glue'){g.fillStyle='rgba(244,236,190,.9)';g.beginPath();g.ellipse(G.x,G.y-2,G.w/2,5,0,0,6.3);g.fill();g.fillStyle='rgba(255,255,255,.5)';for(let k=0;k<3;k++){g.beginPath();g.ellipse(x0+G.w*(.25+k*.25),G.y-3.5,7,1.6,0,0,6.3);g.fill();}}
     else if(G.type==='pizza'){g.fillStyle='#e8a23c';g.beginPath();g.moveTo(G.x-13,G.y-3);g.lineTo(G.x+13,G.y-3);g.lineTo(G.x,G.y-24);g.closePath();g.fill();g.fillStyle='#ffd86a';g.beginPath();g.moveTo(G.x-9,G.y-6);g.lineTo(G.x+9,G.y-6);g.lineTo(G.x,G.y-20.5);g.closePath();g.fill();g.fillStyle='#d8343a';for(const [px,py] of [[-3,-8.5],[3.5,-9.5],[0,-14.5]]){g.beginPath();g.arc(G.x+px,G.y+py,2.1,0,6.3);g.fill();}}
-    else if(G.type==='burger'&&G.food){g.font='24px system-ui,"Segoe UI Emoji","Apple Color Emoji",sans-serif';g.textAlign='center';g.textBaseline='alphabetic';g.fillStyle='#fff';g.fillText(foodOf(G).e,G.x,G.y-2);}   /* the other foods: their picture, sitting on the floor */
+    else if(G.type==='burger'&&G.food){icoDraw(g,foodOf(G).e,G.x,G.y-2,27);}   /* the other foods: their picture, sitting on the floor */
     else if(G.type==='burger'){g.fillStyle='#c9833a';g.beginPath();g.ellipse(G.x,G.y-3,13,4,0,0,6.3);g.fill();g.fillStyle='#6a3d1c';rr(g,G.x-13,G.y-10,26,5.5,2.5);g.fill();g.fillStyle='#ffd24a';g.fillRect(G.x-12,G.y-11.5,24,2);g.fillStyle='#5fc46a';g.beginPath();for(let k=0;k<5;k++)g.arc(G.x-10+k*5,G.y-12.5,2.8,0,6.3);g.fill();
       g.fillStyle='#d9954a';g.beginPath();g.arc(G.x,G.y-13,13,PI,2*PI);g.closePath();g.fill();g.fillStyle='#fff3cf';for(const [px,py] of [[-6,-19],[0,-22],[6,-19],[-2,-17]]){g.beginPath();g.ellipse(G.x+px,G.y+py,1.3,.8,.5,0,6.3);g.fill();}}
     else if(G.type==='kit'){g.fillStyle='#f4f6fb';rr(g,G.x-13,G.y-17,26,17,3);g.fill();g.fillStyle='#d8343a';g.fillRect(G.x-2.4,G.y-14.5,4.8,12);g.fillRect(G.x-6,G.y-10.9,12,4.8);g.strokeStyle='#8a94a8';g.lineWidth=1.5;g.beginPath();g.moveTo(G.x-5,G.y-17);g.lineTo(G.x-5,G.y-20.5);g.lineTo(G.x+5,G.y-20.5);g.lineTo(G.x+5,G.y-17);g.stroke();}
@@ -4714,7 +4714,7 @@ let cur=TOOLS.grab,curId='grab';
 function pickTool(id){const t=TOOLS[id]||POWERS[id];if(!t)return;
   if(t.toggle){const on=t.toggle();document.querySelector('[data-id="'+id+'"]').classList.toggle('tog',on);return;}
   if(cur.up)cur.up();ropeA=null;wallA=null;aim=null;fanA=null;gun=null;cur=t;curId=id;
-  document.querySelectorAll('.ib').forEach(e=>e.classList.toggle('on',e.dataset.id===id));setInfo('<b>'+t.icon+' '+t.name+'</b> — '+t.desc);}
+  document.querySelectorAll('.ib').forEach(e=>e.classList.toggle('on',e.dataset.id===id));setInfo('<b>'+icoInl(t.icon)+' '+t.name+'</b> — '+t.desc);}
 function setInfo(h){$('info').innerHTML=h;}
 function spawnChar(id,x,y,mode){x=clamp(x??camX+rnd(-.36,.36)*(VR-VL)/zoom,XL+40,XR-40);y=clamp(y??Math.max(CEIL+110,FLOOR-250),CEIL+100,FLOOR-70);const b=makeRagdoll(id,x,y,mode||curMode==='possess'?(mode||'stand'):curMode);b.team=curTeam;smoke(x,y,6);sfx('pop',.5);{const cl=reactOn&&customLine(b,'arrive');if(cl){bubble(b,cl,100);b.reactCd=90;}}if(id==='zed'||b.C.zombieStart)witness(x,y,'seeZombie',b,null,b.C.name,'gasp');return b;}
 function select(b){selected=b;syncModeUI();syncTeamUI();}
@@ -5203,7 +5203,7 @@ function drawRagOverlay(g,b){
       g.fillStyle='rgba(150,170,255,.09)';cap(S[4]);g.fill();g.strokeStyle='rgba(195,205,255,.7)';g.lineWidth=1.6;g.setLineDash([5,9]);g.lineDashOffset=-frame*.7;cap(S[4]);g.stroke();g.lineDashOffset=frame*.5;g.strokeStyle='rgba(150,130,255,.45)';cap(S[4]*INFIN);g.stroke();g.setLineDash([]);g.lineDashOffset=0;}
     if(b.fame>=100){const tx=hd.rx+hd.r+7,ty=hd.ry-hd.r+1,t=(b.fame>=10000?'✔ ':'★ ')+fameTxt(b.fame);g.font='700 10px system-ui';g.textAlign='left';const w=g.measureText(t).width;g.fillStyle='rgba(20,10,24,.78)';rr(g,tx-4,ty-10.5,w+8,14,7);g.fill();g.fillStyle=b.fame>=10000?'#7fd4ff':'#ff8ac4';g.fillText(t,tx,ty);}
     if(b.team){const ty=top-4-(b.hurtShow>0||b===selected?8:0);g.fillStyle=TEAMS[b.team].col;g.beginPath();g.arc(hd.rx-14,ty,4.5,0,6.3);g.fill();g.strokeStyle='rgba(0,0,0,.6)';g.lineWidth=1.2;g.stroke();}
-    g.font='13px system-ui';g.textAlign='center';g.globalAlpha=b===selected?1:.75;g.fillText(b.cuffT>frame?'⛓️':b.grudge&&b.calmMode?'💢':b.C.role&&ROLES[b.C.role]&&(b.mode==='stand'||isWalk(b)||(b.mode==='fight'&&b.C.role==='police'&&arrestOn))?ROLES[b.C.role].icon:MODES[b.mode].icon,hd.rx,top-(b.hurtShow>0||b===selected?8:0));g.globalAlpha=1;
+    g.font='13px system-ui';g.textAlign='center';g.globalAlpha=b===selected?1:.75;icoDraw(g,b.cuffT>frame?'⛓️':b.grudge&&b.calmMode?'💢':b.C.role&&ROLES[b.C.role]&&(b.mode==='stand'||isWalk(b)||(b.mode==='fight'&&b.C.role==='police'&&arrestOn))?ROLES[b.C.role].icon:MODES[b.mode].icon,hd.rx,top-(b.hurtShow>0||b===selected?8:0),15);g.globalAlpha=1;
     if(b.hurtShow>0||b===selected){const w=34,x=hd.rx-w/2,y=top-4,f=clamp(b.hp/b.maxHp,0,1);g.fillStyle='rgba(0,0,0,.6)';g.fillRect(x-1,y-1,w+2,6);g.fillStyle=f>.5?'#5ae07a':f>.25?'#ffd24a':'#ff5a5a';g.fillRect(x,y,w*f,4);if(b.infect>0&&!b.zombie){g.fillStyle='#9be56a';g.fillRect(x,y+5,w*b.infect,2);}}
     if(b===possessed&&b.spCd>0){g.fillStyle='rgba(125,240,255,.8)';g.fillRect(hd.rx-17,top+3,34*(1-clamp(b.spCd/80,0,1)),2);}
   }
@@ -5455,9 +5455,9 @@ function charCard(id){const C=CHARS[id],e=document.createElement('button');e.cla
   e._label=()=>{s.textContent=C.name;e.title=C.name+' the '+C.tag+' — '+C.desc+' Special: '+C.spName+'.'+(C.custom?' Hover for the edit button and the bin.':'');};e._label();
   e.onclick=()=>{audioKick();curChar=id;document.querySelectorAll('.cc').forEach(x=>x.classList.toggle('on',x.dataset.id===id));spawnChar(id);setInfo('<b>'+C.name+'</b> the '+C.tag+' — '+C.desc+' Special: <b>'+C.spName+'</b>.'+(C.custom?' Hover its card for the edit button and the bin.':''));e.blur();};
   if(C.custom){e.oncontextmenu=ev=>{ev.preventDefault();makerOpen(id);};                       // your own characters: hovering shows an edit button and a bin
-    const t=document.createElement('span'),ed=document.createElement('i'),del=document.createElement('i'),rest=()=>{del.classList.remove('arm');del.textContent='🗑️';del.title='Delete this character';};t.className='cct';
-    ed.textContent='✏️';ed.title='Edit this character';ed.onclick=ev=>{ev.stopPropagation();makerOpen(id);};rest();
-    del.onclick=ev=>{ev.stopPropagation();if(del.classList.contains('arm')){customDelete(id);return;}del.classList.add('arm');del.textContent='✔';del.title='Click again to delete it for good';setInfo('Click the bin again to delete <b>'+C.name+'</b> for good.');setTimeout(rest,2600);};   /* the bin asks once before it deletes */
+    const t=document.createElement('span'),ed=document.createElement('i'),del=document.createElement('i'),rest=()=>{del.classList.remove('arm');del.innerHTML=ICO.svg(ICO.XI.bin,12,true);del.title='Delete this character';};t.className='cct';
+    ed.innerHTML=ICO.svg(ICO.XI.pencil,12,true);ed.title='Edit this character';ed.onclick=ev=>{ev.stopPropagation();makerOpen(id);};rest();
+    del.onclick=ev=>{ev.stopPropagation();if(del.classList.contains('arm')){customDelete(id);return;}del.classList.add('arm');del.innerHTML=ICO.svg(ICO.XI.tick,12,true);del.title='Click again to delete it for good';setInfo('Click the bin again to delete <b>'+C.name+'</b> for good.');setTimeout(rest,2600);};   /* the bin asks once before it deletes */
     t.appendChild(ed);t.appendChild(del);e.appendChild(t);}
   const nw=$('ccNew');if(nw)$('chars').insertBefore(e,nw);else $('chars').appendChild(e);return e;}
 function customCardRedraw(id){for(const pr of portraits)if(pr[1]===id)drawPortrait(pr[0],id);const e=document.querySelector('.cc[data-id="'+id+'"]');if(e&&e._label)e._label();}
@@ -5722,10 +5722,10 @@ function healKey(){
   if(!b){setInfo('<b>H</b> heals a dummy — there is nobody here to heal.');return;}
   revive(b);const hp=b.pts[HIP];ring(hp.x,hp.y-30,70,'#7dffb0',18,4);setInfo('<b>💚 Healed '+b.C.name+'</b> — H heals the dummy under the cursor, or the selected one.');
 }
-function togglePause(){paused=!paused;$('bPause').classList.toggle('on',paused);$('bPause').textContent=paused?'▶ Play':'⏸ Pause';}
-function setGrav(m){if(m!==gravMode&&frame>5)witness((XL+XR)/2,FLOOR-80,'grav'+m,null,null,'','look',5000);gravMode=m;gravity=GRAVS[m].g;$('bGrav').textContent='🌍 '+GRAVS[m].n;$('bGrav').classList.toggle('on',m!==0);}
+function togglePause(){paused=!paused;$('bPause').classList.toggle('on',paused);$('bPause').innerHTML=paused?ICO.svg(ICO.U.play,15,true)+' Play':ICO.svg(ICO.U.pause,15,true)+' Pause';}
+function setGrav(m){if(m!==gravMode&&frame>5)witness((XL+XR)/2,FLOOR-80,'grav'+m,null,null,'','look',5000);gravMode=m;gravity=GRAVS[m].g;$('bGrav').innerHTML=(typeof ICO!=='undefined'?ICO.svg(ICO.U.grav,16,true):'')+' '+GRAVS[m].n;$('bGrav').classList.toggle('on',m!==0);}
 function cycleGrav(){setGrav((gravMode+1)%GRAVS.length);}
-function toggleMute(){muted=!muted;$('bMute').textContent=muted?'🔇':'🔊';$('setSound').checked=!muted;}
+function toggleMute(){muted=!muted;$('bMute').innerHTML=ICO.svg(muted?ICO.U.mute:ICO.U.sound,18,true);$('setSound').checked=!muted;}
 /* A menu pops open, and closes the same way backwards: it fades and slides away (the class 'closing'), and only then is it hidden. On its way out it counts as closed. */
 const MENUOUT=200;
 function menuOpen(m){return m.style.display==='block'&&!m.classList.contains('closing');}
@@ -5734,8 +5734,8 @@ function menuShow(m,v){
   if(!menuOpen(m))return;   /* hidden already, or already on its way out */
   m.classList.add('closing');clearTimeout(m._ct);m._ct=setTimeout(()=>{m.classList.remove('closing');m.style.display='none';},MENUOUT);}
 function showMapMenu(v){const m=$('mapMenu');if(v){const r=$('mapBtn').getBoundingClientRect();m.style.left=clamp(r.left,8,Math.max(8,innerWidth-326))+'px';showSettings(false);}menuShow(m,v);$('mapBtn').classList.toggle('on',v);}
-function syncMapUI(){$('mapBtn').textContent=MAPS[curMap].name+' ▾';document.querySelectorAll('.mrow').forEach(e=>{e.classList.toggle('on',e.dataset.id===curMap);const st=e.querySelector('.mstar'),d=e.dataset.id===defMap;if(st){st.textContent=d?'★':'☆';st.classList.toggle('on',d);st.title=d?'This is your default map. Click to clear it.':'Make this the map the game starts on';}});
-  const hn=$('mhint');if(hn)hn.textContent=defMap?'★ '+MAPS[defMap].name.replace(/^\S+\s/,'')+' is your default map: the game starts there.':'Click a ☆ to choose the map the game starts on. With no star it starts where you left off.';}
+function syncMapUI(){$('mapBtn').innerHTML=MAPS[curMap].name+' ▾';document.querySelectorAll('.mrow').forEach(e=>{e.classList.toggle('on',e.dataset.id===curMap);const st=e.querySelector('.mstar'),d=e.dataset.id===defMap;if(st){st.textContent=d?'★':'☆';st.classList.toggle('on',d);st.title=d?'This is your default map. Click to clear it.':'Make this the map the game starts on';}});
+  const hn=$('mhint');if(hn)hn.textContent=defMap?'★ '+(MAPS[defMap].label||MAPS[defMap].name)+' is your default map: the game starts there.':'Click a ☆ to choose the map the game starts on. With no star it starts where you left off.';}
 function setDefMap(id){defMap=id&&MAPS[id]?id:null;try{if(defMap)localStorage.setItem('flopworksM.defmap',defMap);else localStorage.removeItem('flopworksM.defmap');}catch(e){}syncMapUI();setInfo(defMap?'<b>'+MAPS[defMap].name+'</b> is now your default map':'Default map cleared — the game starts where you left off');}
 function showSettings(v){menuShow($('settings'),v);$('bSet').classList.toggle('on',v);}
 function clearAll(){partyQ=[];stormT=0;BONDN=0;RELN=RELC;if(honeyRain){honeyRain=false;const o=document.querySelector('.ib[data-id="honeyrain"]');if(o)o.classList.remove('tog');}dropped=[];liqGrabN=0;bullets=[];flasks=[];gun=null;gizmos=[];fireworks=[];fwStars=[];fwGlow=[];geysers=[];wind=null;meteorRain=0;if(acidRain){acidRain=false;const o=document.querySelector('.ib[data-id="acidrain"]');if(o)o.classList.remove('tog');}ambulances.length=0;bodies=[];links=[];walls=[];rockets=[];fx=[];parts=[];texts=[];flames=[];fires=[];scorch=[];burns=[];fireSrc=[];stains=[];splats=[];splatBakeClear();fluidClear();pads=[];fans=[];portals=[];quake=0;grab=null;tele=null;ropeA=null;possessed=null;select(null);}
@@ -5912,7 +5912,243 @@ addEventListener('keydown',e=>{
 addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='KeyZ')zLock=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;mouse.down=false;if(cur.up)cur.up();});
 
-customsLoad();buildUI();defCharUI();$('setDefChar').onchange=e=>{setDefChar(e.target.value);e.target.blur();};pickTool('grab');{let mp='lab';try{defMap=localStorage.getItem('flopworksM.defmap');if(!MAPS[defMap])defMap=null;mp=defMap||localStorage.getItem('flopworksM.map')||'lab';}catch(e){}loadMap(mp);}
+/* ============================== drawn icons ==============================
+   Every tool, power and mode button has a drawn picture (a small SVG) instead of an emoji, so they look the same on every phone and computer.
+   ICO.T / ICO.P / ICO.M: the pictures for tools, powers and modes, by id (each is the inside of a 24 x 24 drawing). ICO.U: the top bar's own.
+   ICO.svg(body,size): the finished drawing. icoApply() hands them to TOOLS, POWERS and MODES (the guns and the four explosives that already had drawings keep theirs).
+   icoDraw: the same drawing put on the game canvas (the mode shown over a dummy's head). */
+const ICO=(()=>{
+  const RD='#e5484d',OR='#ff9a3c',YE='#ffd24a',GR='#5fc46a',BL='#4a9cff',PU='#b98aff',PK='#ff7ab8',GY='#9aa6c0',DK='#3a4670',WH='#f2f5ff',BR='#a8703a',SK='#f0c39a',ST='#c9d2e3',LB='#8fd0ff',DG='#2d8a4a',BK='#1b2238',SL='#5b6788',AM='#f2b23a';
+  const r=(x,y,w,h,f,rx)=>'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+f+'"'+(rx?' rx="'+rx+'"':'')+'/>',
+    c=(x,y,R,f)=>'<circle cx="'+x+'" cy="'+y+'" r="'+R+'" fill="'+f+'"/>',
+    e=(x,y,a,b,f)=>'<ellipse cx="'+x+'" cy="'+y+'" rx="'+a+'" ry="'+b+'" fill="'+f+'"/>',
+    p=(d,f)=>'<path d="'+d+'" fill="'+f+'"/>',
+    s=(d,k,w)=>'<path d="'+d+'" fill="none" stroke="'+k+'" stroke-width="'+(w||2)+'" stroke-linecap="round" stroke-linejoin="round"/>',
+    sb=(d,k,w)=>'<path d="'+d+'" fill="none" stroke="'+k+'" stroke-width="'+(w||2)+'"/>',
+    ci=(x,y,R,k,w)=>'<circle cx="'+x+'" cy="'+y+'" r="'+R+'" fill="none" stroke="'+k+'" stroke-width="'+(w||2)+'"/>',
+    g=(a,b,x,y)=>'<g transform="rotate('+a+' '+(x===undefined?12:x)+' '+(y===undefined?12:y)+')">'+b+'</g>',
+    tx=(x,y,t,f,z)=>'<text x="'+x+'" y="'+y+'" font-size="'+z+'" font-weight="800" text-anchor="middle" font-family="system-ui,sans-serif" fill="'+f+'">'+t+'</text>',
+    star=(x,y,ro,ri,n,rot)=>{let d='';for(let i=0;i<n*2;i++){const a=(rot||0)-Math.PI/2+i*Math.PI/n,R=i%2?ri:ro;d+=(i?'L':'M')+(x+Math.cos(a)*R).toFixed(1)+' '+(y+Math.sin(a)*R).toFixed(1);}return d+'Z';},
+    HEART='M12 20.5 L4.4 12.6 A4.5 4.5 0 0 1 12 7 A4.5 4.5 0 0 1 19.6 12.6Z',
+    DROP='M12 2.5 Q19 11.5 19 15.2 A7 7 0 0 1 5 15.2 Q5 11.5 12 2.5Z',
+    drop=(a,b)=>p(DROP,a)+s('M9.2 12.2 Q7.6 14.6 8.6 17',b,1.6),
+    cloud=(f)=>c(8,10,4,f)+c(13,8,5,f)+c(17.3,10.6,3.6,f)+r(5,9.6,15,5,f,2.5),
+    face=(f)=>c(12,12,9,f),
+    /* a potion: a flask of coloured liquid with a small sign on it */
+    pot=(col,sign)=>r(9.4,1.8,5.2,2.4,BR,1)+r(10,3.6,4,4,ST,.8)+p('M10 7 L6 15 Q5 20.6 12 20.6 Q19 20.6 18 15 L14 7Z','#e3eaff')+p('M7.3 13.4 H16.7 L17.5 15.4 Q18 19.6 12 19.6 Q6 19.6 6.5 15.4Z',col)+(sign||''),
+    /* a little person: head, body, and whatever its arms and legs are doing */
+    man=(x,y,limbs,shirt)=>c(x,y,2.7,SK)+r(x-2.4,y+3.2,4.8,7,shirt||BL,2)+s(limbs,DK,2);
+
+  const T={
+    grab:r(7,3.4,2.3,8,SK,1.1)+r(9.7,2.2,2.3,9,SK,1.1)+r(12.4,2.4,2.3,9,SK,1.1)+r(15.1,4,2.3,8,SK,1.1)+r(7,9.5,10.4,10.5,SK,3.2)+p('M7.4 14.5 L4.2 11.6 Q3 10.3 4.4 9.4 Q5.6 8.8 6.6 9.8 L9 12Z',SK)+s('M9.2 14.5 H15.4','#d9a577',1.2),
+    brute:p('M4.5 19.5 Q3.5 12.5 8.5 11.5 L8.5 6.5 Q8.5 3.4 11.8 3.4 Q15 3.4 15 6.6 L15 9.2 Q20.5 10 20.5 15 Q20.5 19.5 15.5 19.5Z',SK)+s('M10.5 12.6 Q13.6 10 16.6 13.2','#d9a577',1.5)+s('M8.5 7 H12','#d9a577',1.3),
+    pin:s('M12 12 V21.5',ST,2)+r(8,9.6,8,2.6,'#b3363b',1.2)+c(12,6,4.6,RD)+c(10.4,4.6,1.3,'#ff8f93'),
+    rope:ci(10.4,10,6.4,BR,3.2)+s('M5.4 6.4 L7.4 8.2 M9.6 3.8 L10.4 6.4 M14.6 5 L13.4 7.4 M16.6 9.4 L14 9.8 M4.2 11 L6.8 10.8 M6.4 15 L8.2 13.2 M11 16.4 L10.8 13.8','#d9a868',1.3)+s('M14.8 14.6 L20.6 20.6',BR,3.2)+s('M16.6 17.6 L18 16.4 M18.8 19.8 L20.2 18.6','#d9a868',1.3),
+    weld:r(4,10.4,16,3.2,ST,1.6)+c(5.2,12,3.7,GY)+c(18.8,12,3.7,GY)+c(5.2,12,1.4,BK)+c(18.8,12,1.4,BK),
+    blade:p('M20.8 3.2 L9.4 12.2 L11.8 14.6Z',ST)+p('M20.8 3.2 L10.6 13.4 L11.8 14.6Z','#eef2ff')+s('M7.2 10.6 L13.4 16.8',YE,2.6)+s('M8.8 15.2 L4.6 19.4',BR,3.2),
+    eraser:g(-38,r(3.5,8,17,8,PK,2.2)+r(3.5,8,6.5,8,BL,2.2)+r(8,8,2,8,WH)),
+    magnet:sb('M6 3.5 V13 A6 6 0 0 0 18 13 V3.5',RD,4.8)+r(3.6,2.6,4.8,4.2,ST)+r(15.6,2.6,4.8,4.2,ST),
+    cannon:g(-32,r(6,8.6,15,6.8,SL,2.2)+r(18.5,8,3,8,DK,1.2),11,13)+c(8.5,17,4.6,BR)+c(8.5,17,1.7,YE),
+    rocket:p('M8 12 L4.2 17.4 L8 15.8Z',RD)+p('M16 12 L19.8 17.4 L16 15.8Z',RD)+p('M9.6 15 L12 22.2 L14.4 15Z',OR)+p('M12 1.8 Q17.2 7 16 15.4 H8 Q6.8 7 12 1.8Z',WH)+c(12,8.6,2.1,BL),
+    saw:p(star(12,12,10.6,7.6,12),ST)+c(12,12,5,GY)+c(12,12,1.8,BK),
+    hammer:s('M5.5 19.5 L13.5 9.5',BR,3)+g(-38,r(8.5,4.2,11,5.6,SL,1.4)+r(8.5,4.2,2.6,5.6,GY,1.2),14,7),
+    spikes:p('M2.8 19.8 L6.4 8 L10 19.8Z',ST)+p('M8.4 19.8 L12 5.6 L15.6 19.8Z',WH)+p('M14 19.8 L17.6 8 L21.2 19.8Z',ST)+r(2,19.2,20,2.8,DK,1.2),
+    tesla:p('M8.8 21.5 L10.8 8.5 H13.2 L15.2 21.5Z',GY)+r(8.4,11,7.2,1.6,DK,.6)+r(7.9,15,8.2,1.6,DK,.6)+c(12,6,3.7,LB)+s('M3.5 3.6 L6.8 5.6 M20.5 3.6 L17.2 5.6 M4 9 L7 8.4 M20 9 L17 8.4',YE,1.5),
+    wreck:s('M12 1.5 V9',GY,2.2)+c(12,15,7.2,DK)+c(9.4,12.6,2,SL),
+    bomb:c(11,14.2,7.6,'#46527c')+c(8.4,11.6,2,'#8b98bd')+r(13.6,6.2,4,3,'#6a769c',.8)+s('M16 6.6 Q19.4 4.6 17.6 2.6',BR,1.8)+p(star(17.6,2.8,2.6,1.1,5),YE),
+    mine:p('M4 17 A8 6.6 0 0 1 20 17Z',SL)+r(3,16.4,18,3.6,DK,1.6)+c(12,10.8,2.6,RD)+c(11.2,10,.8,'#ff9a9d')+s('M6 20 V21.5 M18 20 V21.5',GY,1.6),
+    tnt:s('M12 6 Q12.6 3 15.6 3',BR,1.6)+p(star(16,3,2,.8,5),YE)+r(4,6,16,14.5,RD,2)+r(4,10.6,16,5.4,WH)+tx(12,15.1,'TNT','#b3261e',5.6),
+    firework:s('M12 12 V3.6 M12 12 L18 6 M12 12 H20.4 M12 12 L18 18 M12 12 V20.4 M12 12 L6 18 M12 12 H3.6 M12 12 L6 6',YE,1.5)+c(12,3.4,1.5,RD)+c(18.2,5.8,1.5,BL)+c(20.6,12,1.5,PK)+c(18.2,18.2,1.5,GR)+c(12,20.6,1.5,OR)+c(5.8,18.2,1.5,PU)+c(3.4,12,1.5,LB)+c(5.8,5.8,1.5,WH),
+    spawn:c(12,12,9.4,GR)+r(10.6,6.4,2.8,11.2,WH,1)+r(6.4,10.6,11.2,2.8,WH,1),
+    crate:r(3.5,4.5,17,15.5,BR,2)+r(5.6,6.6,12.8,11.3,'#c48a4a',1)+s('M5.8 6.8 L18.2 17.7',BR,2)+s('M3.6 8.6 H20.4 M3.6 16 H20.4','#8a5a2a',1),
+    ball:c(12,12,9.2,WH)+p(star(12,12,3.8,3.1,5),BK)+s('M12 8.2 V3 M15.6 10.8 L20.6 9.2 M14.2 15.1 L17.4 19.4 M9.8 15.1 L6.6 19.4 M8.4 10.8 L3.4 9.2',BK,1.3),
+    balloon:e(12,9.4,6.6,7.6,RD)+e(9.7,6.8,1.5,2.4,'#ff9a9d')+p('M10.8 16.6 H13.2 L12 18.8Z',RD)+s('M12 18.8 Q10 20.4 12.6 22.4',GY,1.2),
+    wall:r(3,5,18,14.4,'#c0563f',1.6)+s('M3 9.8 H21 M3 14.6 H21 M9 5 V9.8 M16 5 V9.8 M6 9.8 V14.6 M13 9.8 V14.6 M19 9.8 V14.6 M9 14.6 V19.4 M16 14.6 V19.4','#f2c9a8',1.1),
+    bouncer:r(4,4.6,16,3.6,GR,1.6)+s('M7 9 L17 11.6 L7 14.2 L17 16.8',ST,2)+r(5,18.2,14,3,DK,1.4),
+    fan:ci(12,12,10,GY,1.5)+g(0,e(12,6.6,3,5,LB))+g(120,e(12,6.6,3,5,LB))+g(240,e(12,6.6,3,5,LB))+c(12,12,2.3,DK),
+    portal:e(12,12,7.4,10,PU)+e(12,12,5,7.6,'#3a2a6a')+e(12,12,2.4,4.4,LB),
+    sand:c(12,3.4,1,'#e3c176')+c(10.4,6,1,'#e3c176')+c(13.4,7.6,1,'#e3c176')+p('M2.5 20.5 Q12 6 21.5 20.5Z','#e3c176')+p('M7 20.5 Q12 12 17 20.5Z','#f0d79a'),
+    concrete:r(3.6,6,16.8,13.4,GY,2)+s('M8 6.2 L10 11 L7.6 14 M16 19.2 L14.4 14.2 L17.2 11.4','#6f7b98',1.2)+c(14,9,1,'#6f7b98')+c(8.6,16.4,1,'#6f7b98'),
+    belt:p('M5.6 3 L9.4 6 L5.6 9Z',GR)+p('M10.6 3 L14.4 6 L10.6 9Z',GR)+p('M15.6 3 L19.4 6 L15.6 9Z',GR)+r(2.6,11.4,18.8,8,DK,4)+c(6.6,15.4,2.3,GY)+c(12,15.4,2.3,GY)+c(17.4,15.4,2.3,GY),
+    kit:s('M9 7 V4.8 H15 V7',GY,1.8)+r(3.6,7,16.8,12.6,WH,2.2)+r(10.5,9.4,3,7.8,RD)+r(8.1,11.8,7.8,3,RD),
+    peel:r(11.1,3,1.8,3.4,'#8a6a1f',.8)+p('M12 5.6 Q7.4 9.6 3.4 17.6 Q9 16.4 12 11.4 Q15 16.4 20.6 17.6 Q16.6 9.6 12 5.6Z',YE)+p('M12 9 Q10.6 14 9 20.6 Q13.4 18 13.6 12Z','#f0bf2e'),
+    pizza:p('M12 21.6 L3.8 6.4 Q12 2.2 20.2 6.4Z','#f5c04a')+s('M4 6.2 Q12 2.2 20 6.2','#c98a3a',2.6)+c(9.8,9.6,1.8,RD)+c(14.4,10.4,1.8,RD)+c(12,15,1.6,RD),
+    burger:p('M3.8 11 A8.2 6.8 0 0 1 20.2 11Z','#d9963f')+c(9,7.6,.7,WH)+c(12.4,6.4,.7,WH)+c(15.4,8,.7,WH)+r(3.2,11,17.6,2.2,GR,1.1)+r(3.8,13.2,16.4,3.2,'#6a3d1c',1.6)+r(3.4,16.2,17.2,1.4,YE,.7)+r(4.4,17.4,15.2,3.6,'#d9963f',1.8),
+    confetti:g(25,r(4,5,4,2,RD),6,6)+g(-30,r(15,4,4.4,2,BL),17,5)+g(50,r(10,9,4,2,YE),12,10)+g(-20,r(4.6,13,4.4,2,GR),7,14)+g(35,r(15.6,12.6,4,2,PK),18,14)+g(-45,r(9.6,17,4.4,2,PU),12,18)+c(19.4,19,1.2,OR)+c(4.4,19.6,1.2,LB)+c(12,3.4,1.1,WH),
+    bowl:c(12,12,9.2,'#3b4fb8')+c(8.6,8.4,2.4,'#5f73d8')+c(11.4,8.6,1.4,BK)+c(15.2,9.2,1.4,BK)+c(13,12.6,1.4,BK),
+    water:drop(BL,'#cfe6ff'),lava:drop(OR,YE)+c(14.4,15,1.2,'#b3261e'),acid:drop(GR,'#dcffb4')+c(14.2,13.6,1.1,WH)+c(12.6,17,.8,WH),honey:drop(AM,'#ffe9a8'),
+    gluel:p('M10 10 L11 2.8 H13 L14 10Z',OR)+p('M8 10 H16 V19 Q16 21.4 13.6 21.4 H10.4 Q8 21.4 8 19Z',WH)+r(8,13,8,4.2,BL)+tx(12,16.4,'GLUE',WH,3)
+  };
+
+  const P={
+    blast:p(star(12,12,10.8,5.2,10),OR)+p(star(12,12,6.4,3.2,10,.31),YE),
+    hole:c(12,12,9.4,PU)+c(12,12,6.4,'#3a2a6a')+c(12,12,3.2,BK)+s('M3.4 9 Q8 3 15 3.6 M20.6 15 Q16 21 9 20.4',LB,1.4),
+    tele:p('M7 19 Q12 15.4 17 19 L17.6 21.4 H6.4Z',DK)+c(12,10.4,7.6,PU)+c(9.4,7.8,2.2,'#e6d8ff')+s('M13 13.6 Q16 12.6 16.6 9.6','#e6d8ff',1.2),
+    lift:p('M12 2.6 L18.4 10 H14.6 V15 H9.4 V10 H5.6Z',LB)+s('M8 18.2 H16 M9.6 21.2 H14.4',LB,1.8),
+    twister:s('M3.6 4.6 H20.4 M5.8 8.6 H18.6 M8.2 12.6 H16.4 M10 16.4 H14.6 M11.4 20 H13',GY,2.5),
+    quake:s('M4.6 9.6 Q6.6 6.2 8.6 9.6 M15.4 9.6 Q17.4 6.2 19.4 9.6',YE,1.7)+r(2.8,13.6,18.4,7,BR,1.4)+s('M12.4 13.8 L10.2 16.6 L13.2 17.8 L11.2 20.4',BK,1.5),
+    gust:s('M3 8 H13.6 A3 3 0 1 0 10.8 5 M3 12.4 H18 A3 3 0 1 1 15.2 15.4 M3 16.8 H9.6',LB,2),
+    swap:s('M4 8 H17.4 M14 4.8 L17.6 8 L14 11.2',BL,2.2)+s('M20 16 H6.6 M10 12.8 L6.4 16 L10 19.2',OR,2.2),
+    launch:p('M9.4 15 L12 22.4 L14.6 15Z',OR)+p('M12 2 L19.4 10.2 H15 V15 H9 V10.2 H4.6Z',RD),
+    pillar:r(3,19.6,18,2.4,BR,1)+r(8,6.6,8,13,GY,.8)+r(6.4,3.8,11.2,3.4,ST,1.2)+s('M10.6 8 V19 M13.4 8 V19','#7b88a8',1),
+    warp:p(star(9,10,6.6,2.2,4),YE)+p(star(17.4,16.4,4.2,1.4,4),WH)+p(star(17.6,5.6,2.8,1,4),LB),
+    stun:'<ellipse cx="12" cy="12.4" rx="10" ry="4" fill="none" stroke="'+LB+'" stroke-width="1.4" transform="rotate(-18 12 12)"/>'+p(star(12,11.6,6.4,2.8,5),YE)+c(4.2,14.6,1.3,WH)+c(20.2,8.4,1.3,WH),
+    disarm:p('M4.6 8.6 H18.4 V11.8 H12.4 L11.4 17 H8 L8.6 11.8 H4.6Z',GY)+r(16.6,7.4,2.4,1.6,SL)+s('M4.4 20 L19.6 4',RD,2.6),
+    anvil:p('M3.6 7.6 H20.4 Q18.6 12 14 12 V15 H17 V18.6 H7 V15 H10 V12 Q5.6 12 3.6 7.6Z',SL)+r(5.6,6.6,13,2,GY,.8),
+    slam:p('M12 16.4 L4.8 8 H9.4 V2.6 H14.6 V8 H19.2Z',RD)+s('M3 20.4 H21',YE,2.2)+s('M6.4 17.4 L4.2 15.4 M17.6 17.4 L19.8 15.4',YE,1.6),
+    bolt:p('M13.6 1.8 L4.8 13.6 H11 L9.4 22.2 L19.2 9.6 H13Z',YE),
+    fire:p('M12 1.8 Q18.6 9 17.8 14.6 A5.9 6.4 0 0 1 6.2 14.6 Q6.2 11 8.8 8.8 Q9.4 12.2 11 12.2 Q10 7 12 1.8Z',OR)+p('M12 12 Q15.2 15 14.6 17.8 A2.7 3 0 0 1 9.4 17.8 Q9.4 15 12 12Z',YE),
+    ice:s('M12 2.6 V21.4 M3.9 7.3 L20.1 16.7 M20.1 7.3 L3.9 16.7',LB,2)+s('M9.6 4.4 L12 6.6 L14.4 4.4 M9.6 19.6 L12 17.4 L14.4 19.6 M4.4 11 L7.4 10 L6.6 7 M19.6 13 L16.6 14 L17.4 17 M19.6 11 L16.6 10 L17.4 7 M4.4 13 L7.4 14 L6.6 17',WH,1.3),
+    rain:cloud(GY)+s('M8 17.4 L7 20.6 M12 17.4 L11 20.6 M16 17.4 L15 20.6',BL,2),
+    meteor:p('M21.6 2.4 L9.6 9.4 L14.6 14.4Z',OR)+p('M21.6 2.4 L11.6 11 L13 12.4Z',YE)+c(9,15,5.8,'#8a6452')+c(7.4,13.6,1.3,'#6a4a3c')+c(10.6,16.8,1,'#6a4a3c'),
+    skylaser:r(9.6,1.6,4.8,17.4,RD,1.4)+r(11.2,1.6,1.6,17.4,'#ffd9d9',.8)+p(star(12,19.4,4.6,1.8,6),YE),
+    geyser:r(3.6,19.8,16.8,2.2,GY,1)+p('M9.6 20 Q8.6 8 12 2.6 Q15.4 8 14.4 20Z',BL)+p('M11.2 20 Q10.8 10 12 6 Q13.2 10 12.8 20Z',LB)+c(6.6,8,1.4,LB)+c(17.6,9.4,1.4,LB)+c(5.6,13,1.1,LB)+c(18.6,14,1.1,LB),
+    wave:p('M1.8 19.6 Q3.8 8 12 6.8 Q17.4 6.8 17.4 11.2 Q14 9.4 12.4 12.2 Q16 15.4 22.2 13.2 V19.6Z',BL)+s('M12 6.8 Q17.4 6.8 17.4 11.2',WH,1.7)+s('M3 21.4 H21',LB,1.5),
+    erupt:c(12,3.6,1.6,OR)+c(7.6,6,1.2,YE)+c(16.4,6,1.2,YE)+p('M2.8 20.6 L9 9 H15 L21.2 20.6Z','#7a5a4a')+p('M9 9 H15 L14.2 13.4 L12 11 L10.4 14.6Z',OR),
+    shower:s('M10 2.6 L5.6 7 M19 3 L14.2 7.8 M21 11.6 L16.4 16.2',OR,1.6)+c(4.6,8,2.3,'#8a6452')+c(13.2,8.8,2.3,'#8a6452')+c(15.4,17.2,2.3,'#8a6452')+s('M3.6 14 L2.4 15.2',OR,1.4),
+    acidrain:cloud(DG)+s('M8 17.4 L7 20.6 M12 17.4 L11 20.6 M16 17.4 L15 20.6',GR,2),
+    evap:c(12,12,5.2,YE)+s('M12 2.4 V4.8 M12 19.2 V21.6 M2.4 12 H4.8 M19.2 12 H21.6 M5.2 5.2 L6.9 6.9 M17.1 17.1 L18.8 18.8 M18.8 5.2 L17.1 6.9 M6.9 17.1 L5.2 18.8',YE,2),
+    blizzard:cloud(ST)+p(star(8,19,2.4,.9,6),WH)+p(star(12.6,18.2,2.4,.9,6),WH)+p(star(17,19.4,2.4,.9,6),WH),
+    storm:cloud(SL)+p('M13 14.4 L9.4 18.6 H12 L10.6 22.4 L15 17.4 H12.4Z',YE),
+    honeyrain:cloud('#d9963f')+s('M8 17.4 L7 20.6 M12 17.4 L11 20.6 M16 17.4 L15 20.6',AM,2.2),
+    size:s('M14.6 14.6 L20.2 20.2',BR,3.2)+c(10,10,6.6,'#28324f')+ci(10,10,6.6,ST,2.4)+s('M10 7.2 V12.8 M7.2 10 H12.8',WH,1.7),
+    heal:p(HEART,GR)+r(10.9,9.2,2.2,7,WH,.6)+r(8.5,11.6,7,2.2,WH,.6),
+    sleep:s('M4.6 5.6 H11 L4.6 12.6 H11',LB,2.2)+s('M13 12 H19 L13 19 H19',WH,2),
+    rage:face(RD)+s('M6.4 8.4 L10.6 10.6 M17.6 8.4 L13.4 10.6',BK,1.9)+c(9,12.6,1.3,BK)+c(15,12.6,1.3,BK)+s('M8.4 17.4 Q12 14.2 15.6 17.4',BK,1.7),
+    clone:man(8.4,6,'M7.2 16.2 V21 M9.6 16.2 V21',LB)+man(15.6,6,'M14.4 16.2 V21 M16.8 16.2 V21',BL),
+    party:s('M12 1.6 V5.4',GY,1.5)+c(12,13,7.8,ST)+s('M4.4 13 H19.6 M12 5.2 V20.8 M6 8.6 Q12 11.4 18 8.6 M6 17.4 Q12 14.6 18 17.4 M8.4 6.4 Q6.4 13 8.4 19.6 M15.6 6.4 Q17.6 13 15.6 19.6','#7b88a8',1)+p(star(19.6,5,2.4,.8,4),YE)+p(star(4,7,1.8,.6,4),PK),
+    shield:s('M12 12 C9 6.6 3.4 6.6 3.4 12 C3.4 17.4 9 17.4 12 12 C15 6.6 20.6 6.6 20.6 12 C20.6 17.4 15 17.4 12 12',PU,2.8),
+    rubber:c(12,12,9.2,OR)+s('M2.8 12 H21.2 M12 2.8 V21.2 M5.4 5.4 Q10.4 12 5.4 18.6 M18.6 5.4 Q13.6 12 18.6 18.6',BK,1.3),
+    dizzy:face(YE)+s('M6.8 8.6 L10.2 12 M10.2 8.6 L6.8 12 M13.8 8.6 L17.2 12 M17.2 8.6 L13.8 12',BK,1.6)+s('M8.6 17 Q10.4 15 12 17 Q13.6 19 15.4 17',BK,1.6),
+    feather:p('M5 20 Q3.6 9 15 4 Q20.4 2.6 20.6 5 Q19.6 15.4 8 19.4Z',WH)+s('M3.6 21.4 L17 6.4',GY,1.5)+s('M9 12 L8 15.6 M12.4 9 L11.6 12.6 M15.6 6.4 L15 9.6',ST,1.1),
+    floaty:e(12,7,5,5.8,BL)+e(10.2,5.2,1.2,1.9,LB)+s('M12 12.8 V15',GY,1.2)+c(12,16.4,1.9,SK)+r(10.4,18.2,3.2,4,RD,1.4),
+    heavy:s('M9.4 9 V6.4 H14.6 V9',GY,2.2)+p('M7 9 H17 L20.4 20.4 H3.6Z',SL)+tx(12,17.4,'KG',WH,5.4),
+    haste:s('M1.6 9.6 H4.4 M1.2 13 H3.6',LB,1.6)+p('M4.6 16.6 L6.8 8.6 H10.6 L11.6 11.8 Q16 12 19.6 14.6 Q21.4 16.2 20.6 18.2 H4.6Z',OR)+r(4.4,17.6,16.6,2.4,WH,1.2)+s('M8.6 11 L10.2 10.4 M9.4 13 L11.2 12.4',WH,1.2),
+    bomb:c(11.6,14,7.6,'#46527c')+c(11.6,14,4.8,WH)+s('M11.6 14 V10.8 M11.6 14 L14 15.2',RD,1.5)+s('M16.4 8 Q19.4 5.4 17.8 3',BR,1.8)+p(star(17.8,3,2.4,1,5),YE),
+    cupid:p(HEART,PK)+s('M3 21 L21 3 M16.6 3 H21 V7.4',WH,1.7)+s('M3 21 L3.4 17.6 M3 21 L6.4 20.6',WH,1.5),
+    feud:s('M10 3.6 Q10 10 3.6 10 M14 3.6 Q14 10 20.4 10 M10 20.4 Q10 14 3.6 14 M14 20.4 Q14 14 20.4 14',RD,2.8),
+    zombie:face('#86b96f')+c(8.8,10.6,2.3,WH)+c(15.2,10.6,2.3,WH)+c(8.8,10.6,.9,BK)+c(15.8,11.2,.9,BK)+s('M8 16.6 H16',BK,1.7)+s('M10 16.6 V18.2 M13.6 16.6 V18',WH,1.3)+s('M14.6 4.4 L17.6 7.4 M15.4 6.6 L16.8 5.2',DG,1.2),
+    scare:p('M5.6 8.4 L3.8 2.4 L8.8 6Z',WH)+p('M18.4 8.4 L20.2 2.4 L15.2 6Z',WH)+c(12,13,8.2,RD)+p('M6.6 10.4 L10.6 12.2 L7.4 13Z',YE)+p('M17.4 10.4 L13.4 12.2 L16.6 13Z',YE)+p('M7.6 16 H16.4 L15 19 H9Z',BK)+p('M9 16 L9.8 18 L10.6 16Z',WH)+p('M13.4 16 L14.2 18 L15 16Z',WH),
+    peace:p('M2.6 12.6 Q8 8 11.6 11.6 Q14 5.4 21.4 4.6 Q19.6 13.4 13 16.2 Q9 19.4 5.4 17.2 L3 19.6 L3.8 16Z',WH)+c(6.4,12.6,.8,BK)+p('M2.6 12.6 L.8 13.4 L2.8 13.8Z',OR)+s('M14.6 17.6 Q17.4 20.4 20.6 19.6',GR,1.5)+e(18.6,18.4,1.6,.9,GR),
+    potRegen:pot(PK,p('M12 18.6 L9.2 15.7 A1.7 1.7 0 0 1 12 13.7 A1.7 1.7 0 0 1 14.8 15.7Z',WH)),
+    potImmortal:pot(YE,p(star(12,16.2,3,1.3,5),WH)),
+    potStrong:pot(RD,r(8.4,14.6,1.8,3.6,WH,.5)+r(13.8,14.6,1.8,3.6,WH,.5)+r(10,15.8,4,1.2,WH)),
+    potSwift:pot(OR,p('M12.8 13.2 L9.6 16.8 H11.8 L11.2 19.4 L14.4 15.8 H12.2Z',WH)),
+    potInvis:pot('#aab6d6',c(10.4,16,1,BK)+c(13.6,16,1,BK))+s('M10 7 L6 15 Q5 20.6 12 20.6 Q19 20.6 18 15 L14 7','#8fa0cc',1).replace('stroke-linejoin="round"','stroke-linejoin="round" stroke-dasharray="2 1.6"'),
+    potFire:pot(LB,p('M12 13 Q14.6 15.6 14.2 17.4 A2.3 2.3 0 0 1 9.8 17.4 Q9.8 15.6 12 13Z',OR)),
+    potGiant:pot(GR,p('M12 13.2 L15 16.4 H13.2 V19 H10.8 V16.4 H9Z',WH)),
+    potPoison:pot(PU,c(12,15.8,2.3,WH)+r(10.8,17.4,2.4,1.6,WH,.4)+c(11.1,15.6,.6,BK)+c(12.9,15.6,.6,BK)),
+    potSkel:pot('#8b97b8',s('M9.8 17.8 L14.2 14.2',WH,1.5)+c(9.4,17.2,.9,WH)+c(10.4,18.4,.9,WH)+c(13.6,13.6,.9,WH)+c(14.8,14.8,.9,WH)),
+    potTiny:pot('#3fc6b8',p('M12 19.2 L9 16 H10.8 V13.4 H13.2 V16 H15Z',WH)),
+    potFury:pot('#b3261e',s('M9 14.4 L11.2 15.6 M15 14.4 L12.8 15.6',WH,1.3)+c(10.2,17,.7,WH)+c(13.8,17,.7,WH)),
+    potJump:pot('#b6e33c',s('M9.4 16 L12 13.6 L14.6 16 M9.4 19 L12 16.6 L14.6 19',WH,1.4)),
+    potDoze:pot('#5a63c8',s('M10 14 H14 L10 18.6 H14',WH,1.4)),
+    potCure:pot(WH,r(11,13.6,2,5.6,GR,.4)+r(9.2,15.4,5.6,2,GR,.4)),
+    slow:r(10.4,1.8,3.2,3.4,GY,1)+s('M17.4 6 L19 4.4',GY,2)+c(12,13.6,8,ST)+c(12,13.6,6,WH)+s('M12 13.6 V9.4 M12 13.6 L15.2 15.4',DK,1.7),
+    fast:p('M3.2 5.6 L11.2 12 L3.2 18.4Z',GR)+p('M12.4 5.6 L20.4 12 L12.4 18.4Z',GR)
+  };
+
+  const M={
+    limp:c(5.4,16.4,2.7,SK)+r(8,14.4,9,3.8,BL,1.9)+s('M16.6 16.3 H21',DK,2.2)+s('M2.6 20.6 H21.4',GY,1.5)+s('M13 4 H17 L13 8.6 H17',LB,1.7),
+    stand:man(12,5,'M10.8 15.2 V21.4 M13.2 15.2 V21.4 M9.6 9.6 V14 M14.4 9.6 V14'),
+    walk:man(12,5,'M11.4 15.2 L8.6 21.2 M12.6 15.2 L15.2 21.2 M9.8 9.8 L8 13.6 M14.2 9.8 L16 13.6'),
+    run:s('M1.6 9 H4.6 M1.2 12.4 H3.8',LB,1.6)+g(14,man(13,5,'M12.2 15.2 L7.6 18.6 M13.8 15.2 L17.6 20.6 M10.8 9.8 L7.6 11.6 M15.2 9.8 L18.6 8.4'),13,12),
+    fight:r(7,16.2,9.6,4.4,WH,1.6)+p('M7 16.4 Q4.6 5.4 12 4.4 Q18.4 4.4 18.4 9.8 Q20.6 10.4 20 13.2 Q19.4 15.8 16.4 15.8 L16.6 16.4Z',RD)+s('M16 9.4 Q14.4 11.4 16 13.4','#b3363b',1.4)+c(9.6,8,1.4,'#ff9a9d'),
+    zombie:null,
+    dance:s('M17.6 3.4 V8.6',PK,1.5)+c(16.4,8.8,1.5,PK)+s('M17.6 3.4 L20.6 4.4',PK,1.5)+man(10.6,6,'M9.4 16.2 L7.4 21.2 M11.8 16.2 L14.4 20.6 M8.4 10.6 L5 7 M12.8 10.6 L16 12.6'),
+    flee:face(YE)+c(8.8,9.8,2.4,WH)+c(15.2,9.8,2.4,WH)+c(8.8,10.2,1,BK)+c(15.2,10.2,1,BK)+e(12,16.6,2.4,3,BK)+s('M5.6 5.8 L8.8 6.6 M18.4 5.8 L15.2 6.6',BK,1.4),
+    possess:r(2.6,7.6,18.8,10.6,SL,5.2)+r(5.6,12,5.6,1.8,WH,.5)+r(7.5,10.1,1.8,5.6,WH,.5)+c(15.6,11.4,1.5,RD)+c(18.2,13.6,1.5,GR)+c(15.6,15,1.2,YE),
+    influencer:r(7.2,2.6,9.6,18.8,DK,2.2)+r(8.6,4.8,6.8,12.6,LB,1)+p('M12 14.6 L9.4 12 A1.6 1.6 0 0 1 12 10 A1.6 1.6 0 0 1 14.6 12Z',PK)+c(12,19.2,1,GY)
+  };
+  M.zombie=P.zombie;
+
+  /* the top bar */
+  const U={
+    pause:r(6,4.5,4.4,15,WH,1.4)+r(13.6,4.5,4.4,15,WH,1.4),
+    play:p('M7 4 L20 12 L7 20Z',GR),
+    grav:c(12,12,9.2,BL)+p('M6 8 Q9 5 12.4 6.6 Q13.6 9.4 10.6 10.6 Q8 13.4 5.4 11Z',GR)+p('M13.6 13 Q17.6 11.4 19.6 14.6 Q17.6 19.4 14.6 18.4 Q12.6 16 13.6 13Z',GR),
+    clear:s('M15.6 3.6 L10.6 11.6',BR,2.6)+p('M6.6 11 L14.6 15 L11 21.6 H4.6Z',YE)+s('M7.4 16.4 L6 20.6 M10 17.6 L9 21',BR,1.2),
+    reset:s('M18.6 8.4 A7.6 7.6 0 1 0 19.6 13.4',WH,2.4)+p('M20.6 3.6 V10 H14.2Z',WH),
+    sound:p('M3.6 9.4 H7.4 L12.6 5 V19 L7.4 14.6 H3.6Z',WH)+s('M15.6 9 Q17.6 12 15.6 15 M18 6.6 Q21.4 12 18 17.4',LB,1.8),
+    mute:p('M3.6 9.4 H7.4 L12.6 5 V19 L7.4 14.6 H3.6Z',GY)+s('M15.6 9 L20.6 15 M20.6 9 L15.6 15',RD,2),
+    gear:p(star(12,12,10.4,7.4,8),ST)+c(12,12,6.6,ST)+c(12,12,3,BK),
+    help:c(12,12,9.4,BL)+s('M9 9.4 Q9 6.4 12 6.4 Q15 6.4 15 9.2 Q15 11 12 12.4 V14.2',WH,2.2)+c(12,17.6,1.3,WH),
+    tools:r(3,8,18,12,RD,2.2)+s('M9 8 V5.4 H15 V8',GY,2)+r(3,12.4,18,2,'#b3363b')+r(10.4,11.4,3.2,4,YE,.8),
+    people:c(8.4,8,3.2,SK)+p('M2.8 20 Q2.8 12.8 8.4 12.8 Q14 12.8 14 20Z',BL)+c(16.2,9,2.7,SK)+p('M11.6 20 Q11.6 13.6 16.2 13.6 Q21 13.6 21 20Z',LB),
+    modes:e(8.4,10.6,5.6,7,WH)+c(6.4,9,1,BK)+c(10.4,9,1,BK)+s('M6 12.6 Q8.4 15 10.8 12.6',BK,1.3)+e(16,14,5.2,6.6,PU)+c(14.2,12.6,1,BK)+c(17.8,12.6,1,BK)+s('M13.8 17.4 Q16 15.2 18.2 17.4',BK,1.3),
+    powers:p(star(10,11,8,3,4),YE)+p(star(18,17.6,4.4,1.5,4),WH)+p(star(18.6,5.4,3,1.1,4),LB),
+    zoom:s('M14.8 14.8 L20.4 20.4',BR,3.2)+c(10,10,6.6,'#28324f')+ci(10,10,6.6,ST,2.4),
+    full:s('M4 9 V4 H9 M15 4 H20 V9 M20 15 V20 H15 M9 20 H4 V15',WH,2.2)
+  };
+  /* maps (by id), settings rows (by the id of the row's switch), foods (by number), and the pencil, bin and tick */
+  const MAPI={
+    lab:r(8.8,2.2,6.4,1.9,ST,.9)+p('M9.6 3.6 H14.4 V9 L19 19 Q19.6 21 17.4 21 H6.6 Q4.4 21 5 19 L9.6 9Z','#e3eaff')+p('M7.7 15 H16.3 L18 19 Q18.4 20 17.2 20 H6.8 Q5.6 20 6 19Z',GR)+c(10.4,17.6,.9,WH)+c(13.6,16.4,.7,WH),
+    og:r(3.6,15.6,16.8,5.8,DK,2.2)+s('M12 15.6 V8',GY,2.6)+c(12,6.2,3.6,RD)+c(10.8,5,1,'#ff9a9d')+c(17,18.4,1.4,YE),
+    party:P.party,
+    prison:r(3.4,3.8,17.2,16.4,DK,2)+s('M7.6 4.4 V19.6 M12 4.4 V19.6 M16.4 4.4 V19.6',ST,2.2),
+    hospital:r(9.4,2.4,5.2,4,ST,.8)+r(3.8,6,16.4,15.4,WH,1.6)+r(10.6,8.6,2.8,8.4,RD)+r(7.8,11.4,8.4,2.8,RD),
+    play:s('M5.6 20.6 V5.6 M9.8 20.6 V5.6',BR,2)+s('M5.6 9 H9.8 M5.6 13 H9.8 M5.6 17 H9.8',BR,1.6)+s('M9.8 6.6 Q16.4 8 20.8 19.8',RD,3.2),
+    city:r(2.8,9.4,6.2,12,SL)+r(9.4,3.6,6.2,17.8,GY)+r(16,11.4,5.2,10,SL)+r(10.8,5.6,1.4,1.5,YE)+r(13,5.6,1.4,1.5,YE)+r(10.8,9,1.4,1.5,YE)+r(13,12.4,1.4,1.5,YE)+r(4.2,11.6,1.3,1.4,YE)+r(6.4,15,1.3,1.4,YE)+r(17.6,13.6,1.3,1.4,YE),
+    volcano:P.erupt,water:P.wave,
+    towers:c(5.4,6,2.2,WH)+c(8,5,2.8,WH)+r(4,5.6,6,2.6,WH,1.3)+r(4.6,10,5.4,11.4,ST)+r(13.6,3.4,5.6,18,LB)+s('M6 12.4 H8.6 M6 15.6 H8.6 M15 6 H17.8 M15 9.6 H17.8 M15 13.2 H17.8',DK,1.1),
+    moon:p('M15.4 2.8 A9.6 9.6 0 1 0 21.2 16.2 A7.6 7.6 0 0 1 15.4 2.8Z',YE)+p(star(18.4,5.6,2.2,.8,4),WH)+c(8,13,1.2,'#e0b63a')+c(11.4,17,.9,'#e0b63a'),
+    gauntlet:c(12,10.4,7.6,WH)+r(8.4,15,7.2,5.2,WH,1.5)+c(9.1,10.4,2.1,BK)+c(14.9,10.4,2.1,BK)+p('M12 12.6 L10.9 14.8 H13.1Z',BK)+s('M10.4 17.4 V19.6 M12 17.4 V19.6 M13.6 17.4 V19.6',BK,1),
+    custom:U.gear
+  };
+  const SI={
+    setVit:r(3.8,12,3.8,8.4,GR,1)+r(10.1,7,3.8,13.4,BL,1)+r(16.4,3.4,3.8,17,RD,1),
+    setFig:M.stand,setGore:drop(RD,'#ff9a9d'),
+    setBrutal:s('M7.2 16.8 L16.8 7.2',WH,3.2)+c(5.4,15.8,2.3,WH)+c(8.2,18.6,2.3,WH)+c(15.8,5.4,2.3,WH)+c(18.6,8.2,2.3,WH),
+    setCine:r(3.4,9.2,17.2,11.4,DK,1.6)+p('M3.4 5 L20.4 2.8 L20.8 6.2 L3.8 8.6Z',WH)+s('M7 4.6 L8.4 8 M11.4 4 L12.8 7.4 M15.8 3.4 L17.2 6.8',BK,1.5),
+    setSound:U.sound,
+    setEdge:p('M5 2.8 L19.4 12 L12.8 13.2 L15.8 19.8 L13 21 L10 14.6 L5 18.8Z',WH),
+    setFull:p('M2.8 6 L9 3.8 L15 6 L21.2 3.8 V18 L15 20.2 L9 18 L2.8 20.2Z',GR)+s('M9 3.8 V18 M15 6 V20.2',DG,1.3),
+    setMapCam:p('M3.8 20.4 V4.6 L19.6 20.4Z',YE)+p('M7.2 17 V12.2 L12 17Z',BK)+s('M3.8 8.6 H5.8 M3.8 12.6 H5.8 M8 20.4 V18.6 M12 20.4 V18.6',BR,1.1),
+    setDefChar:man(9.6,5,'M8.4 15.2 V21.4 M10.8 15.2 V21.4')+p(star(18,7,3.6,1.5,5),YE),
+    setSplat:p(star(11.6,11.6,9,5.2,8,.3),RD)+c(19,18.6,1.7,RD)+c(4.6,4.8,1.2,RD),
+    setSoc:p('M4 4.6 H20 Q21.4 4.6 21.4 6 V14.6 Q21.4 16 20 16 H11 L6.2 20.2 V16 H4 Q2.6 16 2.6 14.6 V6 Q2.6 4.6 4 4.6Z',WH)+c(8,10.4,1.3,DK)+c(12,10.4,1.3,DK)+c(16,10.4,1.3,DK),
+    setAid:g(-40,r(2.6,8.8,18.8,6.4,'#e8b98a',3.2)+r(8.8,8.8,6.4,6.4,'#f6dcc2')+c(10.8,10.8,.6,'#c98a5a')+c(13.2,10.8,.6,'#c98a5a')+c(10.8,13.2,.6,'#c98a5a')+c(13.2,13.2,.6,'#c98a5a')),
+    setFilm:M.influencer,
+    setArrest:p('M12 2.4 L20.2 5.8 V12 Q20.2 18.6 12 21.8 Q3.8 18.6 3.8 12 V5.8Z',BL)+p(star(12,11.6,4.6,2,5),YE),
+    setRot:e(7.6,9.6,3.8,2.3,LB)+e(16.4,9.6,3.8,2.3,LB)+e(12,13.4,3.6,5,'#46527c')+c(10.6,9.4,1.3,RD)+c(13.4,9.4,1.3,RD)+s('M8.6 14 L6.4 15.6 M15.4 14 L17.6 15.6 M9 17 L7.4 19 M15 17 L16.6 19',GY,1.1),
+    setRise:P.zombie,setTurn:U.reset,setSmooth:P.wave,setReact:M.flee,
+    setWatch:p('M2.4 12 Q12 3.4 21.6 12 Q12 20.6 2.4 12Z',WH)+c(12,12,4.2,BL)+c(12,12,1.9,BK),
+    setFall:p('M3.4 11 A8.6 8.6 0 0 1 20.6 11Z',OR)+s('M3.8 11 L11 18.6 M20.2 11 L13 18.6 M12 11 V18',GY,1.1)+r(10.5,18.2,3,3.6,BR,.7),
+    setPaste:P.blast,
+    setPerf:r(6.8,2.4,10.4,19.2,DK,2.2)+r(8.2,4.8,7.6,12.8,GR,1)+c(12,19.4,1.1,GY)+s('M10 13.6 L11.4 9.6 L12.6 12 L14 8.6',WH,1.1),
+    setSide:s('M8.4 10.6 V7.6 A3.6 3.6 0 0 1 15.6 7.6 V10.6',ST,2.4)+r(5.4,10.4,13.2,10.4,YE,2.2)+c(12,15,1.7,BK)+r(11.3,15.4,1.4,2.8,BK,.5)
+  };
+  const FI=[T.burger,
+    s('M13.6 14.6 L18.6 19.6',WH,2.8)+c(19.8,18.6,1.7,WH)+c(18.6,19.8,1.7,WH)+g(-38,e(10.2,9.8,5.8,7.6,'#c98a3a')+e(8.6,7.8,2,3.2,'#e3ad62'),10.2,9.8),
+    r(3,15.6,17.4,5,'#f0bf2e',1)+p('M3 15.8 L20.4 7.4 V15.8Z',YE)+c(8.6,18,1.3,'#d99a1a')+c(15.4,13,1.5,'#d99a1a')+c(14.6,18.4,1,'#d99a1a')+c(11,14.4,.9,'#d99a1a'),
+    e(12,14.2,9.6,4.6,'#d9963f')+r(2.4,9.6,19.2,4.8,'#c0452f',2.4)+s('M5 12 Q6.6 10.2 8.2 12 T11.4 12 T14.6 12 T17.8 12',YE,1.4),
+    r(6.8,3.6,2.2,10,YE,.6)+r(9.4,2.2,2.2,11,'#ffe07a',.6)+r(12,3.2,2.2,10,YE,.6)+r(14.6,4.8,2.2,9,'#ffe07a',.6)+p('M5.6 10.6 H18.4 L16.8 21.4 H7.2Z',RD)+r(8.6,14,6.8,2.2,WH,.6),
+    c(12,12,9.2,'#c98a3a')+c(12,11.4,7.8,PK)+c(12,12,2.9,BK)+g(30,r(7,6.6,2.2,.9,WH),8,7)+g(-40,r(15,6.6,2.2,.9,YE),16,7)+g(60,r(17,13,2.2,.9,BL),18,13.4)+g(-20,r(6,14.6,2.2,.9,GR),7,15)+g(15,r(13.6,17,2.2,.9,WH),14.6,17.4),
+    c(6.2,11.4,2.3,GR)+c(9.4,8.8,2.4,GR)+c(13,8,2.4,GR)+c(16.6,9.2,2.3,GR)+c(18.8,12,2,GR)+c(11.2,10.6,1.5,RD)+c(15.4,11.6,1.4,RD)+p('M2.4 18 A9.6 9.6 0 0 1 21.6 18Z','#e8b23a')+c(8,15.4,.7,'#c98a2a')+c(13,14,.7,'#c98a2a')+c(17,16,.7,'#c98a2a'),
+    c(17.8,6,1.8,RD)+p('M3.4 20 V11.4 L20.6 8 V20Z','#ffe9c8')+p('M3.4 11.4 L20.6 8 V10.8 L3.4 14.2Z',PK)+s('M3.6 17 L20.4 15',  '#ff8a9a',1.5)];
+  const XI={pencil:p('M4 20.2 L5 15.6 L15.6 5 L19 8.4 L8.4 19.2Z',YE)+p('M4 20.2 L5 15.6 L8.4 19.2Z',SK)+p('M15.6 5 L17.4 3.2 Q18.4 2.4 19.4 3.4 L20.6 4.6 Q21.6 5.6 20.8 6.6 L19 8.4Z',PK),
+    bin:r(9.4,2.4,5.2,2.6,ST,.8)+r(3.8,4.6,16.4,2.8,ST,1)+r(5.6,7.4,12.8,14,GY,2)+s('M9.4 10.4 V18.4 M12 10.4 V18.4 M14.6 10.4 V18.4',DK,1.4),
+    tick:s('M4.4 12.8 L9.6 18 L19.8 6.2',GR,3.2)};
+  const svg=(b,z,inl)=>'<svg viewBox="0 0 24 24" width="'+(z||24)+'" height="'+(z||24)+'" style="display:'+(inl?'inline-block;vertical-align:-'+Math.round((z||24)*.26)+'px':'block')+'">'+b+'</svg>';
+  return {T,P,M,U,MAPI,SI,FI,XI,svg};
+})();
+function icoApply(){for(const id in ICO.T)if(TOOLS[id]&&!/^<svg/.test(TOOLS[id].icon||''))TOOLS[id].icon=ICO.svg(ICO.T[id],24);
+  for(const id in ICO.P)if(POWERS[id])POWERS[id].icon=ICO.svg(ICO.P[id],24);
+  for(const id in ICO.M)if(MODES[id]&&ICO.M[id])MODES[id].icon=ICO.svg(ICO.M[id],20,true);
+  for(const id in MAPS){const m=MAPS[id];m.label=m.name.replace(/^\S+\s/,'');if(ICO.MAPI[id])m.name=ICO.svg(ICO.MAPI[id],17,true)+' '+m.label;}   /* a map's name: its drawing, then the name in words (m.label: the words alone) */
+  FOODS.forEach((f,i)=>{if(ICO.FI[i])f.e=ICO.svg(ICO.FI[i],20,true);});}
+/* an icon on the game canvas (the mode over a dummy's head): its drawing as a picture, made once; an emoji is still written as text */
+const ICOIMG=new Map();
+function icoDraw(g,ic,x,y,z){if(typeof ic!=='string'||ic[0]!=='<'){g.fillText(ic,x,y);return;}let im=ICOIMG.get(ic);if(!im){im=new Image();im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(ic.replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" '));ICOIMG.set(ic,im);}
+  if(im.complete&&im.naturalWidth)g.drawImage(im,x-z/2,y-z*.86,z,z);}
+/* an icon inside a line of text (the top line): the same drawing, smaller and on the line */
+function icoInl(ic){return typeof ic==='string'&&ic[0]==='<'?ic.replace(/style="display:block"/,'style="display:inline-block;vertical-align:-4px;height:17px;width:auto"'):ic;}
+/* the top bar's own buttons */
+function icoTop(){const U=ICO.U,S=ICO.svg;$('bClear').innerHTML=S(U.clear,16,true)+' Clear';$('bReset').innerHTML=S(U.reset,15,true)+' Reset';$('bSet').innerHTML=S(U.gear,18,true);$('bHelp').innerHTML=S(U.help,18,true);
+  $('bPause').innerHTML=paused?S(U.play,15,true)+' Play':S(U.pause,15,true)+' Pause';$('bMute').innerHTML=S(muted?U.mute:U.sound,18,true);$('bGrav').innerHTML=S(U.grav,16,true)+' '+GRAVS[gravMode].n;icoRows();}
+/* the settings rows: each one's picture, found by the id of its switch */
+function icoRows(){for(const id in ICO.SI){const el=$(id),row=el&&el.closest('.srow'),si=row&&row.querySelector('.si');if(si)si.innerHTML=ICO.svg(ICO.SI[id],20);}}
+icoApply();customsLoad();buildUI();icoTop();defCharUI();$('setDefChar').onchange=e=>{setDefChar(e.target.value);e.target.blur();};pickTool('grab');{let mp='lab';try{defMap=localStorage.getItem('flopworksM.defmap');if(!MAPS[defMap])defMap=null;mp=defMap||localStorage.getItem('flopworksM.map')||'lab';}catch(e){}loadMap(mp);}
 setInfo('<b>✋ Grab</b> — drag a ragdoll around, or pick a tool, power, character or mode.');
 requestAnimationFrame(loop);
 // test / debug hooks
@@ -5942,11 +6178,12 @@ window.__flop={get bodies(){return bodies;},get links(){return links;},get walls
    - phone performance mode: softer canvas, fewer sparks (no cap on liquid any more) */
 (()=>{
 const top=$('top'),DR={tools:$('tools'),powers:$('powers'),bottom:$('bottom')};
-function tbtn(id,txt,title,before){const b=document.createElement('button');b.className='tb mtb';b.id=id;b.tabIndex=-1;b.textContent=txt;b.title=title;top.insertBefore(b,before||null);return b;}
-const bTools=tbtn('mTools','🧰','Tools',top.firstChild),bChars=tbtn('mChars','👥','Characters',$('info')),bModes=tbtn('mModes','🎭','Character modes and teams',$('info')),bPow=tbtn('mPowers','✨','Powers',$('mapBtn'));
-const bFit=tbtn('mFit','🔍','Zoom: the whole map, or close up',$('bSet')),bFull=tbtn('mFull','⛶','Full screen',$('bSet'));
-$('mapBtn').textContent='🗺';$('bClear').textContent='🧹';$('bReset').textContent='↺';$('bPause').textContent='⏸';
-{const tp=window.togglePause;window.togglePause=function(){const r=tp.apply(this,arguments);$('bPause').textContent=paused?'▶':'⏸';return r;};$('bPause').onclick=()=>{audioKick();togglePause();};}
+function tbtn(id,txt,title,before){const b=document.createElement('button');b.className='tb mtb';b.id=id;b.tabIndex=-1;b.innerHTML=txt;b.title=title;top.insertBefore(b,before||null);return b;}
+const MI=k=>ICO.svg(ICO.U[k],22),HI=k=>ICO.svg(ICO.U[k],16,true);   /* the game's drawn icons: for a button, and for a line of text */
+const bTools=tbtn('mTools',MI('tools'),'Tools',top.firstChild),bChars=tbtn('mChars',MI('people'),'Characters',$('info')),bModes=tbtn('mModes',MI('modes'),'Character modes and teams',$('info')),bPow=tbtn('mPowers',MI('powers'),'Powers',$('mapBtn'));
+const bFit=tbtn('mFit',MI('zoom'),'Zoom: the whole map, or close up',$('bSet')),bFull=tbtn('mFull',MI('full'),'Full screen',$('bSet'));
+$('bClear').innerHTML=ICO.svg(ICO.U.clear,20);$('bReset').innerHTML=ICO.svg(ICO.U.reset,19);$('bPause').innerHTML=ICO.svg(ICO.U.pause,18);   /* the picture alone: no room for the word on a phone */
+{const tp=window.togglePause;window.togglePause=function(){const r=tp.apply(this,arguments);$('bPause').innerHTML=ICO.svg(paused?ICO.U.play:ICO.U.pause,18);return r;};$('bPause').onclick=()=>{audioKick();togglePause();};}
 
 /* ---- drawers ---- */
 function anyOpen(){return DR.tools.classList.contains('open')||DR.powers.classList.contains('open')||DR.bottom.classList.contains('open');}
@@ -5956,8 +6193,8 @@ function drawer(name,on){for(const k in DR){const o=k===name?(on===undefined?!DR
 let sheet='chars';DR.bottom.classList.add('mchars');
 function sheetOpen(which){if(DR.bottom.classList.contains('open')&&sheet===which){drawer(null);return;}sheet=which;DR.bottom.classList.toggle('mchars',which==='chars');DR.bottom.classList.toggle('mmodes',which==='modes');DR.bottom.scrollLeft=0;DR.bottom.scrollTop=0;drawer('bottom',true);}
 bTools.onclick=()=>{audioKick();drawer('tools');};bPow.onclick=()=>{audioKick();drawer('powers');};bChars.onclick=()=>{audioKick();sheetOpen('chars');};bModes.onclick=()=>{audioKick();sheetOpen('modes');};
-{const sm=window.syncModeUI;window.syncModeUI=function(){const r=sm.apply(this,arguments),m=selected?selected.mode:curMode;bModes.textContent=(MODES[m]&&MODES[m].icon)||'🎭';return r;};}   /* the 🎭 button shows the mode that is on (the selected dummy's, or everyone's) */
-function syncCur(){const isP=!!POWERS[curId]&&cur===POWERS[curId];bTools.innerHTML=isP?'🧰':(cur.icon||'🧰');bPow.innerHTML=isP?(cur.icon||'✨'):'✨';   /* the drawer buttons show what is in your hand. As a picture, not as text: a gun's icon is a small drawing (svg), and written out as text it filled the bar with its numbers */
+{const sm=window.syncModeUI;window.syncModeUI=function(){const r=sm.apply(this,arguments),m=selected?selected.mode:curMode;bModes.innerHTML=(MODES[m]&&MODES[m].icon)||MI('modes');return r;};}   /* the 🎭 button shows the mode that is on (the selected dummy's, or everyone's) */
+function syncCur(){const isP=!!POWERS[curId]&&cur===POWERS[curId];bTools.innerHTML=isP?MI('tools'):(cur.icon||MI('tools'));bPow.innerHTML=isP?(cur.icon||MI('powers')):MI('powers');   /* the drawer buttons show what is in your hand. As a picture, not as text: a gun's icon is a small drawing (svg), and written out as text it filled the bar with its numbers */
   let alt=LIQT[curId]!==undefined;if(!alt)for(const k of ['down','step','paint','move'])if(typeof cur[k]==='function'&&/mouse\.alt/.test(String(cur[k]))){alt=true;break;}
   if(curId==='c4')alt=false;$('mDet').classList.toggle('mhide',curId!=='c4');   /* C4: its right click is the Detonate chip, not Alt */
   $('mAlt').classList.toggle('mhide',!alt);if(!alt)setAlt(false);$('mGive').classList.toggle('mhide',!GUNS[curId]);}   /* (a gun in your hand: the Give button does what Backspace does on a keyboard) */
@@ -5965,6 +6202,9 @@ function setAlt(v){MOBV.alt=!!v;$('mAlt').classList.toggle('on',MOBV.alt);$('mAl
 $('mAlt').onclick=()=>{setAlt(!MOBV.alt);setInfo(MOBV.alt?'<b>Alt is on</b> — this tool now does its other job (erase, shrink, the other way).':'<b>Alt is off.</b>');};
 {const pt=window.pickTool;window.pickTool=function(id){const r=pt.apply(this,arguments),t=TOOLS[id]||POWERS[id];if(t&&!t.toggle){drawer(null);setAlt(false);}syncCur();return r;};}
 {const am=window.applyMode;window.applyMode=function(m){const r=am.apply(this,arguments);drawer(null);return r;};}   /* picking a mode shuts the sheet, as picking a tool shuts its drawer */
+/* the Possess pad and the chips: drawn too */
+{const PADI={KeyQ:ICO.M.limp,KeyV:ICO.P.swap,KeyE:ICO.U.powers,KeyC:ICO.T.grab,KeyG:ICO.P.haste,KeyF:ICO.M.fight};for(const b of document.querySelectorAll('#mBtns button')){const sm=b.querySelector('small');b.innerHTML=ICO.svg(PADI[b.dataset.k],26);if(sm)b.appendChild(sm);}
+  $('mGive').innerHTML=ICO.svg(ICO.T.grab,17,true)+' Give it to a dummy';$('mDet').innerHTML=ICO.svg(ICO.P.blast,17,true)+' Detonate';}
 $('mGive').onclick=()=>{audioKick();giveGun();};$('mDet').onclick=()=>{audioKick();c4Detonate();};
 {const si=window.setInfo;window.setInfo=function(h){return si.call(this,String(h).replace(/Right-click switches which food you drop/g,'Switch ⇄ Alt on and tap to change which food you drop').replace(/Right-click to set off every charge/g,'Tap 💥 Detonate to set off every charge').replace(/Left-click/g,'Tap').replace(/left-click/g,'tap').replace(/(^|[^-\w])Click\b/g,'$1Tap').replace(/(^|[^-\w])click\b/g,'$1tap').replace(/Press Backspace on it again/g,'Tap 🤲 Give again').replace(/press <b>Backspace<\/b>/g,'tap <b>🤲 Give</b>').replace(/Backspace/g,'The 🤲 Give button'));};}   /* the top line talks about the button, not the key */
 $('mCancel').onclick=()=>{ropeA=null;wallA=null;aim=null;fanA=null;};
@@ -6038,18 +6278,18 @@ setInterval(()=>{const b=possessed&&!possessed.remove&&!possessed.dead?possessed
 }   /* (there was a cap on liquid here too: 1300 drops, then 2000, 3000, 5000 as the user kept asking for it to be raised; now there is none, as in the desktop game) */
 function setPerf(v){MOBV.perf=!!v;MOBV.dpr=v?1.5:2;try{localStorage.setItem('flopworksM.perf',v?'1':'0');}catch(e){}$('setPerf').checked=MOBV.perf;resize();if(zoom<minZoom())zoom=minZoom();clampCam();mouseWorld();}
 {const g=document.querySelector('#settings .sgroup'),l=document.createElement('label');l.className='srow';
-  l.innerHTML='<span class="si">📱</span><span class="st"><b>Phone performance mode</b><small>Keeps the game smooth on a phone: a slightly softer picture, and fewer sparks and splashes. Switch it off on a fast phone or a tablet. (Liquid has no limit: a lot of it will slow the game down)</small></span><input type="checkbox" id="setPerf"><i class="sw"></i>';
+  l.innerHTML='<span class="si">'+ICO.svg(ICO.SI.setPerf,20)+'</span><span class="st"><b>Phone performance mode</b><small>Keeps the game smooth on a phone: a slightly softer picture, and fewer sparks and splashes. Switch it off on a fast phone or a tablet. (Liquid has no limit: a lot of it will slow the game down)</small></span><input type="checkbox" id="setPerf"><i class="sw"></i>';
   g.insertBefore(l,g.firstChild);$('setPerf').checked=MOBV.perf;$('setPerf').onchange=e=>setPerf(e.target.checked);}
 
 /* ---- the start card, and the turn-your-phone note ---- */
 {const ul=document.querySelector('#help .card ul'),p=document.querySelector('#help .card p');if(p)p.textContent='A ragdoll sandbox for your phone. Drop characters in, give them a mode, then mess with them.';
   if(ul)ul.innerHTML='<li><b>One finger</b> uses the tool in your hand: drag a ragdoll, cut, pour, place.</li>'+
-    '<li><b>Two fingers</b>: pinch to zoom, drag to move the view. <b>🔍</b> jumps between the whole map and a close-up.</li>'+
-    '<li><b>🧰 Tools</b> and <b>✨ Powers</b> open from the top bar. Pick one and the drawer closes; the button shows what you are holding.</li>'+
-    '<li><b>👥</b> opens the characters: tap one to drop it in. Your own characters have ✏️ and 🗑️ on their cards. <b>🎭</b> opens the modes (stand, walk, fight, possess…) and the teams.</li>'+
+    '<li><b>Two fingers</b>: pinch to zoom, drag to move the view. <b>'+HI('zoom')+'</b> jumps between the whole map and a close-up.</li>'+
+    '<li><b>'+HI('tools')+' Tools</b> and <b>'+HI('powers')+' Powers</b> open from the top bar. Pick one and the drawer closes; the button shows what you are holding.</li>'+
+    '<li><b>'+HI('people')+'</b> opens the characters: tap one to drop it in. Your own characters have '+ICO.svg(ICO.XI.pencil,14,true)+' and '+ICO.svg(ICO.XI.bin,14,true)+' on their cards. <b>'+HI('modes')+'</b> opens the modes (stand, walk, fight, possess…) and the teams.</li>'+
     '<li><b>Possess</b> (in modes) gives you a stick and buttons: punch or shoot, kick, grab and throw, special, limp. Tap the arena to aim a gun.</li>'+
     '<li><b>⇄ Alt</b> appears for tools with a second job (erase liquid, shrink, reverse a belt). <b>✕ Cancel</b> appears while a rope or wall is half made.</li>'+
-    '<li><b>⛶</b> full screen · <b>⚙</b> settings, with <b>Phone performance mode</b> at the top · best played sideways.</li>';}
+    '<li><b>'+HI('full')+'</b> full screen · <b>'+HI('gear')+'</b> settings, with <b>Phone performance mode</b> at the top · best played sideways.</li>';}
 {const ul=document.querySelector('#help .card ul'),bs=$('bStart');if(ul&&bs){ul.parentNode.insertBefore(bs,ul);bs.style.margin='8px 0 6px';}}   /* Start sits above the list: on a phone held sideways the list runs off the bottom of the card */
 let turnHid=false;function turnNote(){$('mTurn').classList.toggle('mhide',turnHid||MOBV.rot||W>=H||$('help').style.display!=='none');}
 $('mTurnHide').onclick=()=>{turnHid=true;turnNote();};$('bStart').addEventListener('click',()=>setTimeout(turnNote,50));
@@ -6059,7 +6299,7 @@ function setSideLock(v){MOBV.lock=!!v;try{localStorage.setItem('flopworksM.sidel
   if(v)setInfo(MOBV.rot?'<b>Sideways lock is on.</b> Hold the phone sideways with its top to the left. Switch it off in ⚙ Settings.':'<b>Sideways lock is on.</b> It turns the game whenever the screen is upright.');}
 $('mTurnLock').onclick=()=>{audioKick();setSideLock(true);};
 {const g=document.querySelector('#settings .sgroup'),l=document.createElement('label');l.className='srow';
-  l.innerHTML='<span class="si">🔒</span><span class="st"><b>Sideways lock</b><small>Keeps the game sideways even when the screen is upright. For a phone with its rotation lock on (an iPhone only locks upright): hold it sideways with its top to the left</small></span><input type="checkbox" id="setSide"><i class="sw"></i>';
+  l.innerHTML='<span class="si">'+ICO.svg(ICO.SI.setSide,20)+'</span><span class="st"><b>Sideways lock</b><small>Keeps the game sideways even when the screen is upright. For a phone with its rotation lock on (an iPhone only locks upright): hold it sideways with its top to the left</small></span><input type="checkbox" id="setSide"><i class="sw"></i>';
   g.insertBefore(l,g.firstChild);$('setSide').checked=MOBV.lock;$('setSide').onchange=e=>setSideLock(e.target.checked);}
 addEventListener('contextmenu',e=>{if(e.target===cv||(e.target.closest&&e.target.closest('#mPad,#mChips,#top')))e.preventDefault();});
 syncCur();turnNote();window.MOBREADY=true;   /* the game and the touch layer both got all the way here: no start-up error box */
