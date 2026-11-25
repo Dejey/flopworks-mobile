@@ -1769,7 +1769,7 @@ function drawWave(g,e){const ax=e.ax===undefined?1:e.ax,ay=e.ay||0,nx=-ay,ny=ax,
 /* the Wave power: water let in at one side a column a frame for WSURGET frames, as a wave passing through the wall. The column's height follows the wave's
    profile (what comes first is its front): it climbs steeply to the crest about a quarter of the way through, then falls away in a long back. The higher in
    the column, the faster the water moves, so the crest leans out over its own foot and curls; while it is still climbing the top is thrown upward a little. */
-const WSURGET=28,WSURGEH=25;
+const WSURGET=24,WSURGEH=22;
 function waveFeed(e){const u=e.t/WSURGET,prof=Math.sin(Math.PI*Math.pow(u,.55)),rows=Math.max(2,Math.round(WSURGEH*prof)),rising=u<.28,d=e.d;e.t++;
   if(liqCount[WATER]>3400)return;
   for(let j=0;j<rows;j++){const k=j/WSURGEH;fluidAdd(WATER,e.x0+d*rnd(0,5),FLOOR-10-j*8.5,d*(8.6+4*k+rnd(0,1)),rising?-rnd(.4,2.6)*k:rnd(-.4,.9));}
@@ -3187,7 +3187,7 @@ function lightning(x,y){
 /* ============================== liquids: position-based particle fluid ============================== */
 // Every drop is a particle. Each step the solver pushes particles apart wherever the liquid is denser than its
 // rest density, which is what makes it level out, pile up behind walls, slosh and pour.
-let FMAX=1600;const FH=18,FH2=FH*FH,FD0=8.5,FRAD=4.2,FSUB=3,FIT=2,FEPS=.002,FVMAX=12.6,FCELL=FH+3,FNBMAX=28;
+let FMAX=1600,fSolids=true;const FBIG=1200,FH=18,FH2=FH*FH,FD0=8.5,FRAD=4.2,FSUB=3,FIT=2,FEPS=.002,FVMAX=12.6,FCELL=FH+3,FNBMAX=28;
 const WATER=0,LAVA=1,ACID=2,HONEY=3,PASTE=4,ROCK=5,ICE=6,SAND=7,LNAME=['water','lava','acid','honey','paste','rock','ice','sand'],SD=7.8;   /* rock, ice and sand are solid; sand is the one that falls. SD: how close two grains pack */
 let LX=new Float32Array(FMAX),LY=new Float32Array(FMAX),LPX=new Float32Array(FMAX),LPY=new Float32Array(FMAX),LVX=new Float32Array(FMAX),LVY=new Float32Array(FMAX),
   LRHO=new Float32Array(FMAX),LDX=new Float32Array(FMAX),LDY=new Float32Array(FMAX),LTM=new Float32Array(FMAX),
@@ -3269,24 +3269,24 @@ function fluidWorld(i){
     else{x+=dx/d*(R-d);y+=dy/d*(R-d);}}
   LX[i]=x;LY[i]=y;
 }
-function fluidSolve(rev){
-  const inv0=1/FRHO0,self=K6*FH2*FH2*FH2;
-  for(let ii=0;ii<LN;ii++){const i=rev?LN-1-ii:ii;if(LTYPE[i]>=ROCK)continue;
-    const xi=LX[i],yi=LY[i],a=NBS[i],b=NBS[i+1];let rho=self,s2=0,gx=0,gy=0;
-    for(let k=a;k<b;k++){const j=NB[k],dx=LX[j]-xi,dy=LY[j]-yi,r2=dx*dx+dy*dy;if(r2>=FH2){NG[k]=0;continue;}
-      const w=FH2-r2;rho+=K6*w*w*w;const r=Math.sqrt(r2),hr=FH-r,g=KS*hr*hr*inv0;let nx,ny;
-      if(r>1e-3){nx=dx/r;ny=dy/r;}else{nx=(k&1)?.8:-.8;ny=(k&2)?.6:-.6;}
-      const jx=g*nx,jy=g*ny;NGX[k]=jx;NGY[k]=jy;NG[k]=1;gx-=jx;gy-=jy;if(LTYPE[j]<ROCK)s2+=g*g;}
-    LRHO[i]=rho;const C=rho*inv0-1;if(C<=0)continue;                       // only resist compression: free surfaces stay free
-    const lam=-C/(s2+gx*gx+gy*gy+FEPS);
-    LX[i]+=lam*gx;LY[i]+=lam*gy;
-    for(let k=a;k<b;k++){if(!NG[k])continue;const j=NB[k];if(LTYPE[j]>=ROCK)continue;LX[j]+=lam*NGX[k];LY[j]+=lam*NGY[k];}
+function fluidSolve(rev){   /* (the busiest loop in the game: a pool of 3000 drops goes through it about 340,000 times a frame) */
+  const X=LX,Y=LY,T=LTYPE,nbs=NBS,nb=NB,ngx=NGX,ngy=NGY,RH=LRHO,n=LN,solids=fSolids,h2=FH2,h=FH,k6=K6,ks=KS,inv0=1/FRHO0,self=k6*h2*h2*h2,eps=FEPS;
+  for(let ii=0;ii<n;ii++){const i=rev?n-1-ii:ii;if(solids&&T[i]>=ROCK)continue;
+    const xi=X[i],yi=Y[i],a=nbs[i],b=nbs[i+1];let rho=self,s2=0,gx=0,gy=0;
+    for(let k=a;k<b;k++){const j=nb[k],dx=X[j]-xi,dy=Y[j]-yi,r2=dx*dx+dy*dy;if(r2>=h2){ngx[k]=0;ngy[k]=0;continue;}
+      const w=h2-r2;rho+=k6*w*w*w;const r=Math.sqrt(r2),hr=h-r,g=ks*hr*hr*inv0;let nx,ny;
+      if(r>1e-3){const ir=1/r;nx=dx*ir;ny=dy*ir;}else{nx=(k&1)?.8:-.8;ny=(k&2)?.6:-.6;}
+      const jx=g*nx,jy=g*ny;gx-=jx;gy-=jy;if(solids&&T[j]>=ROCK){ngx[k]=0;ngy[k]=0;}else{ngx[k]=jx;ngy[k]=jy;s2+=g*g;}}   /* (a solid neighbour presses back but is not moved) */
+    RH[i]=rho;const C=rho*inv0-1;if(C<=0)continue;                       // only resist compression: free surfaces stay free
+    const lam=-C/(s2+gx*gx+gy*gy+eps);
+    X[i]+=lam*gx;Y[i]+=lam*gy;
+    for(let k=a;k<b;k++){const jx=ngx[k],jy=ngy[k];if(jx===0&&jy===0)continue;const j=nb[k];X[j]+=lam*jx;Y[j]+=lam*jy;}
   }
 }
 function fluidStepCore(){
   if(!LN)return;
-  fluidHash();fluidNeighbors();
-  const S=FSUB,gs=gravity/S;
+  fluidHash();fluidNeighbors();{let so=false;for(let i=0;i<LN;i++)if(LTYPE[i]>=ROCK){so=true;break;}fSolids=so;}   /* is anything solid about (rock, ice, sand)? Looked up fresh each frame: the counts in liqCount are a frame old */
+  const S=LN>FBIG?2:FSUB,gs=gravity/S;   /* FBIG: past this many drops, two sub-steps a frame instead of three */
   for(let s=0;s<S;s++){
     for(let i=0;i<LN;i++){if(LTYPE[i]>=ROCK){LVX[i]=LVY[i]=0;LPX[i]=LX[i];LPY[i]=LY[i];continue;}
       let vx=LVX[i],vy=LVY[i]+gs;const m=vx*vx+vy*vy;if(m>FVMAX*FVMAX){const k=FVMAX/Math.sqrt(m);vx*=k;vy*=k;}
@@ -5827,10 +5827,11 @@ function render(a){
 /* ============================== loop ============================== */
 let last=performance.now(),acc=0,statT=0;
 function loopErr(e,where){const L=window.__flopErrors||(window.__flopErrors=[]);L.push({where,frame,msg:String(e&&e.message||e),stack:String(e&&e.stack||'').split(String.fromCharCode(10)).slice(0,4).join(' | ')});if(L.length>30)L.shift();if(L.length<=5)console.error('Flopworks: error in '+where+' (the game carries on)',e);}
+const STEPBUDGET=13;
 function loop(now){
   requestAnimationFrame(loop);                                   /* asked for first, so that nothing that goes wrong below can stop the game */
   const dt=Math.min(.05,(now-last)/1000);last=now;
-  try{if(cine)cineStep(dt);else if(!paused){acc+=dt*timeScale;let n=0;while(acc>=STEP&&n<4){step();acc-=STEP;n++;}if(n===4)acc=0;}else pausedStep();}catch(e){acc=0;loopErr(e,'step');}
+  try{if(cine)cineStep(dt);else if(!paused){acc+=dt*timeScale;let n=0;const st0=performance.now();while(acc>=STEP&&n<4){step();acc-=STEP;n++;if(acc>=STEP&&performance.now()-st0>STEPBUDGET){acc=0;break;}}if(n===4)acc=0;   /* STEPBUDGET: once this much of the frame has gone on stepping, the steps still owed are dropped */}else pausedStep();}catch(e){acc=0;loopErr(e,'step');}
   try{camStep();vitFade();}catch(e){loopErr(e,'camera');}
   try{render(paused?1:acc/STEP);}catch(e){loopErr(e,'render');try{const c=cv.getContext('2d');c.setTransform(1,0,0,1,0,0);c.globalAlpha=1;}catch(_){}}
   if(now-statT>250){statT=now;let r=0,alive=0;for(const b of bodies)if(b.kind==='ragdoll'){r++;if(!b.dead)alive++;}$('stats').innerHTML='Ragdolls <b>'+alive+'</b>/'+r+' · K.O. <b>'+kos+'</b> · Mayhem <b>'+Math.round(mayhem)+'</b>';}
