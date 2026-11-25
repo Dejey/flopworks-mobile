@@ -325,8 +325,7 @@ html.mrot .panel,html.mrot #bottom,html.mrot #top,html.mrot #settings,html.mrot 
     <label class="srow"><span class="si">👮</span><span class="st"><b>Police arrest</b><small>Custom characters with the Police officer role taser and handcuff anyone they see starting a fight</small></span><input type="checkbox" id="setArrest" checked><i class="sw"></i></label>
     <label class="srow"><span class="si">🪰</span><span class="st"><b>Rotting</b><small>A body left dead for a while slowly turns green and draws flies. Water washes it clean</small></span><input type="checkbox" id="setRot" checked><i class="sw"></i></label>
     <label class="srow"><span class="si">🧟</span><span class="st"><b>Dead rise as zombies</b><small>Anyone who dies gets back up as a zombie a few seconds later (as long as they still have a head), and goes after the living</small></span><input type="checkbox" id="setRise"><i class="sw"></i></label>
-    <label class="srow"><span class="si">🔄</span><span class="st"><b>Smooth turning</b><small>When a dummy turns to face the other way, its face swings across its head over a moment instead of flipping at once</small></span><input type="checkbox" id="setTurn"><i class="sw"></i></label>
-    <label class="srow"><span class="si">🌊</span><span class="st"><b>Smooth movement</b><small>Dummies are drawn with their little shakes, twitches and snaps eased out, and they walk with longer, flowing steps, easing into and out of their stride, so walking, standing and posing look smoother. Fast things (throws, punches, falls) are left as sharp as ever</small></span><input type="checkbox" id="setSmooth"><i class="sw"></i></label>
+    <label class="srow"><span class="si">🌊</span><span class="st"><b>Smooth movement</b><small>Dummies are drawn with their little shakes, twitches and snaps eased out, they walk with longer, flowing steps, easing into and out of their stride, and when one turns to face the other way its face swings across its head over a moment instead of flipping at once. Fast things (throws, punches, falls) are left as sharp as ever</small></span><input type="checkbox" id="setSmooth"><i class="sw"></i></label>
     <label class="srow"><span class="si">😱</span><span class="st"><b>Reactions</b><small>They shout, gasp, run and duck at what happens, disasters included</small></span><input type="checkbox" id="setReact" checked><i class="sw"></i></label>
     <label class="srow"><span class="si">👀</span><span class="st"><b>Watch the cursor</b><small>Standing dummies turn to face your cursor and wave when it comes near. Off: they take no notice of it</small></span><input type="checkbox" id="setWatch" checked><i class="sw"></i></label>
     <label class="srow"><span class="si">🪂</span><span class="st"><b>Realistic falling</b><small>Fast free fall and painful landings (default). Off = feather fall</small></span><input type="checkbox" id="setFall"><i class="sw"></i></label>
@@ -2008,8 +2007,8 @@ function witness(x,y,key,a,v,name,kind,R,what){                /* what: the dang
 }
 let rotOn=true;const ROTWAIT=1500,ROTTIME=2400;          // starts about 25 seconds after death, fully green 40 seconds later
 let riseOn=false,turnOn=false,smoothOn=false;
-function setSmoothOn(v){smoothOn=v;$('setSmooth').checked=v;try{localStorage.setItem('flopworksM.smooth',v?'1':'0');}catch(e){}}
-function setTurnOn(v){turnOn=v;$('setTurn').checked=v;try{localStorage.setItem('flopworksM.turn',v?'1':'0');}catch(e){}}
+function setSmoothOn(v){smoothOn=v;$('setSmooth').checked=v;try{localStorage.setItem('flopworksM.smooth',v?'1':'0');}catch(e){}setTurnOn(v);}   /* one switch for both (the user asked): smooth movement, and smooth turning with it */
+function setTurnOn(v){turnOn=v;try{localStorage.setItem('flopworksM.turn',v?'1':'0');}catch(e){}}   /* (it has no switch of its own any more: setSmoothOn sets it) */
 function setRiseOn(v){riseOn=v;$('setRise').checked=v;try{localStorage.setItem('flopworksM.rise',v?'1':'0');}catch(e){}}
 function setRotOn(v){rotOn=v;$('setRot').checked=v;try{localStorage.setItem('flopworksM.rot',v?'1':'0');}catch(e){}}
 function canRot(b){const f=b.C.fluid;return f==='Blood'||f==='Sap';}                    // flesh and plants go off; robots, bones, ghosts, snow and slime do not
@@ -6127,7 +6126,7 @@ function buildUI(){
   setFilmOn(filmOn);
   $('setArrest').onchange=e=>{setArrestOn(e.target.checked);e.target.blur();};try{if(localStorage.getItem('flopworksM.arrest')==='0')arrestOn=false;}catch(e){}setArrestOn(arrestOn);
   $('setRise').onchange=e=>{setRiseOn(e.target.checked);e.target.blur();};try{if(localStorage.getItem('flopworksM.rise')==='1')riseOn=true;}catch(e){}setRiseOn(riseOn);
-  $('setTurn').onchange=e=>{setTurnOn(e.target.checked);e.target.blur();};try{if(localStorage.getItem('flopworksM.turn')==='1')turnOn=true;}catch(e){}setTurnOn(turnOn);
+  try{if(localStorage.getItem('flopworksM.turn')==='1')smoothOn=true;}catch(e){}   /* (someone who had only the old Smooth turning switch on keeps their smooth turns) */
   $('setSmooth').onchange=e=>{setSmoothOn(e.target.checked);e.target.blur();};try{if(localStorage.getItem('flopworksM.smooth')==='1')smoothOn=true;}catch(e){}setSmoothOn(smoothOn);
   $('setSplat').onchange=e=>{setSplatLife(e.target.value);e.target.blur();};{let v=0;try{v=+localStorage.getItem('flopworksM.splat')||0;}catch(e){}setSplatLife(v);}
   $('setRot').onchange=e=>{setRotOn(e.target.checked);e.target.blur();};
