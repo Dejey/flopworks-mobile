@@ -302,7 +302,7 @@ html.mrot .panel,html.mrot #bottom,html.mrot #top,html.mrot #settings,html.mrot 
 <div id="vit"></div>
 <div id="mapMenu"></div>
 <div id="settings">
-  <div class="shead"><h3>⚙ Settings</h3><button id="setClose" tabindex="-1" title="Close (Esc)">✕</button></div>
+  <div class="shead"><h3 id="setTitle">Settings</h3><button id="setClose" tabindex="-1" title="Close (Esc)">✕</button></div>
   <h4>Display</h4>
   <div class="sgroup">
     <label class="srow"><span class="si">📊</span><span class="st"><b>Vitals panel</b><small>Health, blood, pain, pulse and body parts, top-right</small></span><input type="checkbox" id="setVit" checked><i class="sw"></i></label>
@@ -336,7 +336,7 @@ html.mrot .panel,html.mrot #bottom,html.mrot #top,html.mrot #settings,html.mrot 
 <div id="bottom">
   <div class="sec"><h2>Characters <span>— click to drop one in</span></h2><div id="chars"></div></div>
   <div class="sec"><h2>Character mode → <span id="tgt" title="Click to deselect">everyone</span></h2><div id="modes"></div></div>
-  <div class="sec"><h2>Team → <span id="ttgt" title="Click to deselect">everyone</span></h2><div id="teams"></div><button class="tb" id="bSplit" tabindex="-1" title="Put the left half of the ragdolls on Team Red and the right half on Team Blue">⚔ Red vs Blue</button></div>
+  <div class="sec"><h2>Team → <span id="ttgt" title="Click to deselect">everyone</span></h2><div id="teams"></div><button class="tb" id="bSplit" tabindex="-1" title="Put the left half of the ragdolls on Team Red and the right half on Team Blue">Red vs Blue</button></div>
 </div>
 <div id="maker"><div class="mk">
   <h1 id="mkTitle">Character creator</h1>
@@ -346,7 +346,7 @@ html.mrot .panel,html.mrot #bottom,html.mrot #top,html.mrot #settings,html.mrot 
       <div class="mkpaint"><canvas id="mkGuide" width="256" height="256"></canvas><canvas id="mkPaint" width="256" height="256"></canvas><canvas id="mkGuideB" width="256" height="256" style="display:none"></canvas><canvas id="mkPaintB" width="256" height="256" style="display:none;cursor:crosshair"></canvas><canvas id="mkGuideC" width="256" height="256" style="display:none"></canvas><canvas id="mkPaintC" width="256" height="256" style="display:none;cursor:crosshair"></canvas></div>
       <div class="mksw" id="mkSw"></div>
       <div class="mkbar"><input type="color" id="mkCol" value="#1c1c22" title="Any colour" style="width:32px;height:26px;border:1px solid #2c3960;border-radius:6px;background:none;padding:0;cursor:pointer">
-        <button class="tb" id="mkB1" title="Fine brush">•</button><button class="tb" id="mkB2" title="Medium brush">●</button><button class="tb" id="mkB3" title="Fat brush">⬤</button><button class="tb" id="mkFill" title="Paint bucket: click an area and it is filled with the colour. It stops at lines you have painted and at the edge of the head. With the eraser on, it empties the area instead">🪣 Fill</button>
+        <button class="tb" id="mkB1" title="Fine brush">•</button><button class="tb" id="mkB2" title="Medium brush">●</button><button class="tb" id="mkB3" title="Fat brush">⬤</button><button class="tb" id="mkFill" title="Paint bucket: click an area and it is filled with the colour. It stops at lines you have painted and at the edge of the head. With the eraser on, it empties the area instead">Fill</button>
         <button class="tb" id="mkErase" title="Rub out what you painted">Eraser</button><button class="tb" id="mkUndo">Undo</button><button class="tb" id="mkClear">Clear</button><button class="tb" id="mkSolid" type="button" title="Collision for what you paint on the head. Off: the painting is only a picture (it passes through things). On: whatever sticks out past the head (a hat, horns, long hair) is solid: it rests on the floor, bumps into walls and pushes other dummies">Collision: off</button></div>
       <label class="mkf" style="margin-top:9px"><input type="checkbox" id="mkNoFace"> Hide the head's own face (use only what I paint)</label>
       <p class="mkhint">Paint straight onto the head: hair, a hat, a beard, scars, a whole new face. Switch to <b>Clothes</b> to paint the top, the sleeves, the legs and the shoes on the body laid out flat. <b>Cloth</b> is one loose piece (a cape, a scarf, a skirt, long hair) that hangs from the body and swings: paint it top to bottom, pick what it hangs from. Clothes paint may go a little outside the body (cuffs, a skirt, boot tops): it stays on the nearest part and moves with it. For a collar, paint inside the dashed <b>collar</b> box under the chin: it is drawn in front of the neck and the bottom of the head. <b>Collision</b> makes whatever you painted sticking out of the head solid. Fill pours the colour into a whole area at once. There is room round the head for anything that sticks out. The painting faces right and turns with the dummy.</p>
@@ -393,7 +393,7 @@ html.mrot .panel,html.mrot #bottom,html.mrot #top,html.mrot #settings,html.mrot 
     <li><b>Maps</b> (top bar): Lab, OG Map (the original starting scene), Playground, Volcano, Water Park, Sky Towers, Moon Base, Gauntlet. Reset rebuilds the current map.</li>
     <li><b>Modes</b>: Limp, Stand, Walk, Fight, Zombie, Dance, Flee, Possess. Grab a ragdoll to select it — modes apply to the selected one, or to everyone if none is selected.</li>
     <li><b>Possess</b>: <kbd>A</kbd>/<kbd>D</kbd> move · <kbd>W</kbd>/<kbd>Space</kbd> jump · <kbd>S</kbd> crouch · <kbd>F</kbd> punch · <kbd>C</kbd> grab / let go (then <kbd>F</kbd> throws) · <kbd>G</kbd> kick · <kbd>E</kbd> special · <kbd>Q</kbd> go limp</li>
-    <li><kbd>H</kbd> heal the dummy under the cursor · <kbd>M</kbd> pause (tools still work while paused, so you can set things up) · <kbd>T</kbd> slow-mo · <kbd>R</kbd> reset · <kbd>N</kbd> mute · The view starts at 1.2× zoom: <kbd>Z</kbd> zooms in · <kbd>J</kbd> zooms out · double-tap <kbd>Z</kbd> goes back to 1.2× · push the cursor to an edge to pan · right-click = alt action (shrink / cancel) · <kbd>⚙</kbd> settings: vitals panel, NPCs socializing, NPCs reacting (to each other and to disasters), realistic falling, blood and bruises, full destruction (smash any body part into paste)</li>
+    <li><kbd>H</kbd> heal the dummy under the cursor · <kbd>M</kbd> pause (tools still work while paused, so you can set things up) · <kbd>T</kbd> slow-mo · <kbd>R</kbd> reset · <kbd>N</kbd> mute · The view starts at 1.2× zoom: <kbd>Z</kbd> zooms in · <kbd>J</kbd> zooms out · double-tap <kbd>Z</kbd> goes back to 1.2× · push the cursor to an edge to pan · right-click = alt action (shrink / cancel) · the <b>gear</b> button opens settings: vitals panel, NPCs socializing, NPCs reacting (to each other and to disasters), realistic falling, blood and bruises, full destruction (smash any body part into paste)</li>
   </ul>
   <button id="bStart">Start flopping</button>
 </div></div>
@@ -1048,14 +1048,14 @@ function relThink(b,I){
     else if(reactOn&&b.reactCd<=0&&!b.bubble&&(b.t+b.id*91)%420===0){bubble(b,customLine(b,'love',o.C.name)||pick(['I missed you!','You look lovely today.','Stay close to me.','There you are, my love.']),95);b.reactCd=110;}}
 }
 function loveFree(o,b){return (o.mode==='stand'||isWalk(o))&&!o.dead&&!o.grudge&&!o.fearOf&&!o.react&&!(o.sleep>0)&&!o.held&&o.balance>.6&&!o.aid&&!o.cpr&&!o.swim&&o!==possessed&&!(o.cuffT>frame)&&(!o.soc.partner||o.soc.partner===b);}
-/* the two of them, in step: a hug (arms round each other), a kiss (heads together, a 💋 and hearts) or a flower handed over */
+/* the two of them, in step: a hug (arms round each other), a kiss (heads together, a Mwah! and hearts) or a flower handed over */
 function loveAct(b,I,A,p){const hip=b.pts[HIP],ph=p.pts[HIP],dx=ph.x-hip.x,d=Math.abs(dx),sc=b.C.scale*b.sc,dir=dx>=0?1:-1,t=A.t,pn=p.pts[NECK],phd=p.pts[HEAD],bh=b.pts[HEAD];
   b.facing=dir;I.jump=false;b.loveT=frame;(b.pass||(b.pass={}))[p.id]=frame+12;
   const want=A.k==='gift'?46*sc:A.k==='kiss'?25*sc:20*sc;I.mv=d>want+5?dir*.5:d<want-5?-dir*.35:0;
   if(A.k==='hug'){I.arms='cpr';I.fx=pn.x+dir*5*sc;I.fy=pn.y+12*sc;I.fmv=7;I.lean=5;
     if(t===36){for(let i=0;i<3;i++)say(bh.x+rnd(-12,12),bh.y-22-rnd(0,14),'♥','#ff6b9a',12+rnd(0,7));b.pain=Math.max(0,b.pain-12);}}       // a hug makes it hurt less
   else if(A.k==='kiss'){I.arms='five';I.fx=phd.x-dir*3*sc;I.fy=phd.y+5*sc;I.fmv=6;I.lean=9;
-    if(t===30&&A.lead){const mx=(bh.x+phd.x)/2,my=Math.min(bh.y,phd.y)-20;say(mx,my,'💋','#ff6b9a',18);sfx('pop',.35);for(let i=0;i<4;i++)say(mx+rnd(-16,16),my-rnd(6,20),'♥','#ff6b9a',11+rnd(0,6));}}
+    if(t===30&&A.lead){const mx=(bh.x+phd.x)/2,my=Math.min(bh.y,phd.y)-20;say(mx,my,'Mwah!','#ff6b9a',15);sfx('pop',.35);for(let i=0;i<4;i++)say(mx+rnd(-16,16),my-rnd(6,20),'♥','#ff6b9a',11+rnd(0,6));}}
   else{const gx=hip.x+dir*d*.5,gy=b.pts[NECK].y+10*sc;if(A.lead||t>30){I.arms='five';I.fx=gx;I.fy=gy;I.fmv=6;}                       // the flower: the giver holds it out, the other reaches for it and takes it
     if(A.lead){if(t<46)b.flowerT=frame+2;else if(t===46){b.flowerT=0;p.flowerT=frame+600;sfx('pop',.3);for(let i=0;i<3;i++)say(gx+rnd(-12,12),gy-18-rnd(0,14),'♥','#ff6b9a',11+rnd(0,6));}}}
 }
@@ -2289,7 +2289,7 @@ function chatScript(cv,sp,li,near,r){
       if(good)Q.push({w:0,t:j[1],act:'laugh',actT:56,fn:(c,s,l)=>{bubble(l,pick(JOKEHA));overhear(c,OVERHA);}});else Q.push({w:0,t:j[1]},{w:1,t:pick(GROAN),fn:c=>overhear(c,OVERGROAN)});}
     else if(k<.54)Q.push({w:0,t:pick(PRAISE),fn:(c,s,l)=>{l.cheerT=frame+220;}},{w:1,t:pick(THANKS)});
     else if(k<.7&&x){const G=GOSSIP[x.dead?'dead':x.zombie||x.mode==='zombie'?'zombie':x.sleep>0?'sleep':x.mode==='fight'?'fight':x.mode==='dance'?'dance':bruiseLevel(x)>.35||x.hp<x.maxHp*.5?'hurt':'plain'];cv.pt=x;Q.push({w:0,t:pick(G[0]),act:'point',actT:62},{w:1,t:pick(G[1])});}
-    else if(k<.8&&near){const a=(Math.random()*3)|0,b=(Math.random()*3)|0,E=['✊','✋','✌️'],w=a===b?-1:(a-b+3)%3===1?0:1;                                       // rock paper scissors: paper beats rock, scissors beat paper, rock beats scissors
+    else if(k<.8&&near){const a=(Math.random()*3)|0,b=(Math.random()*3)|0,E=['Rock!','Paper!','Scissors!'],w=a===b?-1:(a-b+3)%3===1?0:1;                                       // rock paper scissors: paper beats rock, scissors beat paper, rock beats scissors
       Q.push({w:0,t:pick(RPSASK)},{w:1,t:pick(RPSYES)},{w:0,both:['One… two…','…three!'],act:'rps',actT:80},{w:0,both:[E[a],E[b]],life:80});
       if(w<0)Q.push({w:0,t:'A tie!'},{w:1,t:pick(['Great minds.','Again!','We are too alike.'])});else Q.push({w:w,t:pick(RPSWIN),fn:(c,s,l)=>{s.cheerT=frame+220;}},{w:1-w,t:pick(RPSLOSE)});}
     else if(k<.93&&near&&cv.a.mode==='walk'&&cv.b.mode==='walk'&&XR-XL>520)Q.push({w:0,t:pick(RACEASK)},{w:1,t:pick(RACEYES),fn:c=>{c.raceGo=frame+70;}});
@@ -2640,7 +2640,7 @@ function updateVitals(){
   s+='<div class="vr"><span>Pulse</span><div class="vp">'+(C.pulse>0?'<b class="hb'+(bpm>3?' on':'')+'"'+beat+'>♥</b> '+bpm+' bpm':'— no heartbeat')+'</div></div>';
   const ef=effectsOf(b);
   s+='<h4>Effects</h4><div class="vc">'+(ef.length?ef.map(e=>'<span style="border-color:'+e[1]+';color:'+e[1]+'">'+e[0]+'</span>').join(''):'<span class="none">None</span>')+'</div>';
-  let have=0;const chips=PARTS.map(pr=>{const st=b.sticks[pr[0]],ok=!st.cut&&st.p.att&&st.q.att,ch=(st.p.burnt+st.q.burnt)*.5>.5;if(ok)have++;return '<span class="'+(ok?(ch?'burnt':'ok'):'lost')+'">'+(st.gone?'🫠 ':ok?'✓ ':'✗ ')+pr[1]+'</span>';}).join('');
+  let have=0;const chips=PARTS.map(pr=>{const st=b.sticks[pr[0]],ok=!st.cut&&st.p.att&&st.q.att,ch=(st.p.burnt+st.q.burnt)*.5>.5;if(ok)have++;return '<span class="'+(ok?(ch?'burnt':'ok'):'lost')+'">'+(ok&&!st.gone?'✓ ':'✗ ')+pr[1]+'</span>';}).join('');
   s+='<h4>Body parts <small>'+have+'/'+PARTS.length+'</small></h4>'+(bodyFig?bodyFigure(b):'<div class="vc parts">'+chips+'</div>');
   el.innerHTML=s;if(bodyFig)bodyFigDraw(b);
 }
@@ -2659,7 +2659,7 @@ function figStub(b){let f=FIGSTUB.get(b);if(f&&f.cid===b.cid)return f;f=mkStub(b
 function figLost(b){const lost=[];for(let i=0;i<=SHR;i++){const st=b.sticks[i];lost[i]=!(!st.cut&&st.p.att&&st.q.att);}return lost;}
 function figWeak(b,i){const st=b.sticks[i];return pasteOn&&st.hp!==undefined?1-clamp(st.hp/((PART_HP[i]*b.C.hp/100*b.sc*b.sc)||1),0,1):0;}   /* Full destruction: how near a part is to coming off */
 function bodyFigure(b){const lost=figLost(b),notes=[];let have=0;
-  PARTS.forEach(pr=>{const st=b.sticks[pr[0]];if(lost[pr[0]]){notes.push('<span class="lost">'+(st.gone?'🫠 ':'✗ ')+pr[1]+'</span>');return;}have++;
+  PARTS.forEach(pr=>{const st=b.sticks[pr[0]];if(lost[pr[0]]){notes.push('<span class="lost">'+'✗ '+pr[1]+'</span>');return;}have++;
     if((st.p.burnt+st.q.burnt)*.5>.5)notes.push('<span class="burnt">Charred: '+pr[1]+'</span>');else if(figWeak(b,pr[0])>.5)notes.push('<span class="hurt">Weak: '+pr[1]+'</span>');});
   const hd=b.pts[HEAD];if(hd.cutA>0&&!hd.gone&&!lost[SN])notes.push('<span class="hurt">Head: sliced</span>');
   return '<div class="vfig"><span id="vfigc"></span><div class="vl"><b'+(have===PARTS.length?' class="ok">All '+have+' parts there':'>'+have+' of '+PARTS.length+' parts there')+'</b>'+notes.join('')+'</div></div>';}
@@ -4451,7 +4451,7 @@ const TOOLS={
   pizza:{name:'Pizza',icon:'🍕',desc:'Click to drop a pizza, or drag to aim and let go to throw it. Calm dummies nearby come over for it; the first to get there eats it and feels better.',
     down(){aim={x:mouse.x,y:mouse.y};},up(){if(!aim)return;const G={type:'pizza',x:aim.x,y:aim.y,vy:0,w:26,cd:0};gizmos.push(G);if(gizmos.length>40)gizmos.shift();sfx('click');gizThrow(G);}},
   burger:{name:'Food',icon:'🍔',desc:'Click to drop some food, or drag to aim and let go to throw it: a burger, chicken, cheese, a hot dog, fries, a donut, a taco or cake, a different one each time. Right-click switches which food you drop: one kind every time, or back to a different one each time. It falls from the cursor. Drop it on a dummy and it is eaten on the spot; otherwise dummies nearby come over and eat it, and each helping makes the eater fatter: a bigger belly, more weight, slower on their feet, and worse in a fight. Five helpings is the limit. Heal slims them down again, and so does fire: a burning dummy\'s fat burns off.',
-    down(){if(mouse.alt){foodPick=foodPick+1>=FOODS.length?-1:foodPick+1;setInfo('<b>🍔 Food</b> — now dropping: <b>'+(foodPick<0?'a different food each time':FOODS[foodPick].e+' '+FOODS[foodPick].n+' every time')+'</b>.');sfx('click');return;}aim={x:mouse.x,y:mouse.y};},
+    down(){if(mouse.alt){foodPick=foodPick+1>=FOODS.length?-1:foodPick+1;setInfo('<b>'+icoInl(TOOLS.burger.icon)+' Food</b> — now dropping: <b>'+(foodPick<0?'a different food each time':FOODS[foodPick].e+' '+FOODS[foodPick].n+' every time')+'</b>.');sfx('click');return;}aim={x:mouse.x,y:mouse.y};},
     up(){if(!aim)return;const G={type:'burger',food:foodPick<0?(Math.random()*FOODS.length)|0:foodPick,x:aim.x,y:aim.y,vy:0,w:26,cd:0};gizmos.push(G);if(gizmos.length>40)gizmos.shift();sfx('click');gizThrow(G);}},
   confetti:{name:'Confetti',icon:'🎉',desc:'Click for a burst of confetti. Dummies nearby cheer and dance for a while.',
     down(){const x=mouse.x,y=mouse.y;for(const c of ['#ff5a7a','#ffd24a','#7dff9a','#5ad1ff','#c79bff'])confetti(x,y,9,c);sfx('pop',.9);
@@ -5603,7 +5603,7 @@ function drawRagOverlay(g,b){
     if(b.stillT>=frame)drawStilled(g,b);
     if(b.fame>=100){const tx=hd.rx+hd.r+7,ty=hd.ry-hd.r+1,t=(b.fame>=10000?'✔ ':'★ ')+fameTxt(b.fame);g.font='700 10px system-ui';g.textAlign='left';const w=g.measureText(t).width;g.fillStyle='rgba(20,10,24,.78)';rr(g,tx-4,ty-10.5,w+8,14,7);g.fill();g.fillStyle=b.fame>=10000?'#7fd4ff':'#ff8ac4';g.fillText(t,tx,ty);}
     if(b.team){const ty=top-4-(b.hurtShow>0||b===selected?8:0);g.fillStyle=TEAMS[b.team].col;g.beginPath();g.arc(hd.rx-14,ty,4.5,0,6.3);g.fill();g.strokeStyle='rgba(0,0,0,.6)';g.lineWidth=1.2;g.stroke();}
-    g.font='13px system-ui';g.textAlign='center';g.globalAlpha=b===selected?1:.75;icoDraw(g,b.cuffT>frame?'⛓️':b.grudge&&b.calmMode?'💢':b.C.role&&ROLES[b.C.role]&&(b.mode==='stand'||isWalk(b)||(b.mode==='fight'&&b.C.role==='police'&&arrestOn))?ROLES[b.C.role].icon:MODES[b.mode].icon,hd.rx,top-(b.hurtShow>0||b===selected?8:0),15);g.globalAlpha=1;
+    g.font='13px system-ui';g.textAlign='center';g.globalAlpha=b===selected?1:.75;icoDraw(g,b.cuffT>frame?ICOCUFF:b.grudge&&b.calmMode?ICOMAD:b.C.role&&ROLES[b.C.role]&&(b.mode==='stand'||isWalk(b)||(b.mode==='fight'&&b.C.role==='police'&&arrestOn))?ROLES[b.C.role].icon:MODES[b.mode].icon,hd.rx,top-(b.hurtShow>0||b===selected?8:0),15);g.globalAlpha=1;
     if(b.hurtShow>0||b===selected){const w=34,x=hd.rx-w/2,y=top-4,f=clamp(b.hp/b.maxHp,0,1);g.fillStyle='rgba(0,0,0,.6)';g.fillRect(x-1,y-1,w+2,6);g.fillStyle=f>.5?'#5ae07a':f>.25?'#ffd24a':'#ff5a5a';g.fillRect(x,y,w*f,4);if(b.infect>0&&!b.zombie){g.fillStyle='#9be56a';g.fillRect(x,y+5,w*b.infect,2);}}
     if(b===possessed&&b.spCd>0){g.fillStyle='rgba(125,240,255,.8)';g.fillRect(hd.rx-17,top+3,34*(1-clamp(b.spCd/80,0,1)),2);}
   }
@@ -5702,7 +5702,7 @@ function drawFeeds(g){
     g.fillStyle='rgba(0,0,0,.28)';g.fillRect(x,y,PW,17);g.fillRect(x,y+PH-20,PW,20);
     if((frame>>4)&1){g.fillStyle='#ff3b3b';g.beginPath();g.arc(x+9,y+8.5,3.4,0,6.3);g.fill();}g.fillStyle='#fff';g.font='700 9.5px system-ui';g.textAlign='left';g.fillText(A.heal?'LIVE · hero cam':'LIVE',x+16,y+12);
     const sec=(A.t/60)|0;g.textAlign='right';g.fillText(((sec/60)|0)+':'+String(sec%60).padStart(2,'0'),x+PW-5,y+12);
-    const views=Math.round((40+A.t*(A.heal?3.1:1.7)+Math.sin(A.t*.05)*9)*(1+(b.fame||0)/2500));g.textAlign='left';g.font='600 9px system-ui';g.fillText('👁 '+(views>999?(views/1000).toFixed(1)+'k':views)+'  ·  '+o.C.name,x+5,y+PH-7);
+    const views=Math.round((40+A.t*(A.heal?3.1:1.7)+Math.sin(A.t*.05)*9)*(1+(b.fame||0)/2500));g.textAlign='left';g.font='600 9px system-ui';g.fillText((views>999?(views/1000).toFixed(1)+'k':views)+' watching  ·  '+o.C.name,x+5,y+PH-7);
     g.fillStyle='#ff6b9a';for(let k=0;k<3;k++){const u=((frame*.012+k*.37+b.id*.11)%1),hx=x+PW-12+Math.sin(u*6+k)*5,hy=y+PH-26-u*70;g.globalAlpha=al*(1-u);g.beginPath();g.moveTo(hx,hy+3);g.bezierCurveTo(hx-6,hy-2,hx-2.5,hy-6,hx,hy-2);g.bezierCurveTo(hx+2.5,hy-6,hx+6,hy-2,hx,hy+3);g.fill();}g.globalAlpha=al;   // likes floating up
     g.restore();
     g.fillStyle='#cdd8f5';g.font='600 10px system-ui';g.textAlign='center';g.fillText('@'+b.C.name.toLowerCase()+(b.fame>=1?'  ·  '+fameTxt(b.fame):''),x+PW/2,y+PH+15);g.globalAlpha=1;});
@@ -5788,17 +5788,17 @@ function render(a){
     if(aim){g.strokeStyle='rgba(255,210,74,.85)';g.lineWidth=3;g.beginPath();g.moveTo(aim.x,aim.y);g.lineTo(mouse.x,mouse.y);g.stroke();g.fillStyle=aim.pot?POTIONS[aim.pot].col:'#2a2d36';g.beginPath();g.arc(aim.x,aim.y,aim.pot?7:9,0,6.3);g.fill();}
     const R={ice:95,fire:26,blast:60,bolt:40,size:30,heal:40,sleep:150,lift:200,meteor:36}[curId];
     if(R){g.strokeStyle='rgba(255,255,255,.28)';g.lineWidth=1.5;g.setLineDash([4,5]);g.beginPath();g.arc(mouse.x,mouse.y,R,0,6.3);g.stroke();g.setLineDash([]);}
-    if(curId==='spawn'){g.globalAlpha=.5;g.font='22px system-ui';g.textAlign='center';g.fillText('➕',mouse.x,mouse.y-14);g.globalAlpha=1;}
+    if(curId==='spawn'){g.globalAlpha=.5;g.font='22px system-ui';g.textAlign='center';g.fillText('+',mouse.x,mouse.y-14);g.globalAlpha=1;}
     if(['grab','pin','rocket','balloon','tele','eraser','rope','weld','rage','clone'].includes(curId)&&!grab&&!tele){const p=findPoint(mouse.x,mouse.y,curId==='tele'||curId==='rage'||curId==='clone'?60:36,curId==='rope'||curId==='weld'||curId==='eraser'?()=>true:null);if(p){g.strokeStyle='rgba(255,255,255,.7)';g.lineWidth=1.5;g.beginPath();g.arc(p.rx,p.ry,p.r+4,0,6.3);g.stroke();}}
   }
   g.restore();
   if(flash>.02){g.fillStyle='rgba(255,255,255,'+flash*.5+')';g.fillRect(0,0,W,H);}
   if(cine)drawCine(g);if(!!cine!==cineHid){cineHid=!!cine;const v=$('vit');if(v)v.style.visibility=cineHid?'hidden':'';}   /* (the vitals panel is put away while a cut-scene plays: it sat over the picture) */
   if(raining){g.fillStyle='rgba(30,50,100,.13)';g.fillRect(VL,VT,VR-VL,VB-VT);}
-  if(timeScale!==1){g.fillStyle='rgba(120,200,255,.06)';g.fillRect(VL,VT,VR-VL,VB-VT);g.fillStyle='rgba(160,220,255,.8)';g.font='700 12px system-ui';g.textAlign='left';g.fillText(timeScale<1?'⏱ SLOW-MO':'⏩ FAST-FORWARD',VL+12,VT+20);}
-  if(Math.abs(zoom-defZoom())>.01){g.fillStyle='rgba(255,255,255,.75)';g.font='700 12px system-ui';g.textAlign='left';g.fillText('🔍 '+zoom.toFixed(1)+'×   Z in · J out · double-tap Z to reset · wheel or arrow keys move the view',VL+12,VT+(timeScale!==1?38:20));}
+  if(timeScale!==1){g.fillStyle='rgba(120,200,255,.06)';g.fillRect(VL,VT,VR-VL,VB-VT);g.fillStyle='rgba(160,220,255,.8)';g.font='700 12px system-ui';g.textAlign='left';g.fillText(timeScale<1?'SLOW-MO':'FAST-FORWARD',VL+12,VT+20);}
+  if(Math.abs(zoom-defZoom())>.01){g.fillStyle='rgba(255,255,255,.75)';g.font='700 12px system-ui';g.textAlign='left';g.fillText('Zoom '+zoom.toFixed(1)+'×   Z in · J out · double-tap Z to reset · wheel or arrow keys move the view',VL+12,VT+(timeScale!==1?38:20));}
   if(paused){g.fillStyle='rgba(255,255,255,.85)';g.font='800 22px system-ui';g.textAlign='center';g.fillText('PAUSED',(VL+VR)/2,VT+34);g.font='600 12px system-ui';g.fillStyle='rgba(255,255,255,.7)';g.fillText('Time is stopped, tools still work: tie ropes, pin, cut, place things, drag dummies into poses.  M to resume',(VL+VR)/2,VT+54);}
-  if(false&&possessed&&!possessed.remove){g.fillStyle='rgba(125,240,255,.85)';g.font='600 12px system-ui';g.textAlign='center';g.fillText('🎮 '+possessed.C.name+' — A/D move · W jump · '+(possessed.grip?'F throw · C let go':(possessed.gun?(GUNS[possessed.gun.id].melee?'F swing':'F shoot at the cursor'):'F punch')+' · C grab')+' · G kick · E '+possessed.C.spName+' · Q limp',(VL+VR)/2,VB-10);}
+  if(false&&possessed&&!possessed.remove){g.fillStyle='rgba(125,240,255,.85)';g.font='600 12px system-ui';g.textAlign='center';g.fillText('Driving '+possessed.C.name+' — A/D move · W jump · '+(possessed.grip?'F throw · C let go':(possessed.gun?(GUNS[possessed.gun.id].melee?'F swing':'F shoot at the cursor'):'F punch')+' · C grab')+' · G kick · E '+possessed.C.spName+' · Q limp',(VL+VR)/2,VB-10);}
   drawFeeds(g);
 }
 
@@ -5891,7 +5891,7 @@ function charCard(id){const C=CHARS[id],e=document.createElement('button');e.cla
   const nw=$('ccNew');if(nw)$('chars').insertBefore(e,nw);else $('chars').appendChild(e);return e;}
 function customCardRedraw(id){for(const pr of portraits)if(pr[1]===id)drawPortrait(pr[0],id);const e=document.querySelector('.cc[data-id="'+id+'"]');if(e&&e._label)e._label();}
 /* ---- the creator dialog ---- */
-const MKTR=[['hit','💥 Hits','hits and falls','Punches, kicks, falls and explosions'],['bullet','🔫 Bullets','bullets','Gunfire'],['fire','🔥 Fire','fire and lava','Fire and lava'],['shock','⚡ Shock','electricity','Lightning and tesla coils'],['ice','❄️ Ice','ice','Being frozen'],['acid','🧪 Acid','acid','Acid'],['water','💧 Water','water','Water: weak means it hurts to touch, immune means it never drowns']];
+const MKTR=[['hit','Hits','hits and falls','Punches, kicks, falls and explosions'],['bullet','Bullets','bullets','Gunfire'],['fire','Fire','fire and lava','Fire and lava'],['shock','Shock','electricity','Lightning and tesla coils'],['ice','Ice','ice','Being frozen'],['acid','Acid','acid','Acid'],['water','Water','water','Water: weak means it hurts to touch, immune means it never drowns']];
 const MKSW=['#1c1c22','#ffffff','#8a93a8','#d8343a','#ff8a2a','#ffd24a','#6fe23c','#2f9e44','#3d8df0','#8d5bd6','#ff7ab8','#5a3a22','#f0c8a0','#d89a6a'];
 let mk=null,mkBuilt=false;
 function mkStub(id){const b=makeRagdoll(id,0,0,'stand',true);b.facing=1;b.t=20;for(const p of b.pts){p.rx=p.x;p.ry=p.y;}return b;}
@@ -5924,7 +5924,7 @@ function makerBuild(){mkBuilt=true;
   for(const t of MKTR){const e=document.createElement('button');e.dataset.k=t[0];e.onclick=()=>{const s=mk.traits[t[0]];if(!s)mk.traits[t[0]]='weak';else if(s==='weak')mk.traits[t[0]]='immune';else delete mk.traits[t[0]];makerSync();};$('mkTraits').appendChild(e);}$('mkSpecial').onchange=e=>{mk.special=e.target.value;mk.specials[0]=mk.special;makerSync();};
   {const setN=e=>{let k=Math.round(+e.target.value);if(!(k>=1))return;const max=Object.keys(specialList()).length;if(k>max)k=max;while(mk.specials.length<k)mk.specials.push('');mk.specials.length=k;makerSpecials(e.type==='input');makerSync();};$('mkSpN').oninput=setN;$('mkSpN').onchange=setN;}
   {const ps=$('mkPreset'),o0=document.createElement('option');o0.value='';o0.textContent='Pick a ready-made character…';ps.appendChild(o0);MKPRESETS.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=p.name+' — '+p.tag;ps.appendChild(o);});ps.onchange=e=>{const p=MKPRESETS[+e.target.value];e.target.value='';if(p&&mk)makerPreset(p);e.target.blur();};}   /* (there are only so many different moves: a bigger number stops there) */
-  {const o=document.createElement('option');o.value='';o.textContent='No job';$('mkRole').appendChild(o);for(const k in ROLES){const p=document.createElement('option');p.value=k;p.textContent=ROLES[k].icon+' '+ROLES[k].name+' — '+ROLES[k].desc;$('mkRole').appendChild(p);}$('mkRole').onchange=e=>{mk.role=e.target.value;};}
+  {const o=document.createElement('option');o.value='';o.textContent='No job';$('mkRole').appendChild(o);for(const k in ROLES){const p=document.createElement('option');p.value=k;p.textContent=ROLES[k].name+' — '+ROLES[k].desc;$('mkRole').appendChild(p);}$('mkRole').onchange=e=>{mk.role=e.target.value;};}
   $('mkSize').oninput=e=>{mk.size=+e.target.value;makerSync();};
   for(const k of ['skin','shirt','pants','shoe'])$('mkC_'+k).oninput=e=>{mk.col[k]=e.target.value;makerSync();};
   $('mkSave').onclick=makerSave;$('mkExport').onclick=customsExport;$('mkImport').onclick=()=>$('mkFile').click();$('mkFile').onchange=e=>{const f=e.target.files&&e.target.files[0];if(f){const r=new FileReader();r.onload=()=>customsImport(String(r.result));r.readAsText(f);}e.target.value='';};$('mkCancel').onclick=makerClose;$('mkDel').onclick=makerDelete;
@@ -5942,7 +5942,7 @@ function makerRels(){                                           // the list of w
   for(const id in CHARS){const C=CHARS[id];if(C.hidden||id==='__mk'||id===mk.id)continue;add(id,C.name+(C.custom?' (yours)':''));}if(keep)w.value=keep;if(!w.value)w.value='__self';
   const box=$('mkRels');box.innerHTML='';
   mk.rel.forEach((r,i)=>{const e=document.createElement('button');e.type='button';e.className=r.k;const nm=r.id==='__self'?'its own kind':CHARS[r.id]?CHARS[r.id].name:'someone deleted';
-    e.textContent=(r.k==='love'?'♥ In love with ':r.k==='enemy'?'⚔ Enemies with ':'🤝 Friends with ')+nm+'  ✕';e.title='Click to remove';e.onclick=()=>{mk.rel.splice(i,1);makerRels();};box.appendChild(e);});}
+    e.textContent=(r.k==='love'?'♥ In love with ':r.k==='enemy'?'Enemies with ':'Friends with ')+nm+'  ✕';e.title='Click to remove';e.onclick=()=>{mk.rel.splice(i,1);makerRels();};box.appendChild(e);});}
 /* ---- the paint bucket ----
    Fills the area the click is on: the pixels joined to it that are like it (the same colour, near enough; or, on an empty spot, empty or only faintly
    painted) and on the same side of the head's edge. The soft edge of a painted line next to the fill gets the colour put in under it, so no pale rim
@@ -6149,7 +6149,7 @@ function healKey(){
   if(!b&&possessed&&!possessed.remove)b=possessed;
   if(!b){let bd=1e9;for(const o of bodies){if(o.kind!=='ragdoll')continue;const d=hyp(o.pts[HIP].x-mouse.x,o.pts[HIP].y-mouse.y)-(o.dead?400:0);if(d<bd){bd=d;b=o;}}}   // nobody pointed at: the nearest one, the dead first
   if(!b){setInfo('<b>H</b> heals a dummy — there is nobody here to heal.');return;}
-  revive(b);const hp=b.pts[HIP];ring(hp.x,hp.y-30,70,'#7dffb0',18,4);setInfo('<b>💚 Healed '+b.C.name+'</b> — H heals the dummy under the cursor, or the selected one.');
+  revive(b);const hp=b.pts[HIP];ring(hp.x,hp.y-30,70,'#7dffb0',18,4);setInfo('<b>'+icoInl(POWERS.heal.icon)+' Healed '+b.C.name+'</b> — H heals the dummy under the cursor, or the selected one.');
 }
 function togglePause(){paused=!paused;$('bPause').classList.toggle('on',paused);$('bPause').innerHTML=paused?ICO.svg(ICO.U.play,15,true)+' Play':ICO.svg(ICO.U.pause,15,true)+' Pause';}
 function setGrav(m){if(m!==gravMode&&frame>5)witness((XL+XR)/2,FLOOR-80,'grav'+m,null,null,'','look',5000);gravMode=m;gravity=GRAVS[m].g;$('bGrav').innerHTML=(typeof ICO!=='undefined'?ICO.svg(ICO.U.grav,16,true):'')+' '+GRAVS[m].n;$('bGrav').classList.toggle('on',m!==0);}
@@ -6586,7 +6586,9 @@ const ICO=(()=>{
   const svg=(b,z,inl)=>'<svg viewBox="0 0 24 24" width="'+(z||24)+'" height="'+(z||24)+'" style="display:'+(inl?'inline-block;vertical-align:-'+Math.round((z||24)*.26)+'px':'block')+'">'+b+'</svg>';
   return {T,P,M,U,MAPI,SI,FI,XI,svg};
 })();
-function icoApply(){for(const id in ICO.T)if(TOOLS[id]&&!/^<svg/.test(TOOLS[id].icon||''))TOOLS[id].icon=ICO.svg(ICO.T[id],24);
+let ICOCUFF='',ICOMAD='';   /* over a dummy's head: in handcuffs, and angry (drawn icons, as the mode icons are) */
+function icoApply(){ICOCUFF=ICO.svg(ICO.SI.setArrest,20,true);ICOMAD=ICO.svg(ICO.P.rage,20,true);{const R={police:ICO.SI.setArrest,medic:ICO.T.kit,fire:ICO.P.potFire};for(const k in R)if(ROLES[k]&&R[k])ROLES[k].icon=ICO.svg(R[k],20,true);}   /* a job's icon over the head: a badge, a medkit, an extinguisher */
+  for(const id in ICO.T)if(TOOLS[id]&&!/^<svg/.test(TOOLS[id].icon||''))TOOLS[id].icon=ICO.svg(ICO.T[id],24);
   for(const id in ICO.P)if(POWERS[id])POWERS[id].icon=ICO.svg(ICO.P[id],24);
   for(const id in ICO.M)if(MODES[id]&&ICO.M[id])MODES[id].icon=ICO.svg(ICO.M[id],20,true);
   for(const id in MAPS){const m=MAPS[id];m.label=m.name.replace(/^\S+\s/,'');if(ICO.MAPI[id])m.name=ICO.svg(ICO.MAPI[id],17,true)+' '+m.label;}   /* a map's name: its drawing, then the name in words (m.label: the words alone) */
@@ -6598,12 +6600,12 @@ function icoDraw(g,ic,x,y,z){if(typeof ic!=='string'||ic[0]!=='<'){g.fillText(ic
 /* an icon inside a line of text (the top line): the same drawing, smaller and on the line */
 function icoInl(ic){return typeof ic==='string'&&ic[0]==='<'?ic.replace(/style="display:block"/,'style="display:inline-block;vertical-align:-4px;height:17px;width:auto"'):ic;}
 /* the top bar's own buttons */
-function icoTop(){const U=ICO.U,S=ICO.svg;$('bClear').innerHTML=S(U.clear,16,true)+' Clear';$('bReset').innerHTML=S(U.reset,15,true)+' Reset';$('bSet').innerHTML=S(U.gear,18,true);$('bHelp').innerHTML=S(U.help,18,true);
+function icoTop(){const U=ICO.U,S=ICO.svg;$('bClear').innerHTML=S(U.clear,16,true)+' Clear';{const h=$('setTitle');if(h)h.innerHTML=S(U.gear,17,true)+' Settings';}$('bReset').innerHTML=S(U.reset,15,true)+' Reset';$('bSet').innerHTML=S(U.gear,18,true);$('bHelp').innerHTML=S(U.help,18,true);
   $('bPause').innerHTML=paused?S(U.play,15,true)+' Play':S(U.pause,15,true)+' Pause';$('bMute').innerHTML=S(muted?U.mute:U.sound,18,true);$('bGrav').innerHTML=S(U.grav,16,true)+' '+GRAVS[gravMode].n;icoRows();}
 /* the settings rows: each one's picture, found by the id of its switch */
 function icoRows(){for(const id in ICO.SI){const el=$(id),row=el&&el.closest('.srow'),si=row&&row.querySelector('.si');if(si)si.innerHTML=ICO.svg(ICO.SI[id],20);}}
 icoApply();customsLoad();buildUI();icoTop();defCharUI();$('setDefChar').onchange=e=>{setDefChar(e.target.value);e.target.blur();};pickTool('grab');{let mp='lab';try{defMap=localStorage.getItem('flopworksM.defmap');if(!MAPS[defMap])defMap=null;mp=defMap||localStorage.getItem('flopworksM.map')||'lab';}catch(e){}loadMap(mp);}
-setInfo('<b>✋ Grab</b> — drag a ragdoll around, or pick a tool, power, character or mode.');
+setInfo('<b>'+icoInl(TOOLS.grab.icon)+' Grab</b> — drag a ragdoll around, or pick a tool, power, character or mode.');
 requestAnimationFrame(loop);
 // test / debug hooks
 window.__flop={get bodies(){return bodies;},get links(){return links;},get walls(){return walls;},get fx(){return fx;},tick(n=1){for(let i=0;i<n;i++)step();render(1);},spawn:(id,x,y,m)=>makeRagdoll(id,x,y,m),setMode,applyMode,pickTool,select,mouse,keys,TOOLS,POWERS,CHARS,MODES,explode,boom,lightning,freeze,ignite,revive,scaleBody,makeCrate,makeBall,makeBomb,makeShot,makeBalloon,special,
@@ -6622,7 +6624,7 @@ window.__flop={get bodies(){return bodies;},get links(){return links;},get walls
     <button type="button" data-k="KeyF" class="big">👊<small id="mHitL">Punch</small></button>
   </div>
 </div>
-<div id="mTurn" class="mhide">↻ Turn your phone sideways for a bigger view.<b id="mTurnLock">🔒 Rotation locked? Tap to turn the game sideways</b><i id="mTurnHide">tap here to hide</i></div>
+<div id="mTurn" class="mhide">↻ Turn your phone sideways for a bigger view.<b id="mTurnLock">Rotation locked? Tap to turn the game sideways</b><i id="mTurnHide">tap here to hide</i></div>
 <script>
 /* ===== Flopworks Mobile: the touch layer. Runs after the game; uses the game's own names (keys, pressed, zoom, camX, cur, ...) =====
    - drawers: Tools, Powers, and the character bar slide over the arena; picking a tool shuts its drawer; a tap on the arena shuts an open one
@@ -6660,7 +6662,7 @@ $('mAlt').onclick=()=>{setAlt(!MOBV.alt);setInfo(MOBV.alt?'<b>Alt is on</b> — 
 {const PADI={KeyQ:ICO.M.limp,KeyV:ICO.P.swap,KeyE:ICO.U.powers,KeyC:ICO.T.grab,KeyG:ICO.P.haste,KeyF:ICO.M.fight};for(const b of document.querySelectorAll('#mBtns button')){const sm=b.querySelector('small');b.innerHTML=ICO.svg(PADI[b.dataset.k],26);if(sm)b.appendChild(sm);}
   $('mGive').innerHTML=ICO.svg(ICO.T.grab,17,true)+' Give it to a dummy';$('mDet').innerHTML=ICO.svg(ICO.P.blast,17,true)+' Detonate';}
 $('mGive').onclick=()=>{audioKick();giveGun();};$('mDet').onclick=()=>{audioKick();c4Detonate();};
-{const si=window.setInfo;window.setInfo=function(h){return si.call(this,String(h).replace(/Right-click switches which food you drop/g,'Switch ⇄ Alt on and tap to change which food you drop').replace(/Right-click to set off every charge/g,'Tap 💥 Detonate to set off every charge').replace(/Left-click/g,'Tap').replace(/left-click/g,'tap').replace(/(^|[^-\w])Click\b/g,'$1Tap').replace(/(^|[^-\w])click\b/g,'$1tap').replace(/Press Backspace on it again/g,'Tap 🤲 Give again').replace(/press <b>Backspace<\/b>/g,'tap <b>🤲 Give</b>').replace(/Backspace/g,'The 🤲 Give button'));};}   /* the top line talks about the button, not the key */
+{const si=window.setInfo;window.setInfo=function(h){return si.call(this,String(h).replace(/Right-click switches which food you drop/g,'Switch ⇄ Alt on and tap to change which food you drop').replace(/Right-click to set off every charge/g,'Tap Detonate to set off every charge').replace(/Left-click/g,'Tap').replace(/left-click/g,'tap').replace(/(^|[^-\w])Click\b/g,'$1Tap').replace(/(^|[^-\w])click\b/g,'$1tap').replace(/Press Backspace on it again/g,'Tap Give again').replace(/press <b>Backspace<\/b>/g,'tap <b>Give</b>').replace(/Backspace/g,'The Give button'));};}   /* the top line talks about the button, not the key */
 $('mCancel').onclick=()=>{ropeA=null;wallA=null;aim=null;fanA=null;};
 
 /* ---- the camera: two fingers ---- */
@@ -6750,7 +6752,7 @@ $('mTurnHide').onclick=()=>{turnHid=true;turnNote();};$('bStart').addEventListen
 $('bStart').addEventListener('click',()=>setTimeout(()=>{turnHid=true;turnNote();},14000));   /* the note goes away by itself after a while */
 /* ---- the sideways lock (see MOBV.sync): on, the game stays sideways on an upright screen, for a phone whose own rotation lock is on ---- */
 function setSideLock(v){MOBV.lock=!!v;try{localStorage.setItem('flopworksM.sidelock',v?'1':'0');}catch(e){}$('setSide').checked=MOBV.lock;window.dispatchEvent(new Event('resize'));
-  if(v)setInfo(MOBV.rot?'<b>Sideways lock is on.</b> Hold the phone sideways with its top to the left. Switch it off in ⚙ Settings.':'<b>Sideways lock is on.</b> It turns the game whenever the screen is upright.');}
+  if(v)setInfo(MOBV.rot?'<b>Sideways lock is on.</b> Hold the phone sideways with its top to the left. Switch it off in Settings.':'<b>Sideways lock is on.</b> It turns the game whenever the screen is upright.');}
 $('mTurnLock').onclick=()=>{audioKick();setSideLock(true);};
 {const g=document.querySelector('#settings .sgroup'),l=document.createElement('label');l.className='srow';
   l.innerHTML='<span class="si">'+ICO.svg(ICO.SI.setSide,20)+'</span><span class="st"><b>Sideways lock</b><small>Keeps the game sideways even when the screen is upright. For a phone with its rotation lock on (an iPhone only locks upright): hold it sideways with its top to the left</small></span><input type="checkbox" id="setSide"><i class="sw"></i>';
