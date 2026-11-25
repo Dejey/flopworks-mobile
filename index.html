@@ -5934,7 +5934,7 @@ window.__flop={get bodies(){return bodies;},get links(){return links;},get walls
    - camera: two fingers pinch to zoom and drag to move the view (the first finger's tool action is let go)
    - Possess: a stick and buttons that press the same keys the keyboard would
    - chips: Alt (right-click's job: erase, shrink, reverse) and Cancel (a rope, wall or aim half made)
-   - phone performance mode: softer canvas, fewer sparks, a cap on liquid */
+   - phone performance mode: softer canvas, fewer sparks (no cap on liquid any more) */
 (()=>{
 const top=$('top'),DR={tools:$('tools'),powers:$('powers'),bottom:$('bottom')};
 function tbtn(id,txt,title,before){const b=document.createElement('button');b.className='tb mtb';b.id=id;b.tabIndex=-1;b.textContent=txt;b.title=title;top.insertBefore(b,before||null);return b;}
@@ -6026,10 +6026,10 @@ setInterval(()=>{const b=possessed&&!possessed.remove&&!possessed.dead?possessed
 
 /* ---- phone performance mode ---- */
 {const p0=window.part;let n=0;window.part=function(){if(MOBV.perf&&parts.length>420&&(++n)%3)return;return p0.apply(this,arguments);};   /* a crowd of sparks: two in three are skipped */
- const f0=window.fluidAdd;let fullT=-1e9;window.fluidAdd=function(){if(MOBV.perf&&LN>=5000){if(mouse.down&&LIQT[curId]!==undefined&&frame-fullT>300){fullT=frame;setInfo('<b>Liquid is full</b> — phone performance mode allows 5000 drops. Erase some, or switch performance mode off in ⚙ Settings to pour more.');}return -1;}return f0.apply(this,arguments);};}   /* (and it says so when you pour into a full scene, rather than seeming broken) */                /* liquid: no more than 5000 drops at once */
+}   /* (there was a cap on liquid here too: 1300 drops, then 2000, 3000, 5000 as the user kept asking for it to be raised; now there is none, as in the desktop game) */
 function setPerf(v){MOBV.perf=!!v;MOBV.dpr=v?1.5:2;try{localStorage.setItem('flopworksM.perf',v?'1':'0');}catch(e){}$('setPerf').checked=MOBV.perf;resize();if(zoom<minZoom())zoom=minZoom();clampCam();mouseWorld();}
 {const g=document.querySelector('#settings .sgroup'),l=document.createElement('label');l.className='srow';
-  l.innerHTML='<span class="si">📱</span><span class="st"><b>Phone performance mode</b><small>Keeps the game smooth on a phone: a slightly softer picture, fewer sparks and splashes, and at most 5000 drops of liquid. Switch it off on a fast phone or a tablet</small></span><input type="checkbox" id="setPerf"><i class="sw"></i>';
+  l.innerHTML='<span class="si">📱</span><span class="st"><b>Phone performance mode</b><small>Keeps the game smooth on a phone: a slightly softer picture, and fewer sparks and splashes. Switch it off on a fast phone or a tablet. (Liquid has no limit: a lot of it will slow the game down)</small></span><input type="checkbox" id="setPerf"><i class="sw"></i>';
   g.insertBefore(l,g.firstChild);$('setPerf').checked=MOBV.perf;$('setPerf').onchange=e=>setPerf(e.target.checked);}
 
 /* ---- the start card, and the turn-your-phone note ---- */
